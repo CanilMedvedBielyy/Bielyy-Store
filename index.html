@@ -601,6 +601,22 @@
   </section>
 </main>
 
+<!-- ============ BRAND VIEW (loja + encomendas juntos) ============ -->
+<main id="view-brand" style="display:none;">
+  <section class="section" id="brand" style="padding-top:40px;">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">Marca</span>
+          <h2 id="brandViewTitle">Marca</h2>
+          <p>Todos os produtos dessa marca, disponíveis agora ou sob encomenda.</p>
+        </div>
+      </div>
+      <div class="grid" id="brandGrid"></div>
+    </div>
+  </section>
+</main>
+
 <!-- ============ ABOUT VIEW ============ -->
 <main id="view-about" style="display:none;">
   <section class="section about-section" id="about">
@@ -884,6 +900,8 @@ PREORDER_FAMILIES.forEach((f,i)=>{
 
 
 const CATALOG_BRANDS = new Set(PRODUCT_FAMILIES.map(f=>f.brand));
+const PREORDER_CATALOG_BRANDS = new Set(PREORDER_FAMILIES.map(f=>f.brand));
+const ALL_CATALOG_BRANDS = new Set([...CATALOG_BRANDS, ...PREORDER_CATALOG_BRANDS]);
 const CATEGORIES = [...new Set(PRODUCT_FAMILIES.map(f=>f.category))];
 const PREORDER_CATEGORIES = [...new Set(PREORDER_FAMILIES.map(f=>f.category))];
 const SIZE_LABELS = {P:"Pequeno", M:"Médio", G:"Grande"};
@@ -1014,14 +1032,26 @@ function wordmarkFontSize(name){
   if(len<=12) return '19px';
   return '15px';
 }
+function renderBrandPage(brand){
+  document.getElementById('brandViewTitle').textContent = brand;
+  const shopItems = PRODUCT_FAMILIES.filter(f=>f.brand===brand);
+  const preItems = PREORDER_FAMILIES.filter(f=>f.brand===brand);
+  const list = [...shopItems, ...preItems];
+  const grid = document.getElementById('brandGrid');
+  grid.innerHTML = list.length ? list.map(productCard).join('') : `<p style="color:var(--ink-soft); grid-column:1/-1; text-align:center; padding:40px 0;">Nenhum produto encontrado dessa marca 🐾</p>`;
+}
+function goToBrandProducts(brand){
+  renderBrandPage(brand);
+  showView('brand');
+}
 function renderBrandWall(){
   const grid = document.getElementById('brandWallGrid');
   grid.innerHTML = BRANDS.map((b,i)=>{
     const c1 = MONO_COLORS[i % MONO_COLORS.length];
     const c2 = MONO_COLORS_B[i % MONO_COLORS_B.length];
-    const has = CATALOG_BRANDS.has(b.n);
+    const has = ALL_CATALOG_BRANDS.has(b.n);
     return `
-    <div class="brand-logo-card" style="${has?'cursor:pointer;':'opacity:.55;'}" onclick="${has?`setCategory('all'); setBrand('${b.n}'); showView('shop');`:''}">
+    <div class="brand-logo-card" style="${has?'cursor:pointer;':'opacity:.55;'}" onclick="${has?`goToBrandProducts('${b.n}');`:''}">
       <div class="brand-wordmark" style="background:linear-gradient(135deg,${c1},${c2});"><span style="font-size:${wordmarkFontSize(b.n)};">${b.n}</span></div>
       <div class="btag">${has ? b.hint : 'Sem estoque no momento'}</div>
     </div>`;
@@ -1094,7 +1124,7 @@ function renderShop(){
   let list = PRODUCT_FAMILIES.filter(f=>{
     const matchCat = activeCategory==='all' || f.category===activeCategory;
     const matchBrand = activeBrand==='all' || f.brand===activeBrand;
-    const matchSize = activeSize==='all' || (f.sizes && f.sizes.includes(activeSize));
+    const matchSize = activeSize==='all' || !f.sizes || f.sizes.length===0 || f.sizes.includes(activeSize);
     const matchQ = !q || f.name.toLowerCase().includes(q) || f.brand.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || (f.sizes||[]).some(s=>SIZE_LABELS[s].toLowerCase().includes(q));
     return matchCat && matchBrand && matchSize && matchQ;
   });
@@ -1125,7 +1155,7 @@ function renderPreorder(){
   let list = PREORDER_FAMILIES.filter(f=>{
     const matchCat = activeCategoryPre==='all' || f.category===activeCategoryPre;
     const matchBrand = activeBrandPre==='all' || f.brand===activeBrandPre;
-    const matchSize = activeSizePre==='all' || (f.sizes && f.sizes.includes(activeSizePre));
+    const matchSize = activeSizePre==='all' || !f.sizes || f.sizes.length===0 || f.sizes.includes(activeSizePre);
     const matchQ = !q || f.name.toLowerCase().includes(q) || f.brand.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || (f.sizes||[]).some(s=>SIZE_LABELS[s].toLowerCase().includes(q));
     return matchCat && matchBrand && matchSize && matchQ;
   });
@@ -1137,7 +1167,7 @@ function renderPreorder(){
    VIEW SWITCHING
 ===================================================== */
 function showView(view){
-  ['home','shop','preorder','about','checkout'].forEach(v=>{
+  ['home','shop','preorder','about','checkout','brand'].forEach(v=>{
     document.getElementById('view-'+v).style.display = (v===view) ? 'block' : 'none';
   });
   window.scrollTo({top:0, behavior:'smooth'});
