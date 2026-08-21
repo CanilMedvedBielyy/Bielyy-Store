@@ -658,10 +658,20 @@
               <div class="form-field"><label>WhatsApp</label><input id="ckPhone" placeholder="(11) 90000-0000"></div>
             </div>
             <div class="form-row">
+              <div class="form-field"><label>E-mail (opcional)</label><input id="ckEmail" type="email" placeholder="seu@email.com"></div>
+            </div>
+            <div class="form-row">
               <div class="form-field"><label>CEP</label><input id="ckCep" placeholder="00000-000"></div>
               <div class="form-field"><label>Cidade / UF</label><input id="ckCity" placeholder="São Paulo / SP"></div>
             </div>
-            <div class="form-field"><label>Endereço completo</label><input id="ckAddress" placeholder="Rua, número, complemento, bairro"></div>
+            <div class="form-row">
+              <div class="form-field" style="flex:2;"><label>Rua / Avenida</label><input id="ckStreet" placeholder="Rua das Flores"></div>
+              <div class="form-field"><label>Número</label><input id="ckNumber" placeholder="123"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-field"><label>Bairro</label><input id="ckNeighborhood" placeholder="Centro"></div>
+              <div class="form-field"><label>Complemento (opcional)</label><input id="ckComplement" placeholder="Apto 45, bloco B..."></div>
+            </div>
           </div>
           <div class="ck-card">
             <h3>Forma de pagamento</h3>
@@ -1563,11 +1573,16 @@ function finalizeOrder(){
   if(lines.length===0){ pulseToast('Seu carrinho está vazio 🐾'); return; }
   const name = document.getElementById('ckName').value || 'Cliente';
   const phone = document.getElementById('ckPhone').value || '';
-  const address = document.getElementById('ckAddress').value || '';
+  const email = document.getElementById('ckEmail').value || '';
+  const street = document.getElementById('ckStreet').value || '';
+  const number = document.getElementById('ckNumber').value || '';
+  const neighborhood = document.getElementById('ckNeighborhood').value || '';
+  const complement = document.getElementById('ckComplement').value || '';
   const city = document.getElementById('ckCity').value || '';
   const cepCk = (document.getElementById('ckCep').value || '').replace(/\D/g,'');
-  if(!phone || !address || !city || cepCk.length !== 8){
-    pulseToast('Preenche seu WhatsApp, CEP e endereço completo antes de continuar 🐾');
+  const address = `${street}, ${number}${neighborhood ? ' - '+neighborhood : ''}`;
+  if(!phone || !street || !number || !city || cepCk.length !== 8){
+    pulseToast('Preenche seu WhatsApp, CEP, rua, número e cidade antes de continuar 🐾');
     return;
   }
   if(!shipping){
@@ -1613,8 +1628,8 @@ function finalizeOrder(){
       webhook_url: window.location.origin + '/.netlify/functions/infinitepay-webhook',
       order_nsu: String(Date.now()),
       items: lines.map(l=>({quantity: l.qty, price: Math.round(checkoutPrice(l.variant)*100), description: l.family.name + (l.family.variants.length>1?` (${l.variant.label})`:'')})),
-      customer: {name, phone},
-      address: { cep: cepCk, number: '', complement: `${address} - ${city}` }
+      customer: {name, phone, email: email || undefined},
+      address: { cep: cepCk, street, neighborhood, number, complement }
     };
     if(appliedCoupon && appliedCoupon.forceTotal != null){
       // Cupom de teste: substitui os itens por um único item no valor exato do teste
@@ -1634,7 +1649,7 @@ function finalizeOrder(){
       }
     }
     payload.orderDetails = {
-      address: { address, city },
+      address: { street, number, neighborhood, complement, city, cep: cepCk },
       total,
       shipping: shipping ? { label: shipping.label, price: shipping.price } : null
     };
@@ -1649,6 +1664,14 @@ function finalizeOrder(){
       .then(({ok, data}) => {
         if(ok && data.url){
           if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
+          try {
+            localStorage.setItem('bielyy_pending_order', JSON.stringify({
+              order_nsu: payload.order_nsu,
+              name, phone, email, street, number, neighborhood, complement, city, cep: cepCk,
+              items: payload.items,
+              total
+            }));
+          } catch(e){}
           cart = {};
           saveCart();
           window.location.href = data.url;
@@ -1824,16 +1847,42 @@ updateAccountUI();
 // Se o cliente voltou de um pagamento da InfinitePay, mostra o número do pedido
 (function checkPaymentReturn(){
   const params = new URLSearchParams(location.search);
-  const orderNsu = params.get('order_nsu');
+  let orderNsu = params.get('order_nsu');
+
   if(orderNsu){
+    // Salva no navegador pra sobreviver a um recarregamento acidental da página
+    localStorage.setItem('bielyy_last_order', JSON.stringify({ orderNsu, ts: Date.now() }));
+    window.history.replaceState({}, '', location.pathname);
+  } else {
+    // Não veio pela URL — checa se tem uma confirmação recente salva (últimas 24h) e ainda não fechada
+    try {
+      const saved = JSON.parse(localStorage.getItem('bielyy_last_order') || 'null');
+      if(saved && (Date.now() - saved.ts) < 24*60*60*1000){
+        orderNsu = saved.orderNsu;
+      }
+    } catch(e){}
+  }
+
+  if(orderNsu){
+    let waButtonHtml = '';
+    try {
+      const pending = JSON.parse(localStorage.getItem('bielyy_pending_order') || 'null');
+      if(pending && pending.order_nsu === orderNsu){
+        const itemsText = (pending.items || []).map(it => `• ${it.quantity}x ${it.description}`).join('%0A');
+        const msg = `Olá! Acabei de pagar pelo site 🎉%0A%0APedido #${pending.order_nsu}%0A%0ANome: ${pending.name}%0AWhatsApp: ${pending.phone}%0AE-mail: ${pending.email || '-'}%0A%0AEndereço: ${pending.street}, ${pending.number}${pending.complement ? ' - '+pending.complement : ''}%0ABairro: ${pending.neighborhood}%0ACidade: ${pending.city}%0ACEP: ${pending.cep}%0A%0AItens:%0A${itemsText}%0A%0ATotal: R$ ${pending.total ? pending.total.toFixed(2) : '?'}`;
+        const waLink = `https://wa.me/5511966061102?text=${msg}`;
+        waButtonHtml = `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-block; margin-left:14px; background:#25D366; color:#fff; padding:6px 14px; border-radius:20px; font-weight:700; text-decoration:none;">📲 Confirmar por WhatsApp</a>`;
+        // Tenta abrir automaticamente também (pode ser bloqueado pelo navegador, o botão fica como reforço)
+        setTimeout(() => { try { window.open(waLink, '_blank'); } catch(e){} }, 800);
+      }
+    } catch(e){}
+
     const banner = document.createElement('div');
     banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:999; background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; padding:16px 20px; text-align:center; font-family:Poppins; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.15);';
-    banner.innerHTML = `🎉 Pagamento confirmado! Seu número de pedido é <strong>#${orderNsu}</strong>.
-      <a href="/pedido.html?pedido=${orderNsu}" style="color:#fff; text-decoration:underline; font-weight:700;">Acompanhar pedido →</a>
-      <span style="cursor:pointer; margin-left:14px; opacity:.8;" onclick="this.parentElement.remove()">✕</span>`;
+    banner.innerHTML = `🎉 Pagamento confirmado! Copie ou salve o número do seu pedido: <strong>#${orderNsu}</strong>.
+      ${waButtonHtml}
+      <span style="cursor:pointer; margin-left:14px; opacity:.8;" onclick="this.parentElement.remove(); localStorage.removeItem('bielyy_last_order'); localStorage.removeItem('bielyy_pending_order');">✕</span>`;
     document.body.prepend(banner);
-    // limpa a URL pra não ficar poluída
-    window.history.replaceState({}, '', location.pathname);
   }
 })();
 
