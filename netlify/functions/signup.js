@@ -31,7 +31,7 @@ exports.handler = async function (event) {
   const emailKey = email.trim().toLowerCase();
 
   try {
-    const store = getStore('users');
+    const store = getStore('users', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
     const existing = await store.get(emailKey, { type: 'json' });
     if (existing) {
       return { statusCode: 409, body: JSON.stringify({ error: 'Já existe uma conta com esse e-mail' }) };
