@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acompanhar pedido — Bielyy Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple-deep:#6D42B8; --purple:#8B5FD1; --purple-soft:#B79BEA;
+    --lavender:#F3ECFF; --pink:#FF7FAE; --pink-soft:#FFD9E6;
+    --cream:#FFF9FC; --gold:#FFC93C; --ink:#3A2E52; --ink-soft:#7A6E96;
+    --green:#3FAE5C; --red:#E0703B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Poppins',sans-serif; background:var(--cream); color:var(--ink);
+    min-height:100vh; padding:24px 16px;
+  }
+  h1,h2{font-family:'Baloo 2',cursive; color:var(--purple-deep);}
+  .wrap{max-width:520px; margin:40px auto;}
+  a.back{color:var(--purple-deep); font-size:13.5px; font-weight:600; text-decoration:none; display:inline-block; margin-bottom:20px;}
+
+  #search{background:#fff; border-radius:20px; padding:32px 28px; box-shadow:0 12px 32px rgba(109,66,184,.12); text-align:center;}
+  #search h1{font-size:22px; margin-bottom:6px;}
+  #search p{color:var(--ink-soft); font-size:13.5px; margin-bottom:20px;}
+  #search input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--lavender); font-family:'Poppins'; font-size:14.5px; margin-bottom:12px; text-align:center;}
+  #search input:focus{outline:none; border-color:var(--purple);}
+  #search button{width:100%; padding:12px; border-radius:12px; background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; font-weight:700; font-size:14.5px;}
+  #searchError{color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px;}
+
+  #result{display:none; background:#fff; border-radius:20px; padding:28px 26px; box-shadow:0 12px 32px rgba(109,66,184,.12);}
+  #result h2{font-size:19px; margin-bottom:4px;}
+  #result .sub{color:var(--ink-soft); font-size:13px; margin-bottom:24px;}
+
+  .timeline{list-style:none; margin-bottom:24px;}
+  .timeline li{display:flex; gap:14px; padding-bottom:26px; position:relative;}
+  .timeline li:last-child{padding-bottom:0;}
+  .timeline li:not(:last-child)::before{
+    content:''; position:absolute; left:13px; top:28px; bottom:0; width:2px; background:var(--lavender);
+  }
+  .timeline li.done:not(:last-child)::before{background:var(--purple-soft);}
+  .dot{
+    width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:var(--lavender); color:var(--ink-soft); font-size:13px; font-weight:700; z-index:1;
+  }
+  .timeline li.done .dot{background:var(--purple-deep); color:#fff;}
+  .timeline li.current .dot{background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; box-shadow:0 0 0 4px var(--lavender);}
+  .step-label{font-weight:700; font-size:14.5px; color:var(--ink-soft); padding-top:3px;}
+  .timeline li.done .step-label, .timeline li.current .step-label{color:var(--ink);}
+  .step-note{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+  .items-box{background:var(--lavender); border-radius:14px; padding:14px 16px; font-size:13px; color:var(--ink);}
+  .items-box div{padding:3px 0;}
+  .tracking{margin-top:16px; font-size:13px; text-align:center;}
+  .tracking a{color:var(--purple-deep); font-weight:700;}
+  #newSearch{display:block; text-align:center; margin-top:20px; color:var(--purple-deep); font-size:13px; font-weight:600; cursor:pointer;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/">← Voltar pra loja</a>
+
+    <div id="search">
+      <h1>📦 Acompanhar pedido</h1>
+      <p>Digite o número do seu pedido (você recebeu ele após finalizar a compra)</p>
+      <input type="text" id="orderInput" placeholder="Número do pedido" onkeydown="if(event.key==='Enter') buscar()">
+      <button onclick="buscar()">Buscar</button>
+      <div id="searchError"></div>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+<script>
+const STEPS = [
+  { key: 'pago', label: 'Pedido confirmado', note: 'Recebemos seu pagamento' },
+  { key: 'em_preparacao', label: 'Em preparação', note: 'Estamos separando e embalando seu pedido' },
+  { key: 'enviado', label: 'Enviado', note: 'Seu pedido está a caminho' },
+  { key: 'entregue', label: 'Chegou! 🎉', note: 'Pedido entregue' }
+];
+
+function buscar(){
+  const num = document.getElementById('orderInput').value.trim();
+  const errBox = document.getElementById('searchError');
+  errBox.textContent = '';
+  if(!num){ return; }
+
+  fetch('/.netlify/functions/track-order?order=' + encodeURIComponent(num))
+    .then(r => {
+      if(r.status === 404){ throw new Error('notfound'); }
+      return r.json();
+    })
+    .then(data => render(data))
+    .catch(err => {
+      if(err.message === 'notfound'){
+        errBox.textContent = 'Não encontramos nenhum pedido com esse número. Confira e tenta de novo.';
+      } else {
+        errBox.textContent = 'Erro ao buscar. Tenta de novo em instantes.';
+      }
+    });
+}
+
+function render(order){
+  document.getElementById('search').style.display = 'none';
+  const box = document.getElementById('result');
+  box.style.display = 'block';
+
+  if(order.status === 'aguardando_pagamento'){
+    box.innerHTML = `
+      <h2>Oi${order.customerFirstName ? ', '+order.customerFirstName : ''}!</h2>
+      <div class="sub">Pedido #${order.order_nsu}</div>
+      <p style="color:var(--ink-soft); font-size:14px; line-height:1.6;">Ainda não recebemos a confirmação do pagamento desse pedido. Se você já pagou, aguarde alguns minutos e atualize a página.</p>
+      <span id="newSearch" onclick="location.reload()">🔍 Buscar outro pedido</span>
+    `;
+    return;
+  }
+
+  const currentIdx = STEPS.findIndex(s => s.key === order.status);
+  const itemsHtml = order.items.map(it => `<div>${it.quantity}x ${it.description}</div>`).join('');
+  const trackingHtml = order.trackingCode
+    ? `<div class="tracking">Código de rastreio: <strong>${order.trackingCode}</strong><br><a href="https://rastreamento.correios.com.br/app/index.php" target="_blank" rel="noopener">Rastrear nos Correios →</a></div>`
+    : '';
+
+  box.innerHTML = `
+    <h2>Oi${order.customerFirstName ? ', '+order.customerFirstName : ''}!</h2>
+    <div class="sub">Pedido #${order.order_nsu}</div>
+    <ul class="timeline">
+      ${STEPS.map((s,i) => `
+        <li class="${i < currentIdx ? 'done' : i === currentIdx ? 'current' : ''}">
+          <span class="dot">${i < currentIdx ? '✓' : i+1}</span>
+          <div>
+            <div class="step-label">${s.label}</div>
+            <div class="step-note">${s.note}</div>
+          </div>
+        </li>
+      `).join('')}
+    </ul>
+    <div class="items-box">${itemsHtml}</div>
+    ${trackingHtml}
+    <span id="newSearch" onclick="location.reload()">🔍 Buscar outro pedido</span>
+  `;
+}
+
+// Se veio um número de pedido pela URL (?pedido=123), já busca direto
+const params = new URLSearchParams(location.search);
+const preOrder = params.get('pedido');
+if(preOrder){
+  document.getElementById('orderInput').value = preOrder;
+  buscar();
+}
+</script>
+</body>
+</html>
