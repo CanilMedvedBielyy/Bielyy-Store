@@ -969,8 +969,15 @@ let activeSize = "all";
 let shipping = null;
 let appliedCoupon = null;
 const COUPONS = {
-  "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: false, label: "R$ 10 OFF na primeira compra" }
+  "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: false, label: "R$ 10 OFF na primeira compra" },
+  "BIELYYFRET3": { fixed: 0, freeShipping: true, label: "Frete grátis" },
+  "1478180803": { fixed: 0, forceTotal: 1, label: "Cupom de teste — total R$ 1,00" }
 };
+function computeOrderTotal(sub, discount, shipping){
+  if(appliedCoupon && appliedCoupon.forceTotal != null) return appliedCoupon.forceTotal;
+  const shipCost = (shipping && !(appliedCoupon && appliedCoupon.freeShipping)) ? shipping.price : 0;
+  return Math.max(0, sub - discount) + shipCost;
+}
 function hasUsedFirstPurchaseCoupon(){
   return localStorage.getItem('bielyy_first_purchase_used') === '1';
 }
@@ -1208,9 +1215,11 @@ function ckey(familyId, variantIdx){ return familyId + ':' + variantIdx; }
 const MAX_QTY_PER_ITEM = 3;
 function addToCart(familyId, variantIdx, qty){
   const k = ckey(familyId, variantIdx);
-  const newQty = Math.min((cart[k]||0) + qty, MAX_QTY_PER_ITEM);
-  if((cart[k]||0) + qty > MAX_QTY_PER_ITEM){
-    pulseToast(`Máximo de ${MAX_QTY_PER_ITEM} unidades por produto 🐾`);
+  const f = familyById(familyId);
+  const limit = (f && f.preorder) ? Infinity : MAX_QTY_PER_ITEM;
+  const newQty = Math.min((cart[k]||0) + qty, limit);
+  if((cart[k]||0) + qty > limit){
+    pulseToast(`Máximo de ${limit} unidades por produto 🐾`);
   }
   cart[k] = newQty;
   saveCart();
@@ -1224,9 +1233,12 @@ function removeFromCart(k){
   renderCart();
 }
 function changeQty(k, delta){
+  const familyId = parseInt(k.split(':')[0]);
+  const f = familyById(familyId);
+  const limit = (f && f.preorder) ? Infinity : MAX_QTY_PER_ITEM;
   const newQty = (cart[k]||0) + delta;
-  if(newQty > MAX_QTY_PER_ITEM){
-    pulseToast(`Máximo de ${MAX_QTY_PER_ITEM} unidades por produto 🐾`);
+  if(newQty > limit){
+    pulseToast(`Máximo de ${limit} unidades por produto 🐾`);
     return;
   }
   cart[k] = newQty;
@@ -1295,8 +1307,8 @@ function renderCart(){
   } else {
     couponRow.style.display = 'none';
   }
-  document.getElementById('cartShippingVal').textContent = shipping ? fmt(shipping.price) : 'A calcular';
-  document.getElementById('cartTotal').textContent = fmt(Math.max(0, sub - discount) + (shipping?shipping.price:0));
+  document.getElementById('cartShippingVal').textContent = (appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis 🎉' : (shipping ? fmt(shipping.price) : 'A calcular');
+  document.getElementById('cartTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping));
 }
 function openCart(){
   document.getElementById('cartDrawer').classList.add('show');
@@ -1442,7 +1454,7 @@ function renderModalBody(){
       <div class="modal-qty">
         <button class="qty-btn" onclick="modalQty=Math.max(1,modalQty-1); document.getElementById('modalQtyVal').textContent=modalQty;">−</button>
         <span id="modalQtyVal" style="font-weight:700;">${modalQty}</span>
-        <button class="qty-btn" onclick="if(modalQty<MAX_QTY_PER_ITEM){modalQty++; document.getElementById('modalQtyVal').textContent=modalQty;} else { pulseToast('Máximo de '+MAX_QTY_PER_ITEM+' unidades por produto 🐾'); }">+</button>
+        <button class="qty-btn" onclick="const __f=familyById(modalFamilyId); const __lim=(__f&&__f.preorder)?Infinity:MAX_QTY_PER_ITEM; if(modalQty<__lim){modalQty++; document.getElementById('modalQtyVal').textContent=modalQty;} else { pulseToast('Máximo de '+__lim+' unidades por produto 🐾'); }">+</button>
       </div>
       <button class="btn btn-primary" ${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="addToCart(${f.id}, modalVariantIdx, modalQty); closeProduct(); openCart();">${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'Indisponível no momento' : 'Adicionar ao carrinho'}</button>
       ${f.brand==='Zee Dog' && f.preorder ? `<a href="https://wa.me/5511966061102?text=${encodeURIComponent(`Olá! Vim pelo site e gostaria de confirmar a disponibilidade de tamanho do produto: ${f.name}`)}" target="_blank" rel="noopener" class="btn btn-ghost" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;">
@@ -1519,8 +1531,8 @@ function renderCheckout(){
   } else {
     ckCouponRow.style.display = 'none';
   }
-  document.getElementById('ckShipping').textContent = shipping ? fmt(shipping.price) : 'A calcular no carrinho';
-  document.getElementById('ckTotal').textContent = fmt(Math.max(0, sub - discount) + (shipping?shipping.price:0));
+  document.getElementById('ckShipping').textContent = (appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis 🎉' : (shipping ? fmt(shipping.price) : 'A calcular no carrinho');
+  document.getElementById('ckTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping));
 }
 function selectPayment(method){
   selectedPaymentMethod = method;
@@ -1558,9 +1570,13 @@ function finalizeOrder(){
     pulseToast('Preenche seu WhatsApp, CEP e endereço completo antes de continuar 🐾');
     return;
   }
+  if(!shipping){
+    pulseToast('Calcula e escolhe uma opção de frete no carrinho antes de continuar 🐾');
+    return;
+  }
   const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
   const discount = couponDiscount(sub);
-  const total = Math.max(0, sub - discount) + (shipping?shipping.price:0);
+  const total = computeOrderTotal(sub, discount, shipping);
 
   if(selectedPaymentMethod === 'whats'){
     const availableLines = lines.filter(l => !l.family.preorder);
@@ -1587,7 +1603,7 @@ function finalizeOrder(){
     if(appliedCoupon && discount > 0){
       msg += `Cupom ${appliedCoupon.code}: -${fmt(discount)}%0A`;
     }
-    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping?fmt(shipping.price):'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
+    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
     window.open(`https://wa.me/5511966061102?text=${msg}`, '_blank');
   } else {
@@ -1600,11 +1616,22 @@ function finalizeOrder(){
       customer: {name, phone},
       address: { cep: cepCk, number: '', complement: `${address} - ${city}` }
     };
-    if(shipping && shipping.price > 0){
-      payload.items.push({quantity: 1, price: Math.round(shipping.price*100), description: `Frete (${shipping.label})`});
-    }
-    if(appliedCoupon && discount > 0){
-      payload.discount = { code: appliedCoupon.code, amount: Math.round(discount*100) };
+    if(appliedCoupon && appliedCoupon.forceTotal != null){
+      // Cupom de teste: substitui os itens por um único item no valor exato do teste
+      payload.items = [{ quantity: 1, price: Math.round(appliedCoupon.forceTotal*100), description: `Pedido Bielyy Store (cupom de teste ${appliedCoupon.code})` }];
+    } else {
+      if(shipping && shipping.price > 0 && !(appliedCoupon && appliedCoupon.freeShipping)){
+        payload.items.push({quantity: 1, price: Math.round(shipping.price*100), description: `Frete (${shipping.label})`});
+      }
+      if(appliedCoupon && discount > 0){
+        // InfinitePay não tem campo de desconto — reduzimos o preço dos itens de verdade
+        let remaining = Math.round(discount*100);
+        for(const item of payload.items){
+          if(remaining <= 0) break;
+          const cut = Math.min(remaining, item.price - 1);
+          if(cut > 0){ item.price -= cut; remaining -= cut; }
+        }
+      }
     }
     payload.orderDetails = {
       address: { address, city },
