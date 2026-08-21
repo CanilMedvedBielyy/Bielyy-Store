@@ -102,6 +102,16 @@ function buscar(){
     });
 }
 
+// Se veio com o número do pedido na URL (ex: pedido.html?pedido=123), busca automaticamente
+(function autoSearch(){
+  const params = new URLSearchParams(location.search);
+  const num = params.get('pedido');
+  if(num){
+    document.getElementById('orderInput').value = num;
+    buscar();
+  }
+})();
+
 function render(order){
   document.getElementById('search').style.display = 'none';
   const box = document.getElementById('result');
