@@ -38,7 +38,7 @@ exports.handler = async function (event) {
 
     // Salva o pedido completo (itens, endereço, cliente) com status "aguardando pagamento"
     try {
-      const store = getStore('orders');
+      const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
       const order = {
         order_nsu: payload.order_nsu,
         status: 'aguardando_pagamento',
@@ -61,4 +61,3 @@ exports.handler = async function (event) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Falha ao falar com a InfinitePay', details: err.message }) };
   }
 };
-
