@@ -1529,8 +1529,6 @@ function finalizeOrder(){
     }
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping?fmt(shipping.price):'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
-    cart = {};
-    saveCart();
     window.open(`https://wa.me/5511966061102?text=${msg}`, '_blank');
   } else {
     const payload = {
