@@ -673,6 +673,14 @@
               <div class="picon2"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
               <div class="ptxt"><strong>Pix ou cartão via InfinitePay</strong><span>Link de pagamento gerado automaticamente</span></div>
             </div>
+            <div id="pixCardSubChoice" style="display:none; margin:10px 0 0; padding:12px; background:var(--lavender); border-radius:12px;">
+              <label style="font-size:12.5px; font-weight:700; color:var(--ink); display:block; margin-bottom:8px;">Como você vai pagar?</label>
+              <div style="display:flex; gap:8px;">
+                <button type="button" id="subPix" onclick="selectPixOrCartao('pix')" style="flex:1; padding:9px; border-radius:8px; border:1.5px solid var(--purple-deep); background:var(--purple-deep); color:#fff; font-weight:700; font-size:12.5px;">Pix (com desconto)</button>
+                <button type="button" id="subCartao" onclick="selectPixOrCartao('cartao')" style="flex:1; padding:9px; border-radius:8px; border:1.5px solid var(--purple-soft); background:#fff; color:var(--ink); font-weight:700; font-size:12.5px;">Cartão</button>
+              </div>
+              <p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">Importante: escolha aqui a forma que você realmente vai usar — a tela do InfinitePay mostra as duas opções, mas o valor gerado já vem no preço combinado.</p>
+            </div>
             <div class="ck-note" id="paymentNote">Ao confirmar, vamos abrir o WhatsApp com todo o seu pedido já resumido — é só enviar e combinar o pagamento com a Bielyy Store.</div>
           </div>
         </div>
@@ -1010,6 +1018,7 @@ function applyCoupon(){
   renderCart();
 }
 let selectedPaymentMethod = "whats";
+let selectedPixOrCartao = "pix";
 let modalFamilyId = null;
 let modalVariantIdx = 0;
 let modalQty = 1;
@@ -1482,7 +1491,7 @@ function renderCheckout(){
     list.innerHTML = lines.map(l=>{
       const sizeLabel = l.family.variants.length>1 ? ` (${l.variant.label})` : '';
       const preTag = l.family.preorder ? ' 📦' : '';
-      return `<div class="ck-summary-line"><span>${l.qty}x ${l.family.name}${sizeLabel}${preTag}</span><span>${fmt(l.variant.cartao*l.qty)}</span></div>`;
+      return `<div class="ck-summary-line"><span>${l.qty}x ${l.family.name}${sizeLabel}${preTag}</span><span>${fmt(checkoutPrice(l.variant)*l.qty)}</span></div>`;
     }).join('');
   }
   const hasPreorder = lines.some(l=>l.family.preorder);
@@ -1499,7 +1508,7 @@ function renderCheckout(){
       : '📦 Todos os itens desse pedido são sob encomenda — prazo de entrega de 2 a 3 semanas após a confirmação.';
     list.after(note);
   }
-  const sub = cartSubtotal();
+  const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
   document.getElementById('ckSubtotal').textContent = fmt(sub);
   const discount = couponDiscount(sub);
   const ckCouponRow = document.getElementById('ckCouponRow');
@@ -1517,9 +1526,25 @@ function selectPayment(method){
   selectedPaymentMethod = method;
   document.getElementById('payWhats').classList.toggle('selected', method==='whats');
   document.getElementById('payInfinite').classList.toggle('selected', method==='infinite');
+  document.getElementById('pixCardSubChoice').style.display = method==='infinite' ? 'block' : 'none';
   document.getElementById('paymentNote').textContent = method==='whats'
     ? 'Ao confirmar, vamos abrir o WhatsApp com todo o seu pedido já resumido — é só enviar e combinar o pagamento com a Bielyy Store.'
-    : 'Ao confirmar, você vai ser levado para a tela de pagamento segura da InfinitePay, onde pode pagar via Pix ou cartão em até 12x.';
+    : 'Ao confirmar, você vai ser levado para a tela de pagamento segura da InfinitePay.';
+  renderCheckout();
+}
+function selectPixOrCartao(mode){
+  selectedPixOrCartao = mode;
+  document.getElementById('subPix').style.background = mode==='pix' ? 'var(--purple-deep)' : '#fff';
+  document.getElementById('subPix').style.color = mode==='pix' ? '#fff' : 'var(--ink)';
+  document.getElementById('subCartao').style.background = mode==='cartao' ? 'var(--purple-deep)' : '#fff';
+  document.getElementById('subCartao').style.color = mode==='cartao' ? '#fff' : 'var(--ink)';
+  renderCheckout();
+}
+function checkoutPrice(variant){
+  if(selectedPaymentMethod==='infinite' && selectedPixOrCartao==='pix' && variant.pix){
+    return variant.pix;
+  }
+  return variant.cartao;
 }
 function finalizeOrder(){
   const lines = cartLines();
@@ -1533,7 +1558,7 @@ function finalizeOrder(){
     pulseToast('Preenche seu WhatsApp, CEP e endereço completo antes de continuar 🐾');
     return;
   }
-  const sub = cartSubtotal();
+  const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
   const discount = couponDiscount(sub);
   const total = Math.max(0, sub - discount) + (shipping?shipping.price:0);
 
@@ -1571,7 +1596,7 @@ function finalizeOrder(){
       redirect_url: window.location.origin + '/',
       webhook_url: window.location.origin + '/.netlify/functions/infinitepay-webhook',
       order_nsu: String(Date.now()),
-      items: lines.map(l=>({quantity: l.qty, price: Math.round(l.variant.cartao*100), description: l.family.name + (l.family.variants.length>1?` (${l.variant.label})`:'')})),
+      items: lines.map(l=>({quantity: l.qty, price: Math.round(checkoutPrice(l.variant)*100), description: l.family.name + (l.family.variants.length>1?` (${l.variant.label})`:'')})),
       customer: {name, phone},
       address: { cep: cepCk, number: '', complement: `${address} - ${city}` }
     };
