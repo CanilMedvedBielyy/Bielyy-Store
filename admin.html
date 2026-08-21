@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos — Bielyy Store</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple-deep:#6D42B8;
+    --purple:#8B5FD1;
+    --purple-soft:#B79BEA;
+    --lavender:#F3ECFF;
+    --pink:#FF7FAE;
+    --pink-soft:#FFD9E6;
+    --cream:#FFF9FC;
+    --gold:#FFC93C;
+    --ink:#3A2E52;
+    --ink-soft:#7A6E96;
+    --green:#3FAE5C;
+    --red:#E0703B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Poppins',sans-serif; background:var(--cream); color:var(--ink);
+    min-height:100vh; padding:24px 16px;
+  }
+  h1,h2{font-family:'Baloo 2',cursive; color:var(--purple-deep);}
+  .wrap{max-width:920px; margin:0 auto;}
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px;}
+  header h1{font-size:24px;}
+  .pill{background:var(--lavender); color:var(--purple-deep); font-size:12.5px; font-weight:700; padding:6px 14px; border-radius:999px;}
+
+  /* Login gate */
+  #gate{max-width:360px; margin:80px auto; background:#fff; border-radius:20px; padding:32px 28px; box-shadow:0 12px 32px rgba(109,66,184,.12); text-align:center;}
+  #gate h2{font-size:20px; margin-bottom:6px;}
+  #gate p{color:var(--ink-soft); font-size:13.5px; margin-bottom:20px;}
+  #gate input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--lavender); font-family:'Poppins'; font-size:14.5px; margin-bottom:12px;}
+  #gate input:focus{outline:none; border-color:var(--purple);}
+  #gate button{width:100%; padding:12px; border-radius:12px; background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; font-weight:700; font-size:14.5px;}
+  #gateError{color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px;}
+
+  #app{display:none;}
+  .summary{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px;}
+  .stat{background:#fff; border-radius:16px; padding:16px 18px; box-shadow:0 4px 14px rgba(109,66,184,.08);}
+  .stat .num{font-family:'Baloo 2'; font-size:26px; color:var(--purple-deep);}
+  .stat .lbl{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.3px; font-weight:600;}
+
+  .filters{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .filters button{padding:8px 16px; border-radius:999px; background:#fff; color:var(--ink-soft); font-size:13px; font-weight:600; border:1.5px solid var(--lavender);}
+  .filters button.active{background:var(--purple-deep); color:#fff; border-color:var(--purple-deep);}
+  .tab-btn{padding:10px 20px !important; font-size:14px !important;}
+
+  .review-card{background:#fff; border-radius:16px; padding:16px 18px; margin-bottom:12px; box-shadow:0 4px 14px rgba(109,66,184,.08);}
+  .review-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .review-name{font-weight:700; font-size:14px;}
+  .review-stars{font-size:13px;}
+  .review-product{font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;}
+  .review-comment{font-size:13.5px; color:var(--ink); line-height:1.5; margin-bottom:12px;}
+  .review-actions{display:flex; gap:8px;}
+  .review-actions button{padding:7px 16px; border-radius:999px; font-size:12px; font-weight:700; border:none;}
+  .btn-approve{background:#E4F6E9; color:var(--green);}
+  .btn-reject{background:#FDE4E4; color:var(--red);}
+
+  .order{background:#fff; border-radius:18px; padding:18px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(109,66,184,.08);}
+  .order-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+  .order-id{font-size:12px; color:var(--ink-soft);}
+  .order-name{font-family:'Baloo 2'; font-size:17px; color:var(--ink);}
+  .status{font-size:11.5px; font-weight:700; padding:5px 12px; border-radius:999px; white-space:nowrap;}
+  .status.pago{background:#E4F6E9; color:var(--green);}
+  .status.aguardando_pagamento{background:var(--pink-soft); color:#C24E7A;}
+  .status.em_preparacao{background:#FFF3D6; color:#B8860B;}
+  .status.enviado{background:#DCEBFF; color:#3468C0;}
+  .status.entregue{background:var(--lavender); color:var(--purple-deep);}
+  .order-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .order-actions button{padding:7px 14px; border-radius:999px; font-size:12px; font-weight:700; border:1.5px solid var(--purple-soft); background:#fff; color:var(--purple-deep);}
+  .order-actions button:hover{background:var(--lavender);}
+  .order-items{margin:12px 0; font-size:13.5px; color:var(--ink); line-height:1.7;}
+  .order-foot{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid var(--lavender);}
+  .order-total{font-family:'Baloo 2'; font-weight:700; color:var(--purple-deep); font-size:17px;}
+  .order-address{font-size:12.5px; color:var(--ink-soft);}
+  .empty{text-align:center; padding:60px 20px; color:var(--ink-soft);}
+  #loading{text-align:center; padding:60px 20px; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="gate">
+      <h2>Painel de pedidos</h2>
+      <p>Digite a senha pra ver os pedidos da Bielyy Store</p>
+      <input type="password" id="pwdInput" placeholder="Senha" onkeydown="if(event.key==='Enter') login()">
+      <button onclick="login()">Entrar</button>
+      <div id="gateError"></div>
+    </div>
+
+    <div id="app">
+      <header>
+        <h1>🐾 Painel Bielyy</h1>
+        <span class="pill" id="totalPill">0 pedidos</span>
+      </header>
+
+      <div class="filters" style="margin-bottom:20px;">
+        <button class="tab-btn active" data-tab="orders" onclick="setTab('orders')">📦 Pedidos</button>
+        <button class="tab-btn" data-tab="reviews" onclick="setTab('reviews')">⭐ Avaliações</button>
+      </div>
+
+      <div id="ordersTab">
+        <div class="summary">
+          <div class="stat"><div class="num" id="statPagos">0</div><div class="lbl">Pagos</div></div>
+          <div class="stat"><div class="num" id="statAguardando">0</div><div class="lbl">Aguardando</div></div>
+          <div class="stat"><div class="num" id="statFaturamento">R$ 0</div><div class="lbl">Faturamento (pago)</div></div>
+        </div>
+
+        <div class="filters">
+          <button class="active" data-filter="all" onclick="setFilter('all')">Todos</button>
+          <button data-filter="pago" onclick="setFilter('pago')">Pagos</button>
+          <button data-filter="em_preparacao" onclick="setFilter('em_preparacao')">Em preparação</button>
+          <button data-filter="enviado" onclick="setFilter('enviado')">Enviados</button>
+          <button data-filter="entregue" onclick="setFilter('entregue')">Entregues</button>
+          <button data-filter="aguardando_pagamento" onclick="setFilter('aguardando_pagamento')">Aguardando</button>
+        </div>
+
+        <div id="loading">Carregando pedidos...</div>
+        <div id="ordersList"></div>
+      </div>
+
+      <div id="reviewsTab" style="display:none;">
+        <div id="reviewsList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let PASSWORD = '';
+let ORDERS = [];
+let FILTER = 'all';
+
+function fmt(n){
+  return (n||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+
+function login(){
+  const pwd = document.getElementById('pwdInput').value;
+  if(!pwd){ return; }
+  PASSWORD = pwd;
+  fetchOrders();
+}
+
+function fetchOrders(){
+  document.getElementById('gateError').textContent = '';
+  fetch('/.netlify/functions/get-orders?password=' + encodeURIComponent(PASSWORD))
+    .then(r => {
+      if(r.status === 401){ throw new Error('senha'); }
+      return r.json();
+    })
+    .then(data => {
+      ORDERS = data.orders || [];
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      sessionStorage.setItem('bielyy_admin_pwd', PASSWORD);
+      render();
+    })
+    .catch(err => {
+      if(err.message === 'senha'){
+        document.getElementById('gateError').textContent = 'Senha incorreta.';
+      } else {
+        document.getElementById('gateError').textContent = 'Erro ao carregar. Tenta de novo.';
+      }
+    });
+}
+
+function setFilter(f){
+  FILTER = f;
+  document.querySelectorAll('.filters button').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  render();
+}
+
+const STATUS_LABELS = {
+  aguardando_pagamento: '⏳ Aguardando pagamento',
+  pago: '✅ Pago',
+  em_preparacao: '📦 Em preparação',
+  enviado: '🚚 Enviado',
+  entregue: '🎉 Entregue'
+};
+const NEXT_STATUS = {
+  pago: 'em_preparacao',
+  em_preparacao: 'enviado',
+  enviado: 'entregue'
+};
+const NEXT_LABEL = {
+  pago: 'Marcar em preparação',
+  em_preparacao: 'Marcar como enviado',
+  enviado: 'Marcar como entregue'
+};
+
+function render(){
+  const pagos = ORDERS.filter(o => o.status !== 'aguardando_pagamento');
+  const aguardando = ORDERS.filter(o => o.status === 'aguardando_pagamento');
+  document.getElementById('totalPill').textContent = ORDERS.length + ' pedido' + (ORDERS.length===1?'':'s');
+  document.getElementById('statPagos').textContent = pagos.length;
+  document.getElementById('statAguardando').textContent = aguardando.length;
+  document.getElementById('statFaturamento').textContent = fmt(pagos.reduce((s,o)=>s+(o.paid_amount?o.paid_amount/100:(o.total||0)),0));
+
+  const list = FILTER === 'all' ? ORDERS : ORDERS.filter(o => o.status === FILTER);
+  const container = document.getElementById('ordersList');
+
+  if(list.length === 0){
+    container.innerHTML = '<div class="empty">Nenhum pedido por aqui ainda.</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(o => {
+    const statusLabel = STATUS_LABELS[o.status] || o.status;
+    const itemsHtml = (o.items||[]).map(it => `${it.quantity}x ${it.description} — ${fmt(it.price/100)}`).join('<br>');
+    const addr = o.address ? `${o.address.address||''}, ${o.address.city||''}` : 'Endereço não informado';
+    const date = o.createdAt ? new Date(o.createdAt).toLocaleString('pt-BR') : '';
+    const total = o.paid_amount ? o.paid_amount/100 : (o.total || 0);
+    const nextStatus = NEXT_STATUS[o.status];
+    const actionBtn = nextStatus
+      ? `<button onclick="advanceStatus('${o.order_nsu}','${nextStatus}')">${NEXT_LABEL[o.status]}</button>`
+      : '';
+    return `
+      <div class="order">
+        <div class="order-top">
+          <div>
+            <div class="order-name">${o.customer?.name || 'Cliente'}</div>
+            <div class="order-id">Pedido #${o.order_nsu} · ${date}</div>
+          </div>
+          <span class="status ${o.status}">${statusLabel}</span>
+        </div>
+        <div class="order-items">${itemsHtml}</div>
+        <div class="order-foot">
+          <span class="order-address">📍 ${addr} · 📞 ${o.customer?.phone || '—'}</span>
+          <span class="order-total">${fmt(total)}</span>
+        </div>
+        ${actionBtn ? `<div class="order-actions">${actionBtn}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function setTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('ordersTab').style.display = tab === 'orders' ? 'block' : 'none';
+  document.getElementById('reviewsTab').style.display = tab === 'reviews' ? 'block' : 'none';
+  if(tab === 'reviews') fetchPendingReviews();
+}
+
+function fetchPendingReviews(){
+  const list = document.getElementById('reviewsList');
+  list.innerHTML = '<div id="loading">Carregando avaliações...</div>';
+  fetch('/.netlify/functions/get-pending-reviews?password=' + encodeURIComponent(PASSWORD))
+    .then(r => r.json())
+    .then(data => renderPendingReviews(data.reviews || []))
+    .catch(() => { list.innerHTML = '<div class="empty">Erro ao carregar.</div>'; });
+}
+
+function renderPendingReviews(reviews){
+  const list = document.getElementById('reviewsList');
+  if(reviews.length === 0){
+    list.innerHTML = '<div class="empty">Nenhuma avaliação pendente. 🎉</div>';
+    return;
+  }
+  list.innerHTML = reviews.map(r => `
+    <div class="review-card" id="review-${r.id}">
+      <div class="review-top">
+        <span class="review-name">${r.name}</span>
+        <span class="review-stars">${'⭐'.repeat(r.rating)}</span>
+      </div>
+      <div class="review-product">Produto #${r.productId}</div>
+      <div class="review-comment">${r.comment}</div>
+      <div class="review-actions">
+        <button class="btn-approve" onclick="moderateReview('${r.id}','approve')">✓ Aprovar</button>
+        <button class="btn-reject" onclick="moderateReview('${r.id}','reject')">✕ Rejeitar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function moderateReview(reviewId, action){
+  fetch('/.netlify/functions/moderate-review', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: PASSWORD, reviewId, action })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        document.getElementById('review-' + reviewId).remove();
+      } else {
+        alert('Erro: ' + (data.error || 'desconhecido'));
+      }
+    })
+    .catch(() => alert('Erro de conexão.'));
+}
+function advanceStatus(orderNsu, newStatus){
+  let trackingCode = null;
+  if(newStatus === 'enviado'){
+    trackingCode = prompt('Código de rastreio dos Correios (opcional, pode deixar em branco):') || null;
+  }
+  fetch('/.netlify/functions/update-order-status', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: PASSWORD, order_nsu: orderNsu, status: newStatus, trackingCode })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        const idx = ORDERS.findIndex(o => o.order_nsu === orderNsu);
+        if(idx > -1) ORDERS[idx] = data.order;
+        render();
+      } else {
+        alert('Não deu pra atualizar: ' + (data.error || 'erro desconhecido'));
+      }
+    })
+    .catch(() => alert('Erro de conexão. Tenta de novo.'));
+}
+
+// Tenta logar automaticamente se já tiver senha salva nessa sessão
+const savedPwd = sessionStorage.getItem('bielyy_admin_pwd');
+if(savedPwd){
+  PASSWORD = savedPwd;
+  fetchOrders();
+}
+</script>
+</body>
+</html>
