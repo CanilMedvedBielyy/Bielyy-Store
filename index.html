@@ -755,6 +755,7 @@
     <div class="sum-row"><span>Frete</span><span id="cartShippingVal">A calcular</span></div>
     <div class="sum-row total"><span>Total</span><span class="val" id="cartTotal">R$ 0,00</span></div>
     <button class="btn btn-primary" onclick="goToCheckout()">Fechar pedido</button>
+    <button class="btn btn-ghost" style="width:100%; justify-content:center; margin-top:8px;" onclick="closeCart()">Continuar comprando</button>
   </div>
 </aside>
 
@@ -929,13 +930,20 @@ function isFamilyAvailable(f){
    STATE
 ===================================================== */
 let cart = {}; // key `${familyId}:${variantIdx}` -> qty
+try {
+  const savedCart = localStorage.getItem('bielyy_cart');
+  if (savedCart) cart = JSON.parse(savedCart);
+} catch(e) { cart = {}; }
+function saveCart(){
+  try { localStorage.setItem('bielyy_cart', JSON.stringify(cart)); } catch(e) {}
+}
 let activeCategory = "all";
 let activeBrand = "all";
 let activeSize = "all";
 let shipping = null;
 let appliedCoupon = null;
 const COUPONS = {
-  "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: true, label: "R$ 10 OFF na primeira compra (cadastro necessário)" }
+  "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: false, label: "R$ 10 OFF na primeira compra" }
 };
 function hasUsedFirstPurchaseCoupon(){
   return localStorage.getItem('bielyy_first_purchase_used') === '1';
@@ -1166,11 +1174,13 @@ function addToCart(familyId, variantIdx, qty){
     pulseToast(`Máximo de ${MAX_QTY_PER_ITEM} unidades por produto 🐾`);
   }
   cart[k] = newQty;
+  saveCart();
   updateCartCount();
   renderCart();
 }
 function removeFromCart(k){
   delete cart[k];
+  saveCart();
   updateCartCount();
   renderCart();
 }
@@ -1182,6 +1192,7 @@ function changeQty(k, delta){
   }
   cart[k] = newQty;
   if(cart[k] <= 0) delete cart[k];
+  saveCart();
   updateCartCount();
   renderCart();
 }
@@ -1400,27 +1411,8 @@ function renderModalBody(){
         Confirmar tamanho disponível no WhatsApp
       </a>` : ''}
       <div class="tag-row"><span>Marca premium</span>${f.preorder ? `<span style="background:#E9E1FB; color:var(--purple-deep);">📦 Sob encomenda · chega em 2-3 semanas</span>` : `<span>Entrega para todo Brasil</span>${f.stock && f.stock<=3 ? `<span style="background:#FFE4D6; color:#E0703B;">🔥 Últimas unidades</span>` : ''}`}</div>
-      <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--lavender);">
-        <label style="font-size:13px; font-weight:700; color:var(--purple-deep); display:block; margin-bottom:10px;">Avaliações</label>
-        <div id="reviewsBox"></div>
-        <div style="margin-top:16px; background:var(--lavender); border-radius:14px; padding:14px;">
-          <label style="font-size:12px; font-weight:700; color:var(--ink); display:block; margin-bottom:8px;">Deixe sua avaliação</label>
-          <input id="reviewName" placeholder="Seu nome" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--purple-soft); margin-bottom:8px; font-family:Poppins; font-size:13px;">
-          <select id="reviewRating" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--purple-soft); margin-bottom:8px; font-family:Poppins; font-size:13px;">
-            <option value="5">⭐⭐⭐⭐⭐ Ótimo</option>
-            <option value="4">⭐⭐⭐⭐ Bom</option>
-            <option value="3">⭐⭐⭐ Regular</option>
-            <option value="2">⭐⭐ Ruim</option>
-            <option value="1">⭐ Péssimo</option>
-          </select>
-          <textarea id="reviewComment" placeholder="Conte o que achou do produto..." rows="2" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--purple-soft); margin-bottom:8px; font-family:Poppins; font-size:13px; resize:vertical;"></textarea>
-          <div id="reviewError" style="color:#E0703B; font-size:11.5px; min-height:14px;"></div>
-          <button onclick="submitReview(${f.id})" style="width:100%; padding:9px; border-radius:8px; background:var(--purple-deep); color:#fff; font-weight:700; font-size:12.5px;">Enviar avaliação</button>
-        </div>
-      </div>
     </div>
   `;
-  loadProductReviews(f.id);
 }
 function openLightbox(photoKey, name){
   const img = document.getElementById('lightboxImg');
@@ -1537,6 +1529,8 @@ function finalizeOrder(){
     }
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping?fmt(shipping.price):'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
+    cart = {};
+    saveCart();
     window.open(`https://wa.me/5511966061102?text=${msg}`, '_blank');
   } else {
     const payload = {
@@ -1569,6 +1563,8 @@ function finalizeOrder(){
       .then(({ok, data}) => {
         if(ok && data.url){
           if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
+          cart = {};
+          saveCart();
           window.location.href = data.url;
         } else {
           console.error('Erro InfinitePay:', data);
@@ -1613,7 +1609,7 @@ function renderAuthModal(mode){
   if(mode === 'signup'){
     body.innerHTML = `
       <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:6px;">Crie sua conta 🐾</h2>
-      <p style="color:var(--ink-soft); font-size:13px; margin-bottom:20px;">Cadastre-se grátis e ganhe <strong>R$10 OFF</strong> na primeira compra acima de R$150 com o cupom <strong>BIELYY10</strong>.</p>
+      <p style="color:var(--ink-soft); font-size:13px; margin-bottom:20px;">Cadastre-se grátis e aproveite vantagens exclusivas.</p>
       <input id="authName" placeholder="Seu nome" style="width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins;">
       <input id="authEmail" type="email" placeholder="Seu e-mail" style="width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins;">
       <input id="authPassword" type="password" placeholder="Crie uma senha (mín. 6 caracteres)" style="width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins;">
@@ -1700,7 +1696,7 @@ function showWelcomePopup(){
       <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin:8px 0 4px;">Bem-vinda à Bielyy Store!</h2>
       <p style="color:var(--ink-soft); font-size:13.5px;">Cadastre-se agora e ganhe</p>
       <div style="background:var(--lavender); border-radius:12px; padding:10px; margin:10px 0; font-family:'Baloo 2'; font-size:22px; color:var(--purple-deep);">R$10 OFF</div>
-      <p style="color:var(--ink-soft); font-size:12px;">em compras acima de R$150, com o cupom <strong>BIELYY10</strong></p>
+      <p style="color:var(--ink-soft); font-size:12px;">em compras acima de R$150</p>
     </div>
   `;
   renderAuthModal('signup');
@@ -1781,7 +1777,7 @@ renderFilters();
 renderShop();
 updateCartCount();
 updateAccountUI();
-setTimeout(showWelcomePopup, 1200);
+// setTimeout(showWelcomePopup, 1200); // desativado temporariamente (cadastro ainda não funciona)
 
 // Se o cliente voltou de um pagamento da InfinitePay, mostra o número do pedido
 (function checkPaymentReturn(){
