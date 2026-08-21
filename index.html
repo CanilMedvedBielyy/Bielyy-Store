@@ -1498,6 +1498,11 @@ function finalizeOrder(){
   const phone = document.getElementById('ckPhone').value || '';
   const address = document.getElementById('ckAddress').value || '';
   const city = document.getElementById('ckCity').value || '';
+  const cepCk = (document.getElementById('ckCep').value || '').replace(/\D/g,'');
+  if(!phone || !address || !city || cepCk.length !== 8){
+    pulseToast('Preenche seu WhatsApp, CEP e endereço completo antes de continuar 🐾');
+    return;
+  }
   const sub = cartSubtotal();
   const discount = couponDiscount(sub);
   const total = Math.max(0, sub - discount) + (shipping?shipping.price:0);
@@ -1537,7 +1542,8 @@ function finalizeOrder(){
       webhook_url: window.location.origin + '/.netlify/functions/infinitepay-webhook',
       order_nsu: String(Date.now()),
       items: lines.map(l=>({quantity: l.qty, price: Math.round(l.variant.cartao*100), description: l.family.name + (l.family.variants.length>1?` (${l.variant.label})`:'')})),
-      customer: {name, phone}
+      customer: {name, phone},
+      address: { cep: cepCk, number: '', complement: `${address} - ${city}` }
     };
     if(shipping && shipping.price > 0){
       payload.items.push({quantity: 1, price: Math.round(shipping.price*100), description: `Frete (${shipping.label})`});
