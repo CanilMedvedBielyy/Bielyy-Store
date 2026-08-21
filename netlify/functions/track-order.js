@@ -11,7 +11,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('orders');
+    const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
     const order = await store.get(orderNsu, { type: 'json' });
 
     if (!order) {
