@@ -51,6 +51,6 @@ exports.handler = async function (event) {
     return { statusCode: 200, body: JSON.stringify({ success: true, user: { name, email: emailKey } }) };
   } catch (err) {
     console.error('Erro no cadastro:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Erro ao criar conta' }) };
+    return { statusCode: 500, body: JSON.stringify({ error: 'Erro ao criar conta', details: err.message }) };
   }
 };
