@@ -439,7 +439,7 @@
     </nav>
     <div class="nav-actions">
       <button class="icon-btn" id="accountBtn" style="width:auto; padding:0 12px; font-size:12.5px; font-weight:700; color:var(--purple-deep);" title="Fazer cadastro">👤 Cadastrar</button>
-      <a class="icon-btn" title="Fale no WhatsApp" href="https://wa.me/5511966061102?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener">
+      <a class="icon-btn" title="Fale no WhatsApp" href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener">
         <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       </a>
       <button class="icon-btn" onclick="openCart()" title="Carrinho">
@@ -755,7 +755,7 @@
 </footer>
 
 <!-- ============ FLOATING WHATSAPP BUTTON ============ -->
-<a href="https://wa.me/5511966061102?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener" title="Fale com a gente no WhatsApp" style="position:fixed; bottom:24px; right:24px; z-index:999; width:58px; height:58px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(37,211,102,.45); transition:transform .18s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+<a href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener" title="Fale com a gente no WhatsApp" style="position:fixed; bottom:24px; right:24px; z-index:999; width:58px; height:58px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(37,211,102,.45); transition:transform .18s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
   <svg viewBox="0 0 24 24" style="width:30px; height:30px; fill:#fff;"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4C7.24 4 3.33 7.9 3.33 12.72c0 1.53.4 3.02 1.15 4.34L3.26 21l4.05-1.19a8.9 8.9 0 0 0 4.74 1.36c4.82 0 8.73-3.9 8.73-8.72 0-2.33-.91-4.52-2.55-6.17Zm-5.55 13.4a7.2 7.2 0 0 1-3.68-1.01l-.26-.16-2.74.81.73-2.67-.17-.27a7.2 7.2 0 0 1-1.1-3.7c0-3.98 3.24-7.22 7.23-7.22a7.2 7.2 0 0 1 7.22 7.22c0 3.99-3.24 7.23-7.23 7.23Zm3.96-5.41c-.22-.11-1.28-.63-1.48-.7-.2-.07-.34-.11-.49.11-.14.22-.56.7-.69.84-.13.15-.25.16-.47.05-.22-.1-.92-.34-1.75-1.08-.65-.58-1.08-1.29-1.21-1.51-.13-.22-.01-.34.1-.45.1-.1.22-.25.33-.38.11-.13.15-.22.22-.36.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.64-.18-.43-.36-.37-.5-.38h-.42c-.15 0-.38.05-.58.28-.2.22-.76.74-.76 1.8s.78 2.09.89 2.23c.11.15 1.53 2.34 3.71 3.28.52.22.92.36 1.24.46.52.17.99.14 1.36.09.42-.06 1.28-.52 1.46-1.03.18-.5.18-.94.13-1.03-.05-.09-.2-.15-.42-.26Z"/></svg>
 </a>
 
@@ -1467,7 +1467,7 @@ function renderModalBody(){
         <button class="qty-btn" onclick="const __f=familyById(modalFamilyId); const __lim=(__f&&__f.preorder)?Infinity:MAX_QTY_PER_ITEM; if(modalQty<__lim){modalQty++; document.getElementById('modalQtyVal').textContent=modalQty;} else { pulseToast('Máximo de '+__lim+' unidades por produto 🐾'); }">+</button>
       </div>
       <button class="btn btn-primary" ${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="addToCart(${f.id}, modalVariantIdx, modalQty); closeProduct(); openCart();">${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'Indisponível no momento' : 'Adicionar ao carrinho'}</button>
-      ${f.brand==='Zee Dog' && f.preorder ? `<a href="https://wa.me/5511966061102?text=${encodeURIComponent(`Olá! Vim pelo site e gostaria de confirmar a disponibilidade de tamanho do produto: ${f.name}`)}" target="_blank" rel="noopener" class="btn btn-ghost" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;">
+      ${f.brand==='Zee Dog' && f.preorder ? `<a href="https://wa.me/5511915971151?text=${encodeURIComponent(`Olá! Vim pelo site e gostaria de confirmar a disponibilidade de tamanho do produto: ${f.name}`)}" target="_blank" rel="noopener" class="btn btn-ghost" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;">
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#25D366;"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4C7.24 4 3.33 7.9 3.33 12.72c0 1.53.4 3.02 1.15 4.34L3.26 21l4.05-1.19a8.9 8.9 0 0 0 4.74 1.36c4.82 0 8.73-3.9 8.73-8.72 0-2.33-.91-4.52-2.55-6.17Z"/></svg>
         Confirmar tamanho disponível no WhatsApp
       </a>` : ''}
@@ -1620,7 +1620,7 @@ function finalizeOrder(){
     }
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
-    window.open(`https://wa.me/5511966061102?text=${msg}`, '_blank');
+    window.open(`https://wa.me/5511915971151?text=${msg}`, '_blank');
   } else {
     const payload = {
       handle: "bielyystore",
@@ -1875,7 +1875,7 @@ updateAccountUI();
       if(pending && pending.order_nsu === orderNsu){
         const itemsText = (pending.items || []).map(it => `• ${it.qty}x ${it.name} ${it.preorder ? '(📦 Encomenda)' : '(✅ Loja)'}`).join('\n');
         const msgRaw = `Olá! Acabei de pagar pelo site 🎉\n\nPedido nº ${pending.order_nsu}\n\nNome: ${pending.name}\nWhatsApp: ${pending.phone}\nE-mail: ${pending.email || '-'}\n\nEndereço: ${pending.street}, ${pending.number}${pending.complement ? ' - '+pending.complement : ''}\nBairro: ${pending.neighborhood}\nCidade: ${pending.city}\nCEP: ${pending.cep}\n\nItens:\n${itemsText}\n\nTotal: R$ ${pending.total ? pending.total.toFixed(2) : '?'}`;
-        const waLink = `https://wa.me/5511966061102?text=${encodeURIComponent(msgRaw)}`;
+        const waLink = `https://wa.me/5511915971151?text=${encodeURIComponent(msgRaw)}`;
         waButtonHtml = `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-block; margin-left:14px; background:#25D366; color:#fff; padding:6px 14px; border-radius:20px; font-weight:700; text-decoration:none;">📲 Confirmar por WhatsApp</a>`;
         // Tenta abrir automaticamente também (pode ser bloqueado pelo navegador, o botão fica como reforço)
         setTimeout(() => { try { window.open(waLink, '_blank'); } catch(e){} }, 800);
