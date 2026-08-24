@@ -1618,7 +1618,7 @@ function finalizeOrder(){
     if(appliedCoupon && discount > 0){
       msg += `Cupom ${appliedCoupon.code}: -${fmt(discount)}%0A`;
     }
-    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}, ${city}`;
+    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
     window.open(`https://wa.me/5511915971151?text=${msg}`, '_blank');
   } else {
