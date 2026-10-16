@@ -48,6 +48,11 @@ exports.handler = async function (event) {
         items: payload.items,
         total: orderDetails.total || null,
         shipping: orderDetails.shipping || null,
+        paymentMethod: 'infinitepay',
+        paymentDetail: orderDetails.paymentDetail || null,
+        itemsDetailed: Array.isArray(orderDetails.itemsDetailed) ? orderDetails.itemsDetailed.slice(0, 60) : null,
+        subtotal: orderDetails.subtotal != null ? orderDetails.subtotal : null,
+        coupon: orderDetails.coupon || null,
         paymentUrl: data.url || null
       };
       await store.setJSON(payload.order_nsu, order);
