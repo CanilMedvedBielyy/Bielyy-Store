@@ -27,12 +27,13 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const { password, order_nsu, status, trackingCode, note } = body;
+  const { password, order_nsu, status, trackingCode, note, carrier } = body;
+  const CARRIERS = ['correios', 'loggi', 'jadlog', 'motoboy', 'outra'];
 
   if (!isAdmin(event, password)) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Senha incorreta' }) };
   }
-  if (!order_nsu || (status && !VALID_STATUSES.includes(status)) || (!status && note === undefined && trackingCode === undefined)) {
+  if (!order_nsu || (status && !VALID_STATUSES.includes(status)) || (!status && note === undefined && trackingCode === undefined && carrier === undefined)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados inválidos' }) };
   }
 
@@ -54,6 +55,9 @@ exports.handler = async function (event) {
     }
     if (trackingCode !== undefined && trackingCode !== null) {
       order.trackingCode = String(trackingCode).slice(0, 60);
+    }
+    if (carrier !== undefined && carrier !== null) {
+      order.carrier = CARRIERS.includes(carrier) ? carrier : null;
     }
     if (note !== undefined) {
       order.note = String(note).slice(0, 1000);

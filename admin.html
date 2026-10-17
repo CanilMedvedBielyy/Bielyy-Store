@@ -436,7 +436,9 @@ function openDetail(id){
   const msgStatus = {
     pago:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o pagamento do seu pedido #${o.order_nsu}. Já vamos separar tudo com carinho 💜`,
     em_preparacao:`Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} está sendo preparado 📦`,
-    enviado:`Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} foi enviado 🚚${o.trackingCode?' Código de rastreio: '+o.trackingCode:''}`,
+    enviado: guessCarrier(o)==='motoboy'
+      ? `Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} saiu para entrega com o motoboy 🛵${o.trackingCode?' Acompanhe a corrida: '+o.trackingCode:''}`
+      : `Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} foi enviado pela ${CARRIER_NAME[guessCarrier(o)]||'transportadora'} 🚚${o.trackingCode?' Código de rastreio: '+o.trackingCode:''}`,
     aguardando_pagamento:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o seu pedido #${o.order_nsu} (${fmt(o._total)}). Vamos combinar o pagamento? 💜`
   }[o.status] || `Oi, ${(c.name||'').split(' ')[0]}! Sobre o seu pedido #${o.order_nsu} da Bielyy Store.`;
   const msgFull = msgStatus + `\n\nAcompanhe seu pedido aqui: ${link}`;
@@ -483,7 +485,10 @@ function openDetail(id){
         ${o.paymentUrl && !o.paidAt?`<dt>Link de pagamento</dt><dd><a href="${esc(o.paymentUrl)}" target="_blank" rel="noopener">abrir</a></dd>`:''}</dl></div>
 
     <div class="card"><h3>🚚 Rastreio e observações</h3>
-      <input class="field" id="trk" placeholder="Código de rastreio (Correios)" value="${esc(o.trackingCode||'')}">
+      <label class="hint" style="display:block;margin-top:2px">Enviado por</label>
+      <select class="field" id="carrier">${CARRIER_OPTS.map(([v,l])=>`<option value="${v}" ${guessCarrier(o)===v?'selected':''}>${l}</option>`).join('')}</select>
+      <input class="field" id="trk" placeholder="Código de rastreio ou link de acompanhamento" value="${esc(o.trackingCode||'')}">
+      <div class="hint" style="margin-top:4px">Correios: código tipo AA123456789BR · Loggi: código da etiqueta · Motoboy/Uber: cole o link de acompanhamento da corrida (opcional).</div>
       <textarea class="field" id="note" placeholder="Observação interna (só você vê)">${esc(o.note||'')}</textarea>
       <div class="btnrow"><button class="btn" onclick="saveExtras()">Salvar</button>
         <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Avisar cliente no WhatsApp</a></div>
@@ -506,16 +511,30 @@ function setStatus(status){
   let tracking;
   if(status==='enviado'){
     const cur = (ORDERS.find(x=>x.order_nsu===CUR)||{}).trackingCode || '';
-    const t = prompt('Código de rastreio dos Correios (pode deixar em branco):', cur);
+    const sel = document.getElementById('carrier');
+    const car = sel ? sel.value : '';
+    const t = prompt(`Código de rastreio (${CARRIER_NAME[car]||'transportadora'}) — pode deixar em branco:`, cur);
     if(t===null) return; tracking = t;
   }
-  post({ order_nsu:CUR, status, trackingCode:tracking }).then(d=>{ if(d.success){ applyUpdated(d.order); toast('Status atualizado ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
+  const carSel = document.getElementById('carrier');
+  post({ order_nsu:CUR, status, trackingCode:tracking, carrier: status==='enviado' && carSel ? carSel.value : undefined }).then(d=>{ if(d.success){ applyUpdated(d.order); toast('Status atualizado ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
+}
+const CARRIER_OPTS = [['correios','📮 Correios'],['loggi','🚚 Loggi'],['jadlog','📦 Jadlog'],['motoboy','🛵 Motoboy / Uber / 99'],['outra','Outra']];
+const CARRIER_NAME = {correios:'Correios', loggi:'Loggi', jadlog:'Jadlog', motoboy:'motoboy', outra:'transportadora'};
+function guessCarrier(o){
+  if(o.carrier) return o.carrier;
+  const sh = o.shipping || o._ship || {};
+  if(sh.local || /motoboy/i.test(sh.label||'')) return 'motoboy';
+  if(/loggi/i.test(sh.label||'')) return 'loggi';
+  if(/jadlog/i.test(sh.label||'')) return 'jadlog';
+  if(/^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(o.trackingCode||'')) return 'correios';
+  return 'correios';
 }
 function trackUrl(nsu){ return location.origin + '/pedido.html?pedido=' + encodeURIComponent(nsu); }
 function saveExtras(){
   const o = ORDERS.find(x=>x.order_nsu===CUR) || {};
   const trk = document.getElementById('trk').value.trim();
-  const body = { order_nsu:CUR, trackingCode:trk, note:document.getElementById('note').value };
+  const body = { order_nsu:CUR, trackingCode:trk, carrier:document.getElementById('carrier').value, note:document.getElementById('note').value };
   if(trk && trk !== (o.trackingCode||'') && ['pago','em_preparacao','aguardando_pagamento'].includes(o.status)
      && confirm('Marcar este pedido como "Enviado" também?')) body.status = 'enviado';
   post(body)

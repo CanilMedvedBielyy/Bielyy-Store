@@ -39,6 +39,7 @@ exports.handler = async function (event) {
         statusUpdatedAt: order.statusUpdatedAt || null,
         paidAt: order.paidAt || null,
         trackingCode: order.trackingCode || null,
+        carrier: order.carrier || null,
         shipping: order.shipping && order.shipping.label ? order.shipping.label : null,
         paymentMethod: order.paymentMethod || null,
         items: itemsOf(order),

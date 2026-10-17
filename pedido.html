@@ -133,6 +133,46 @@ function copyCode(code, el){
   else { prompt('Copie o código:', code); }
 }
 
+// Onde rastrear, conforme a transportadora escolhida no painel
+const CARRIERS = {
+  correios: { name: 'Correios', url: 'https://rastreamento.correios.com.br/app/index.php', tip: 'No site dos Correios, cole o código no campo de busca.' },
+  loggi:    { name: 'Loggi',    url: 'https://www.loggi.com/rastreador', tip: 'No site da Loggi, cole o código e clique em "Rastrear".' },
+  jadlog:   { name: 'Jadlog',   url: 'https://www.jadlog.com.br/jadlog/tracking', tip: 'No site da Jadlog, cole o código no campo de busca.' },
+  motoboy:  { name: 'Motoboy',  url: '', tip: '' },
+  outra:    { name: 'Transportadora', url: '', tip: 'Use o código no site da transportadora.' }
+};
+function guessCarrier(order){
+  if(order.carrier && CARRIERS[order.carrier]) return order.carrier;
+  if(/motoboy/i.test(order.shipping || '')) return 'motoboy';
+  if(/^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(order.trackingCode || '')) return 'correios';
+  return 'outra';
+}
+function trackingHTML(order, currentIdx){
+  const code = order.trackingCode;
+  const car = guessCarrier(order);
+  const c = CARRIERS[car];
+  if(!code){
+    if(car === 'motoboy' && currentIdx >= 3) return `<div class="tracking-box"><div class="lbl">🛵 Seu pedido está com o motoboy</div><div class="lbl" style="margin-top:4px">Ele chega hoje! Qualquer dúvida, chame a gente no WhatsApp.</div></div>`;
+    return currentIdx >= 3 ? '' : `<p class="meta">${/motoboy/i.test(order.shipping||'') ? 'Você recebe aqui o aviso assim que o motoboy sair com o seu pedido.' : 'O código de rastreio aparece aqui assim que o pedido for enviado.'}</p>`;
+  }
+  // Link de acompanhamento (ex.: corrida do Uber/99/Lalamove)
+  if(/^https?:\/\//i.test(code)){
+    return `<div class="tracking-box">
+      <div class="lbl">${car === 'motoboy' ? '🛵 Seu pedido está a caminho com o motoboy' : 'Acompanhe sua entrega'}</div>
+      <div class="row" style="margin-top:10px"><a class="pill-btn main" href="${esc(code)}" target="_blank" rel="noopener">Acompanhar entrega ao vivo →</a></div>
+    </div>`;
+  }
+  return `<div class="tracking-box">
+      <div class="lbl">Código de rastreio · ${esc(c.name)}</div>
+      <div class="code">${esc(code)}</div>
+      <div class="row">
+        <button class="pill-btn soft" onclick="copyCode(${esc(JSON.stringify(code))}, this)">Copiar código</button>
+        ${c.url ? `<a class="pill-btn main" href="${c.url}" target="_blank" rel="noopener">Rastrear ${car==='correios'?'nos':'na'} ${esc(c.name)} →</a>` : ''}
+      </div>
+      ${c.tip ? `<div class="lbl" style="margin-top:8px">${c.tip}</div>` : ''}
+    </div>`;
+}
+
 function novaBusca(){
   history.replaceState({}, '', location.pathname);
   document.getElementById('result').style.display = 'none';
@@ -166,17 +206,7 @@ function render(order){
   let currentIdx = STEPS.findIndex(s => s.key === order.status);
   if(currentIdx < 0) currentIdx = 0;
 
-  const tracking = order.trackingCode
-    ? `<div class="tracking-box">
-        <div class="lbl">Código de rastreio</div>
-        <div class="code">${esc(order.trackingCode)}</div>
-        <div class="row">
-          <button class="pill-btn soft" onclick="copyCode(${esc(JSON.stringify(order.trackingCode))}, this)">Copiar código</button>
-          <a class="pill-btn main" href="https://rastreamento.correios.com.br/app/index.php" target="_blank" rel="noopener">Rastrear nos Correios →</a>
-        </div>
-        <div class="lbl" style="margin-top:8px">No site dos Correios, cole o código no campo de busca.</div>
-      </div>`
-    : (currentIdx >= 3 ? '' : `<p class="meta">O código de rastreio aparece aqui assim que o pedido for enviado.</p>`);
+  const tracking = trackingHTML(order, currentIdx);
 
   box.innerHTML = hello + `
     <ul class="timeline">

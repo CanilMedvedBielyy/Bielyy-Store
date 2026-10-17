@@ -43,6 +43,7 @@ exports.handler = async function (event) {
         statusUpdatedAt: o.statusUpdatedAt || null,
         total: o.total != null ? Number(o.total) : null,
         trackingCode: o.trackingCode || null,
+        carrier: o.carrier || null,
         shipping: o.shipping && o.shipping.label ? o.shipping.label : null,
         items: itemsOf(o)
       }));
