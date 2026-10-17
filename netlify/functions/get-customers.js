@@ -2,7 +2,7 @@
 // Rota automática: /.netlify/functions/get-customers
 // Nunca devolve senha nem hash de senha.
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 const crypto = require('crypto');
 
 function isAdmin(event) {
@@ -20,10 +20,9 @@ exports.handler = async function (event) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Senha incorreta' }) };
   }
   try {
-    const opts = { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN };
     let users = [];
     try {
-      const us = getStore('users', opts);
+      const us = blobStore('users', event);
       const { blobs } = await us.list();
       users = (await Promise.all(blobs.map(b => us.get(b.key, { type: 'json' }))))
         .filter(Boolean)

@@ -1,7 +1,7 @@
 // Netlify Function: atualiza o status de um pedido (protegida por senha)
 // Rota automática: /.netlify/functions/update-order-status
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 const VALID_STATUSES = ['aguardando_pagamento', 'pago', 'em_preparacao', 'enviado', 'entregue', 'cancelado'];
 const crypto = require('crypto');
@@ -37,7 +37,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
+    const store = blobStore('orders', event);
     const order = await store.get(order_nsu, { type: 'json' });
 
     if (!order) {

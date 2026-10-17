@@ -353,6 +353,16 @@
   .cep-row button{padding:10px 16px; border-radius:12px; background:var(--purple-deep); color:#fff; font-size:12.5px; font-weight:600; white-space:nowrap;}
   .ship-option{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:10px; margin-top:8px; background:#fff; border:2px solid transparent; font-size:12.5px;}
   .ship-option.selected{border-color:var(--purple);}
+  .ship-option{cursor:pointer; gap:10px;}
+  .ship-main{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;}
+  .ship-option strong{white-space:nowrap;}
+  .drawer{overflow-x:hidden;}
+  .cep-row input{min-width:0;}
+  .ship-title{font-weight:600;}
+  .ship-sub{font-size:11px; color:var(--ink-soft); line-height:1.35;}
+  .ship-tip{color:var(--green); font-weight:600;}
+  .ship-free{color:var(--green);}
+  .ship-local{background:linear-gradient(135deg,#FFF6FA,#F6F0FF);}
   .ship-note{font-size:11px; color:var(--ink-soft); margin-top:8px; line-height:1.5;}
 
   .drawer-foot{padding:20px 24px 26px; border-top:1px solid var(--lavender); flex-shrink:0;}
@@ -473,9 +483,120 @@
   @media (prefers-reduced-motion:reduce){
     .float-card, .marquee-track{animation:none !important;}
   }
+
+  /* =====================================================
+     V2 — visual mais moderno (mesma identidade fofa)
+  ===================================================== */
+  :root{ --line:#EEE5FA; --shadow-xs:0 2px 10px -4px rgba(109,66,184,.16); }
+  body{background:linear-gradient(180deg,#FFF9FC 0%,#FFF 520px);}
+  /* barra de avisos */
+  .announce{background:linear-gradient(90deg,var(--purple-deep),#9A63D6 50%,var(--pink)); color:#fff; font-size:12.5px; font-weight:600; text-align:center; height:34px; overflow:hidden; position:relative;}
+  .announce .msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; opacity:0; transform:translateY(8px); transition:.45s ease;}
+  .announce .msg.on{opacity:1; transform:none;}
+  .announce b{font-weight:800;}
+  /* cabeçalho */
+  header{box-shadow:0 6px 18px -14px rgba(109,66,184,.45);}
+  .nav{padding:8px 0; gap:14px;}
+  .logo-circle{width:58px; height:58px;}
+  .brandmark .name{font-size:21px; line-height:1.1;}
+  nav.links a{font-size:14px; padding:9px 15px;}
+  .icon-btn{width:42px; height:42px; border:1.5px solid var(--line); box-shadow:var(--shadow-xs);}
+  .acct-btn{width:auto !important; padding:0 14px 0 10px; gap:6px; font-size:13px; font-weight:700; color:var(--purple-deep);}
+  .acct-btn .icon{width:19px; height:19px;}
+  .tab-bar{display:none;}
+  /* hero */
+  .hero{padding:48px 0 28px;}
+  .hero .lead{max-width:560px;}
+  /* faixa de vantagens */
+  .benefits{padding:6px 0 4px;}
+  .benefits-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  .benefit{display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line); border-radius:18px; padding:14px 16px; box-shadow:var(--shadow-xs);}
+  .benefit .bi{width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0;}
+  .benefit b{display:block; font-size:13.5px; color:var(--ink); line-height:1.25;}
+  .benefit span{display:block; font-size:11.5px; color:var(--ink-soft); line-height:1.35; margin-top:1px;}
+  /* categorias */
+  .cat-section{padding:34px 0 6px;}
+  .cat-scroll{display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:12px;}
+  .cat-tile{background:#fff; border:1px solid var(--line); border-radius:20px; padding:16px 10px 14px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; cursor:pointer; transition:.2s; box-shadow:var(--shadow-xs);}
+  .cat-tile:hover{transform:translateY(-3px); border-color:var(--purple-soft); box-shadow:var(--shadow-sm);}
+  .cat-tile .ci{width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px;}
+  .cat-tile b{font-size:12.5px; line-height:1.25; color:var(--ink);}
+  .cat-tile small{font-size:11px; color:var(--ink-soft);}
+  .section-head h2{letter-spacing:-.2px;}
+  .see-all-wrap{display:flex; justify-content:center; margin-top:28px;}
+  /* cards de produto */
+  .card{border:1px solid var(--line); box-shadow:var(--shadow-xs); border-radius:20px;}
+  .card:hover{transform:translateY(-4px); box-shadow:var(--shadow);}
+  .card-media img{transition:transform .45s ease;}
+  .card:hover .card-media img{transform:scale(1.05);}
+  .add-btn{background:var(--purple-deep); color:#fff; box-shadow:0 6px 14px -6px rgba(109,66,184,.6);}
+  .add-btn:hover{background:var(--pink); transform:scale(1.06);}
+  /* toast escondido de verdade */
+  .toast{transform:translateX(-50%) translateY(160%); opacity:0; pointer-events:none;}
+  .toast.show{opacity:1; pointer-events:auto;}
+  /* carrinho: barra de frete grátis */
+  .free-nudge{background:linear-gradient(135deg,#FFF6FA,#F6F0FF); border:1px dashed var(--purple-soft); border-radius:14px; padding:10px 12px; font-size:12px; color:var(--ink); margin-bottom:12px;}
+  .free-nudge .bar{height:7px; border-radius:99px; background:#EADFF8; margin-top:7px; overflow:hidden;}
+  .free-nudge .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--pink),var(--purple)); border-radius:99px;}
+  /* navegação inferior (celular) */
+  .wa-float{z-index:190 !important;}
+  .bottom-nav{display:none;}
+  @media (max-width:920px){
+    .bottom-nav{display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:150; background:rgba(255,255,255,.96); backdrop-filter:blur(12px); border-top:1px solid var(--line); box-shadow:0 -8px 24px -16px rgba(109,66,184,.5); padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+    .bottom-nav button{background:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; font-weight:600; color:var(--ink-soft); padding:4px 0; position:relative;}
+    .bottom-nav button .icon{width:22px; height:22px;}
+    .bottom-nav button.active{color:var(--purple-deep);}
+    .bottom-nav button.active::before{content:''; position:absolute; top:-6px; width:28px; height:3px; border-radius:0 0 4px 4px; background:var(--purple-deep);}
+    .bottom-nav .bn-count{position:absolute; top:-2px; left:calc(50% + 6px); background:var(--pink); color:#fff; font-size:10px; font-weight:800; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; border:2px solid #fff;}
+    body{padding-bottom:calc(68px + env(safe-area-inset-bottom));}
+    .wa-float{bottom:calc(80px + env(safe-area-inset-bottom)) !important; right:16px !important; width:52px !important; height:52px !important;}
+    .toast{bottom:calc(84px + env(safe-area-inset-bottom));}
+    .benefits-grid{grid-template-columns:repeat(2,1fr);}
+    .hero-art{order:0 !important;}
+  }
+  @media (max-width:600px){
+    .wrap{padding:0 16px;}
+    .announce{font-size:11.5px; height:30px;}
+    .nav{padding:6px 0;}
+    .logo-circle{width:44px; height:44px; padding:2px;}
+    .brandmark{gap:9px;}
+    .brandmark .name{font-size:18px;}
+    .brandmark .tag{font-size:9px; letter-spacing:1.5px;}
+    .nav-actions{gap:8px;}
+    .nav-actions .hide-m{display:none;}
+    .acct-btn span{display:none;}
+    .acct-btn{width:42px !important; padding:0 !important; justify-content:center;}
+    .hero{padding:22px 0 18px;}
+    .hero h1{font-size:36px;}
+    .hero .lead{font-size:14px;}
+    .eyebrow{font-size:11.5px; padding:6px 13px; margin-bottom:12px;}
+    .hero-art img{border-radius:26px !important;}
+    .trust-row{display:none;}
+    .benefit{padding:11px 11px; gap:9px; border-radius:16px;}
+    .benefit .bi{width:34px; height:34px; font-size:17px; border-radius:11px;}
+    .benefit b{font-size:12px;} .benefit span{font-size:10.5px;}
+    .cat-section{padding:26px 0 0;}
+    .cat-scroll{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:10px; padding:2px 16px 10px; margin:0 -16px; scrollbar-width:none;}
+    .cat-scroll::-webkit-scrollbar{display:none;}
+    .cat-tile{flex:0 0 96px; padding:12px 6px 10px; scroll-snap-align:start; border-radius:18px;}
+    .cat-tile .ci{width:48px; height:48px; font-size:23px;}
+    .cat-tile b{font-size:11px;}
+    .section{padding-top:36px !important;}
+    .section-head{margin-bottom:18px !important;}
+    .section-head h2{font-size:27px !important;}
+    .section-head p{font-size:13px;}
+  }
 </style>
 </head>
 <body>
+
+<!-- ============ AVISOS ============ -->
+<div class="announce" id="announce">
+  <div class="msg on">🛵 <b>Entrega hoje</b> no Ipiranga e região · pedidos até 15h</div>
+  <div class="msg">💜 <b>Desconto no Pix</b> em todos os produtos</div>
+  <div class="msg">💳 Parcele no cartão pelo link seguro da InfinitePay</div>
+  <div class="msg">🔁 Troca fácil em até 7 dias · <b>marcas importadas originais</b></div>
+</div>
 
 <!-- ============ HEADER ============ -->
 <header>
@@ -495,8 +616,9 @@
       <a href="#about" onclick="showView('about')">Sobre</a>
     </nav>
     <div class="nav-actions">
-      <button class="icon-btn" id="accountBtn" style="width:auto; padding:0 12px; font-size:12.5px; font-weight:700; color:var(--purple-deep);" title="Fazer cadastro">👤 Cadastrar</button>
-      <a class="icon-btn" title="Fale no WhatsApp" href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener">
+      <button class="icon-btn hide-m" title="Buscar produto" onclick="openSearch()"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+      <button class="icon-btn acct-btn" id="accountBtn" title="Entrar ou criar conta"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="accountLabel">Entrar</span></button>
+      <a class="icon-btn hide-m" title="Fale no WhatsApp" href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener">
         <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       </a>
       <button class="icon-btn" onclick="openCart()" title="Carrinho">
@@ -520,6 +642,15 @@
     </button>
   </div>
 </div>
+
+<!-- ============ NAVEGAÇÃO INFERIOR (celular) ============ -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Navegação">
+  <button id="bnHome" class="active" onclick="showView('home')"><svg class="icon" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2Z"/></svg>Início</button>
+  <button id="bnShop" onclick="showView('shop')"><svg class="icon" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Loja</button>
+  <button id="bnPre" onclick="showView('preorder')"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>Encomendas</button>
+  <button id="bnAcct" onclick="openAuthModal()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="bnAcctLabel">Conta</span></button>
+  <button id="bnCart" onclick="openCart()"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrinho<span class="bn-count" id="bnCount" style="display:none">0</span></button>
+</nav>
 
 <!-- ============ HOME VIEW ============ -->
 <main id="view-home">
@@ -548,17 +679,34 @@
     </div>
   </section>
 
+  <section class="benefits">
+    <div class="wrap benefits-grid">
+      <div class="benefit"><div class="bi" style="background:#FFE4EF">🛵</div><div><b>Entrega hoje</b><span>Ipiranga e região, direto da loja</span></div></div>
+      <div class="benefit"><div class="bi" style="background:#E3F5EC">💸</div><div><b>Desconto no Pix</b><span>O menor preço da loja</span></div></div>
+      <div class="benefit"><div class="bi" style="background:#F3ECFF">💳</div><div><b>Parcele no cartão</b><span>Link de pagamento seguro</span></div></div>
+      <div class="benefit"><div class="bi" style="background:#FFF4D6">🔁</div><div><b>Troca em 7 dias</b><span>Produto lacrado, sem stress</span></div></div>
+    </div>
+  </section>
+
+  <section class="cat-section">
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom:16px;"><div><span class="kicker">Compre por categoria</span><h2>O que seu pet precisa hoje?</h2></div></div>
+      <div class="cat-scroll" id="catTiles"></div>
+    </div>
+  </section>
+
   <section class="section" id="destaques" style="padding-top:40px;">
     <div class="wrap">
       <div class="section-head">
         <div>
-          <span class="kicker">Disponível agora</span>
-          <h2>Produtos em estoque</h2>
-          <p>Separamos com carinho o que já está pronto pra enviar — qualidade de importadora especializada, sem o preço de importadora especializada.</p>
+          <span class="kicker">Pronta entrega</span>
+          <h2>Queridinhos da Bielyy 💜</h2>
+          <p>Os favoritos que já estão prontos pra enviar — hoje mesmo, se você estiver pertinho da loja.</p>
         </div>
-        <button class="btn btn-outline" onclick="showView('shop')">Ver loja completa</button>
+        
       </div>
       <div class="grid" id="featuredGrid"></div>
+      <div class="see-all-wrap"><button class="btn btn-primary" id="seeAllBtn" onclick="showView('shop')">Ver toda a loja</button></div>
     </div>
   </section>
 
@@ -591,8 +739,8 @@
       <div class="perks-grid">
         <div class="perk-card">
           <div class="picon"><svg class="icon" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
-          <h3>Frete calculado na hora</h3>
-          <p>Cotação integrada com a SuperFrete: você digita o CEP e já vê prazo e valor antes de fechar o pedido.</p>
+          <h3>Entrega hoje ou Correios</h3>
+          <p>Perto da loja (Ipiranga e região)? Seu pedido sai de motoboy no mesmo dia. Para todo o Brasil, PAC e SEDEX com valor e prazo calculados na hora.</p>
         </div>
         <div class="perk-card">
           <div class="picon"><svg class="icon" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
@@ -807,6 +955,7 @@
       <h4>Ajuda</h4>
       <ul>
         <li><a href="/pedido.html">📦 Acompanhar pedido</a></li>
+        <li><a href="/?conta=1" onclick="event.preventDefault(); openAuthModal();">👤 Minha conta e meus pedidos</a></li>
         <li>Como calculamos o frete</li>
         <li>Formas de pagamento</li>
         <li><a href="/trocas-e-devolucoes.html">Trocas e devoluções</a></li>
@@ -829,7 +978,7 @@
 </footer>
 
 <!-- ============ FLOATING WHATSAPP BUTTON ============ -->
-<a href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener" title="Fale com a gente no WhatsApp" style="position:fixed; bottom:24px; right:24px; z-index:999; width:58px; height:58px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(37,211,102,.45); transition:transform .18s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+<a href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener" title="Fale com a gente no WhatsApp" class="wa-float" style="position:fixed; bottom:24px; right:24px; z-index:999; width:58px; height:58px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(37,211,102,.45); transition:transform .18s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
   <svg viewBox="0 0 24 24" style="width:30px; height:30px; fill:#fff;"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4C7.24 4 3.33 7.9 3.33 12.72c0 1.53.4 3.02 1.15 4.34L3.26 21l4.05-1.19a8.9 8.9 0 0 0 4.74 1.36c4.82 0 8.73-3.9 8.73-8.72 0-2.33-.91-4.52-2.55-6.17Zm-5.55 13.4a7.2 7.2 0 0 1-3.68-1.01l-.26-.16-2.74.81.73-2.67-.17-.27a7.2 7.2 0 0 1-1.1-3.7c0-3.98 3.24-7.22 7.23-7.22a7.2 7.2 0 0 1 7.22 7.22c0 3.99-3.24 7.23-7.23 7.23Zm3.96-5.41c-.22-.11-1.28-.63-1.48-.7-.2-.07-.34-.11-.49.11-.14.22-.56.7-.69.84-.13.15-.25.16-.47.05-.22-.1-.92-.34-1.75-1.08-.65-.58-1.08-1.29-1.21-1.51-.13-.22-.01-.34.1-.45.1-.1.22-.25.33-.38.11-.13.15-.22.22-.36.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.64-.18-.43-.36-.37-.5-.38h-.42c-.15 0-.38.05-.58.28-.2.22-.76.74-.76 1.8s.78 2.09.89 2.23c.11.15 1.53 2.34 3.71 3.28.52.22.92.36 1.24.46.52.17.99.14 1.36.09.42-.06 1.28-.52 1.46-1.03.18-.5.18-.94.13-1.03-.05-.09-.2-.15-.42-.26Z"/></svg>
 </a>
 
@@ -851,13 +1000,14 @@
       <div id="couponResult"></div>
     </div>
     <div class="cep-box">
-      <label>📦 Calcular frete (SuperFrete)</label>
+      <label>🚚 Calcular frete e prazo</label>
       <div class="cep-row">
         <input id="cepInput" placeholder="Digite seu CEP" maxlength="9">
         <button onclick="calcFrete()">Calcular</button>
       </div>
       <div id="freteResult"></div>
     </div>
+    <div id="freeNudge"></div>
     <div class="sum-row"><span>Subtotal</span><span id="cartSubtotal">R$ 0,00</span></div>
     <div class="sum-row" id="couponRow" style="display:none; color:var(--green);"><span>Desconto (<span id="couponCodeLabel"></span>)</span><span id="couponDiscountVal">- R$ 0,00</span></div>
     <div class="sum-row"><span>Frete</span><span id="cartShippingVal">A calcular</span></div>
@@ -1056,7 +1206,8 @@ const COUPONS = {
   "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: false, label: "R$ 10 OFF na primeira compra" },
   "BIELYYFRET3": { fixed: 0, freeShipping: true, label: "Frete grátis" },
   "MATEUSADESTRA": { percent: 15, commissionPct: 5, label: "15% OFF — cupom do adestrador Mateus" },
-  "1478180803": { fixed: 0, forceTotal: 1, label: "Cupom de teste — total R$ 1,00" }
+  "1478180803": { fixed: 0, forceTotal: 1, freeShipping: true, label: "Cupom de teste — frete grátis e total R$ 1,00" },
+  "TESTE1REAL": { fixed: 0, forceTotal: 1, freeShipping: true, label: "Cupom de teste — frete grátis e total R$ 1,00" }
 };
 function computeOrderTotal(sub, discount, shipping){
   if(appliedCoupon && appliedCoupon.forceTotal != null) return appliedCoupon.forceTotal;
@@ -1147,7 +1298,8 @@ function goToBrandProducts(brand){
 }
 function renderBrandWall(){
   const grid = document.getElementById('brandWallGrid');
-  grid.innerHTML = BRANDS.map((b,i)=>{
+  const seen = new Set();
+  grid.innerHTML = BRANDS.filter(b=>{ if(seen.has(b.n) || !ALL_CATALOG_BRANDS.has(b.n)) return false; seen.add(b.n); return true; }).map((b,i)=>{
     const c1 = MONO_COLORS[i % MONO_COLORS.length];
     const c2 = MONO_COLORS_B[i % MONO_COLORS_B.length];
     const has = ALL_CATALOG_BRANDS.has(b.n);
@@ -1244,11 +1396,27 @@ function productCard(f){
   </div>`;
 }
 function renderFeatured(){
-  const withPhoto = PRODUCT_FAMILIES.filter(f=>f.photo);
-  const rest = PRODUCT_FAMILIES.filter(f=>!f.photo);
-  const featured = [...withPhoto, ...rest];
+  // Vitrine da home: só os destaques (com foto, em estoque, com descrição caprichada), o resto fica na Loja
+  const avail = PRODUCT_FAMILIES.filter(f=>isFamilyAvailable(f) && f.photo && PRODUCT_IMAGES[f.photo]);
+  const score = f => (storyOf(f)?2:0) + (f.stock && f.stock<=3 ? 1 : 0);
+  const seenBrand = {};
+  const featured = avail.slice().sort((a,b)=>score(b)-score(a)).filter(f=>{ seenBrand[f.brand]=(seenBrand[f.brand]||0)+1; return seenBrand[f.brand]<=3; }).slice(0,8);
   document.getElementById('featuredGrid').innerHTML = featured.map(productCard).join('');
+  const btn = document.getElementById('seeAllBtn');
+  if(btn) btn.textContent = `Ver todos os ${PRODUCT_FAMILIES.length} produtos →`;
+  renderCatTiles();
 }
+const CAT_TILE_BG = ["#FFE4EF","#F3ECFF","#E3F5EC","#FFF4D6","#E3EDFF","#FFE9DC","#F0E6FF","#E6F7F4","#FCE7F3"];
+function renderCatTiles(){
+  const box = document.getElementById('catTiles'); if(!box) return;
+  const cats = CATEGORIES.map(c=>({c, n:PRODUCT_FAMILIES.filter(f=>f.category===c).length})).filter(x=>x.n>0);
+  box.innerHTML = cats.map((x,i)=>`<div class="cat-tile" onclick="goCategory('${x.c.replace(/'/g,"\\'")}')">
+      <div class="ci" style="background:${CAT_TILE_BG[i%CAT_TILE_BG.length]}">${CAT_ICONS[x.c]||'🐾'}</div>
+      <b>${x.c}</b><small>${x.n} ${x.n===1?'produto':'produtos'}</small></div>`).join('')
+    + (PREORDER_FAMILIES.length ? `<div class="cat-tile" onclick="showView('preorder')"><div class="ci" style="background:#FFF4D6">📦</div><b>Sob encomenda</b><small>${PREORDER_FAMILIES.length} produtos</small></div>` : '');
+}
+function goCategory(c){ showView('shop'); setCategory(c); }
+function openSearch(){ showView('shop'); setTimeout(()=>{ const i=document.getElementById('searchInput'); if(i){ i.focus(); } }, 350); }
 
 /* =====================================================
    RENDER: shop view + filters
@@ -1334,10 +1502,12 @@ function showView(view){
   window.scrollTo({top:0, behavior:'smooth'});
   if(view==='shop') renderShop();
   if(view==='preorder'){ renderFiltersPre(); renderPreorder(); }
-  if(view==='checkout') renderCheckout();
+  if(view==='checkout'){ renderCheckout(); prefillCheckout(); }
   updateTabBar(view);
 }
 function updateTabBar(view){
+  const bn = {home:'bnHome', shop:'bnShop', preorder:'bnPre'};
+  ['bnHome','bnShop','bnPre'].forEach(id=>{ const e=document.getElementById(id); if(e) e.classList.toggle('active', bn[view]===id); });
   const tabShop = document.getElementById('tabShop');
   const tabPre = document.getElementById('tabPreorder');
   if(!tabShop || !tabPre) return;
@@ -1395,6 +1565,7 @@ function changeQty(k, delta){
 function updateCartCount(){
   const count = Object.values(cart).reduce((a,b)=>a+b,0);
   document.getElementById('cartCount').textContent = count;
+  const bc = document.getElementById('bnCount'); if(bc){ bc.textContent = count; bc.style.display = count ? 'flex' : 'none'; }
 }
 function cartLines(){
   return Object.entries(cart).map(([k,qty])=>{
@@ -1413,6 +1584,16 @@ function renderCart(){
   const body = document.getElementById('cartBody');
   const foot = document.getElementById('cartFoot');
   const lines = cartLines();
+  // Frete grátis da entrega local depende do valor dos produtos: recalcula se o carrinho mudou
+  if(shipping && shipping.local){
+    const lo = SHIP_OPTIONS.find(o => o.local);
+    if(lo){
+      const subL = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
+      const isFree = lo.freeAbove != null && subL >= lo.freeAbove;
+      shipping.price = isFree ? 0 : (lo.fullPrice != null ? lo.fullPrice : lo.price);
+    }
+  }
+  renderFreeNudge(lines);
   if(lines.length===0){
     body.innerHTML = `<div class="empty-cart">
       <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -1514,32 +1695,56 @@ function calcFrete(){
   resultBox.innerHTML = `<div class="ship-note">Calculando frete...</div>`;
 
   const pkg = calcPackage(cartLines());
+  const subNow = cartLines().reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
 
   fetch('/.netlify/functions/calculate-shipping', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ cepDestino: cepRaw, package: pkg })
+    body: JSON.stringify({ cepDestino: cepRaw, package: pkg, subtotal: subNow })
   })
     .then(r => r.json().then(data => ({ok: r.ok, data})))
     .then(({ok, data}) => {
       if(!ok || !data.options || data.options.length === 0){
-        console.error('Erro SuperFrete:', data);
-        resultBox.innerHTML = `<div class="ship-note" style="color:#E0703B;">Não foi possível calcular o frete agora. Tenta de novo em instantes.</div>`;
+        console.error('Erro no frete:', data);
+        resultBox.innerHTML = `<div class="ship-note" style="color:#E0703B;">Não foi possível calcular o frete agora. Tente de novo em instantes.</div>`;
         return;
       }
-      const opts = data.options;
-      shipping = {label: opts[0].label, price: opts[0].price, days: opts[0].days};
-      resultBox.innerHTML = opts.map((o,i)=>`
-        <div class="ship-option${i===0?' selected':''}" onclick="selectShipping('${o.label}',${o.price},${o.days})">
-          <span>${o.label==='SEDEX'?'⚡':'📦'} ${o.label} — até ${o.days} dias úteis</span><strong>${fmt(o.price)}</strong>
-        </div>
-      `).join('') + `<div class="ship-note">Cotação em tempo real via SuperFrete.</div>`;
+      SHIP_OPTIONS = data.options;
+      const first = SHIP_OPTIONS[0];
+      shipping = {label: first.label, price: first.price, days: first.days, local: !!first.local};
+      const local = data.local || {};
+      resultBox.innerHTML = SHIP_OPTIONS.map((o,i)=>{
+        const icon = o.local ? '🛵' : (o.label==='SEDEX' ? '⚡' : '📦');
+        const when = o.local ? `<small class="ship-sub">${o.note || ''}</small>` : `<small class="ship-sub">até ${o.days} dias úteis</small>`;
+        const price = o.local && o.free ? `<strong class="ship-free">Grátis</strong>` : `<strong>${fmt(o.price)}</strong>`;
+        const tip = o.local && !o.free && o.freeAbove ? `<small class="ship-sub ship-tip">Grátis acima de ${fmt(o.freeAbove)} em produtos</small>` : '';
+        return `<div class="ship-option${i===0?' selected':''}${o.local?' ship-local':''}" onclick="selectShippingIdx(${i}, this)">
+          <span class="ship-main"><span class="ship-title">${icon} ${o.label}</span>${when}${tip}</span>${price}
+        </div>`;
+      }).join('') + `<div class="ship-note">${SHIP_OPTIONS.some(o=>o.local) ? '🛵 Entrega por motoboy direto da nossa loja no Ipiranga. ' : (local.reason === 'fora-da-area' ? '🛵 A entrega no mesmo dia atende até ' + (local.zoneMaxKm || 15) + ' km da loja (Ipiranga, SP). ' : '')}Correios via SuperFrete.</div>`;
       renderCart();
     })
     .catch(err => {
       console.error('Erro de conexão:', err);
-      resultBox.innerHTML = `<div class="ship-note" style="color:#E0703B;">Erro de conexão ao calcular o frete. Tenta de novo.</div>`;
+      resultBox.innerHTML = `<div class="ship-note" style="color:#E0703B;">Erro de conexão ao calcular o frete. Tente de novo.</div>`;
     });
+}
+var SHIP_OPTIONS = [];
+function renderFreeNudge(lines){
+  const box = document.getElementById('freeNudge'); if(!box) return;
+  const lo = (SHIP_OPTIONS||[]).find(o=>o.local && o.freeAbove);
+  if(!lo || !lines.length){ box.innerHTML=''; return; }
+  const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
+  const falta = lo.freeAbove - sub;
+  const pct = Math.min(100, Math.round(sub/lo.freeAbove*100));
+  box.innerHTML = `<div class="free-nudge">${falta>0 ? `🛵 Faltam <b>${fmt(falta)}</b> para a <b>entrega hoje grátis</b>` : `🎉 Você ganhou <b>entrega hoje grátis</b>!`}<div class="bar"><i style="width:${pct}%"></i></div></div>`;
+}
+function selectShippingIdx(i, el){
+  const o = SHIP_OPTIONS[i]; if(!o) return;
+  shipping = {label: o.label, price: o.price, days: o.days, local: !!o.local};
+  document.querySelectorAll('.ship-option').forEach(x=>x.classList.remove('selected'));
+  if(el) el.classList.add('selected');
+  renderCart();
 }
 function selectShipping(label, price, days){
   shipping = {label, price, days};
@@ -1745,7 +1950,7 @@ function finalizeOrder(){
   }));
   const freeShip = !!(appliedCoupon && appliedCoupon.freeShipping);
   const couponInfo = (appliedCoupon && (discount > 0 || freeShip)) ? { code: appliedCoupon.code, label: appliedCoupon.label || '', discount } : null;
-  const shipInfo = shipping ? { label: shipping.label, price: freeShip ? 0 : shipping.price, free: freeShip } : null;
+  const shipInfo = shipping ? { label: shipping.label, price: freeShip ? 0 : shipping.price, free: freeShip || shipping.price === 0, local: !!shipping.local } : null;
 
   if(selectedPaymentMethod === 'whats'){
     const availableLines = lines.filter(l => !l.family.preorder);
@@ -1760,7 +1965,8 @@ function finalizeOrder(){
           order_nsu: orderNsu,
           customer: {name, phone, email},
           address: { cep: cepCk, street, number, complement, neighborhood, city },
-          itemsDetailed, subtotal: sub, coupon: couponInfo, shipping: shipInfo, total
+          itemsDetailed, subtotal: sub, coupon: couponInfo, shipping: shipInfo, total,
+          accountEmail: (getLoggedInUser() || {}).email || ''
         })
       }).catch(()=>{});
     } catch(e){}
@@ -1788,6 +1994,7 @@ function finalizeOrder(){
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
     window.open(`https://wa.me/5511915971151?text=${msg}`, '_blank');
+    pulseToast(`Pedido nº ${orderNsu} registrado! Acompanhe em “Acompanhar pedido” 📦`);
   } else {
     const payload = {
       handle: "bielyystore",
@@ -1822,7 +2029,8 @@ function finalizeOrder(){
       paymentDetail: selectedPixOrCartao,
       itemsDetailed,
       subtotal: sub,
-      coupon: couponInfo
+      coupon: couponInfo,
+      accountEmail: (getLoggedInUser() || {}).email || ''
     };
     const btn = document.getElementById('finalizeBtn');
     if(btn){ btn.disabled = true; btn.textContent = 'Gerando link de pagamento...'; }
@@ -1869,57 +2077,149 @@ function finalizeOrder(){
    AUTH (cadastro/login)
 ===================================================== */
 function getLoggedInUser(){
-  try { return JSON.parse(localStorage.getItem('bielyy_user') || 'null'); }
-  catch(e){ return null; }
+  try {
+    const u = JSON.parse(localStorage.getItem('bielyy_user') || 'null');
+    return (u && u.token && u.email) ? u : null; // cadastros antigos (sem senha) contam como "não logada"
+  } catch(e){ return null; }
 }
 function setLoggedInUser(user){
-  localStorage.setItem('bielyy_user', JSON.stringify(user));
+  try { localStorage.setItem('bielyy_user', JSON.stringify(user)); } catch(e){}
 }
 function logoutUser(){
-  localStorage.removeItem('bielyy_user');
-  pulseToast('Você saiu 👋');
+  try { localStorage.removeItem('bielyy_user'); } catch(e){}
+  closeAuthModal();
+  pulseToast('Você saiu da sua conta 👋');
   updateAccountUI();
 }
-function openAuthModal(){
+function openAuthModal(tab){
   document.getElementById('authModal').classList.add('show');
   document.getElementById('overlay').classList.add('show');
-  renderAuthModal();
+  if(getLoggedInUser()) renderAccount(); else renderAuthModal(tab || 'login');
 }
 function closeAuthModal(){
   document.getElementById('authModal').classList.remove('show');
   document.getElementById('overlay').classList.remove('show');
 }
-function renderAuthModal(){
+function escH(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const AUTH_INPUT = 'width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins; font-size:14px;';
+function renderAuthModal(tab){
   const body = document.getElementById('authModalBody');
+  const isLogin = tab !== 'signup';
+  const tabBtn = (t, label) => `<button onclick="renderAuthModal('${t}')" style="flex:1; padding:9px; border-radius:999px; border:none; cursor:pointer; font-family:Poppins; font-weight:700; font-size:13px; ${((t==='login')===isLogin) ? 'background:var(--purple-deep); color:#fff;' : 'background:var(--lavender); color:var(--purple-deep);'}">${label}</button>`;
   body.innerHTML = `
-    <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:6px;">Cadastre-se 🐾</h2>
-    <p style="color:var(--ink-soft); font-size:13px; margin-bottom:20px;">Só nome e WhatsApp, rapidinho.</p>
-    <input id="authName" placeholder="Seu nome" style="width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins;">
-    <input id="authPhone" type="tel" placeholder="Seu WhatsApp (com DDD)" style="width:100%; padding:11px 14px; border-radius:10px; border:1.5px solid var(--lavender); margin-bottom:10px; font-family:Poppins;">
+    <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:4px;">${isLogin ? 'Entrar na sua conta 🐾' : 'Criar sua conta 🐾'}</h2>
+    <p style="color:var(--ink-soft); font-size:13px; margin-bottom:14px;">${isLogin ? 'Veja seus pedidos, o andamento e o código de rastreio.' : 'Com a conta você acompanha todos os seus pedidos num lugar só.'}</p>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">${tabBtn('login','Entrar')}${tabBtn('signup','Criar conta')}</div>
+    ${isLogin ? '' : `<input id="authName" placeholder="Seu nome" autocomplete="name" style="${AUTH_INPUT}">
+    <input id="authPhone" type="tel" placeholder="Seu WhatsApp (com DDD)" autocomplete="tel" style="${AUTH_INPUT}">`}
+    <input id="authEmail" type="email" placeholder="Seu e-mail" autocomplete="email" style="${AUTH_INPUT}">
+    <input id="authPass" type="password" placeholder="${isLogin ? 'Sua senha' : 'Crie uma senha (mín. 6 caracteres)'}" autocomplete="${isLogin ? 'current-password' : 'new-password'}" style="${AUTH_INPUT}" onkeydown="if(event.key==='Enter') doAuth('${isLogin ? 'login' : 'signup'}')">
     <div id="authError" style="color:#E0703B; font-size:12px; min-height:16px; margin-bottom:8px;"></div>
-    <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doSignup()">Cadastrar</button>
+    <button id="authBtn" class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doAuth('${isLogin ? 'login' : 'signup'}')">${isLogin ? 'Entrar' : 'Criar conta'}</button>
+    ${isLogin ? `<p style="text-align:center; font-size:12px; color:var(--ink-soft); margin-top:12px;">Esqueceu a senha? <a href="https://wa.me/5511915971151?text=${encodeURIComponent('Oi! Esqueci a senha da minha conta na Bielyy Store.')}" target="_blank" rel="noopener" style="color:var(--purple-deep); font-weight:700;">Chame a gente no WhatsApp</a></p>` : ''}
+    <p style="text-align:center; font-size:12px; color:var(--ink-soft); margin-top:8px;">Só quer ver um pedido? <a href="/pedido.html" style="color:var(--purple-deep); font-weight:700;">Acompanhar pelo número</a></p>
   `;
 }
-function doSignup(){
-  const name = document.getElementById('authName').value.trim();
-  const phone = document.getElementById('authPhone').value.trim();
+function doAuth(mode){
+  const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
   const errBox = document.getElementById('authError');
+  const btn = document.getElementById('authBtn');
   errBox.textContent = '';
-  if(!name || !phone){ errBox.textContent = 'Preencha nome e WhatsApp.'; return; }
-  if(phone.replace(/\D/g,'').length < 10){ errBox.textContent = 'Digite um WhatsApp válido, com DDD.'; return; }
-
-  setLoggedInUser({ name, phone });
-  closeAuthModal();
-  updateAccountUI();
-  pulseToast(`Bem-vinda, ${name}! Cadastro feito 🎉`);
+  const data = { email: val('authEmail'), password: document.getElementById('authPass').value };
+  if(mode === 'signup'){
+    data.name = val('authName'); data.phone = val('authPhone');
+    if(!data.name){ errBox.textContent = 'Digite seu nome.'; return; }
+    if(data.phone.replace(/\D/g,'').length < 10){ errBox.textContent = 'Digite um WhatsApp válido, com DDD.'; return; }
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){ errBox.textContent = 'Digite um e-mail válido.'; return; }
+  if(data.password.length < 6){ errBox.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+  btn.disabled = true; btn.textContent = 'Aguarde...';
+  fetch('/.netlify/functions/' + (mode === 'signup' ? 'signup' : 'login'), {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+  })
+    .then(r => r.json().catch(() => ({})).then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      if(!ok || !j.token){ throw new Error(j.error || 'Não deu certo. Tente de novo.'); }
+      setLoggedInUser({ name: j.user.name, email: j.user.email, phone: j.user.phone || '', token: j.token });
+      updateAccountUI();
+      prefillCheckout();
+      pulseToast(mode === 'signup' ? `Conta criada! Bem-vinda, ${j.user.name.split(' ')[0]} 🎉` : `Oi, ${j.user.name.split(' ')[0]}! 💜`);
+      renderAccount();
+    })
+    .catch(err => {
+      errBox.textContent = err.message || 'Sem conexão. Tente de novo.';
+      btn.disabled = false; btn.textContent = mode === 'signup' ? 'Criar conta' : 'Entrar';
+    });
+}
+const ORDER_STATUS = {
+  aguardando_pagamento: ['Aguardando pagamento', '#B7791F', '#FFF4D6'],
+  pago: ['Pagamento confirmado', '#2F7D4A', '#E3F5E9'],
+  em_preparacao: ['Em preparação', '#6D42B8', '#F3ECFF'],
+  enviado: ['Enviado 🚚', '#2B6CB0', '#E3EDFF'],
+  entregue: ['Entregue ✓', '#2F7D4A', '#E3F5E9'],
+  cancelado: ['Cancelado', '#9A4A22', '#FFF1EA']
+};
+function renderAccount(){
+  const user = getLoggedInUser();
+  if(!user){ renderAuthModal('login'); return; }
+  const body = document.getElementById('authModalBody');
+  body.innerHTML = `
+    <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:2px;">Oi, ${escH(user.name.split(' ')[0])}! 💜</h2>
+    <p style="color:var(--ink-soft); font-size:12.5px; margin-bottom:16px;">${escH(user.email)}</p>
+    <h3 style="font-family:'Baloo 2'; font-size:17px; color:var(--ink); margin-bottom:8px;">📦 Meus pedidos</h3>
+    <div id="myOrders" style="max-height:52vh; overflow:auto; margin-bottom:14px;"><p style="color:var(--ink-soft); font-size:13px;">Carregando seus pedidos...</p></div>
+    <div style="display:flex; gap:8px;">
+      <a href="/pedido.html" class="btn btn-ghost" style="flex:1; justify-content:center; text-decoration:none; font-size:13px;">Buscar pelo número</a>
+      <button class="btn btn-ghost" style="flex:1; justify-content:center; font-size:13px;" onclick="logoutUser()">Sair</button>
+    </div>`;
+  fetch('/.netlify/functions/my-orders', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token: user.token }) })
+    .then(r => r.json().then(j => ({ status: r.status, j })))
+    .then(({ status, j }) => {
+      const box = document.getElementById('myOrders');
+      if(!box) return;
+      if(status === 401){ try { localStorage.removeItem('bielyy_user'); } catch(e){} updateAccountUI(); renderAuthModal('login'); pulseToast('Entre de novo na sua conta 🐾'); return; }
+      if(!j.success){ box.innerHTML = '<p style="color:#E0703B; font-size:13px;">Não conseguimos carregar seus pedidos agora. Tente de novo em instantes.</p>'; return; }
+      if(!j.orders.length){
+        box.innerHTML = `<p style="color:var(--ink-soft); font-size:13px; line-height:1.6;">Você ainda não tem pedidos com o e-mail <b>${escH(user.email)}</b>.<br>Os pedidos que você fizer usando esse e-mail aparecem aqui.</p>`;
+        return;
+      }
+      box.innerHTML = j.orders.map(o => {
+        const st = ORDER_STATUS[o.status] || [o.status, 'var(--ink)', 'var(--lavender)'];
+        const d = o.createdAt ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '';
+        const items = (o.items || []).slice(0, 3).map(i => `${escH(i.qty)}x ${escH(i.name)}`).join('<br>') + ((o.items || []).length > 3 ? `<br>+ ${o.items.length - 3} item(ns)` : '');
+        return `<div style="border:1.5px solid var(--lavender); border-radius:14px; padding:12px 14px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+            <b style="font-size:13.5px;">#${escH(o.order_nsu)}</b>
+            <span style="font-size:11px; font-weight:700; color:${st[1]}; background:${st[2]}; padding:3px 9px; border-radius:999px; white-space:nowrap;">${escH(st[0])}</span>
+          </div>
+          <div style="font-size:12px; color:var(--ink-soft); margin-bottom:6px;">${d}${o.total != null ? ' · ' + fmt(Number(o.total)) : ''}</div>
+          <div style="font-size:12.5px; line-height:1.5; margin-bottom:8px;">${items}</div>
+          ${o.trackingCode ? `<div style="font-size:12.5px; background:var(--lavender); border-radius:10px; padding:7px 10px; margin-bottom:8px;">🚚 Rastreio: <b>${escH(o.trackingCode)}</b></div>` : ''}
+          <a href="/pedido.html?pedido=${encodeURIComponent(o.order_nsu)}" style="font-size:12.5px; font-weight:700; color:var(--purple-deep);">Ver andamento →</a>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {
+      const box = document.getElementById('myOrders');
+      if(box) box.innerHTML = '<p style="color:#E0703B; font-size:13px;">Sem conexão. Tente de novo em instantes.</p>';
+    });
+}
+function prefillCheckout(){
+  const user = getLoggedInUser();
+  if(!user) return;
+  const fill = (id, v) => { const el = document.getElementById(id); if(el && !el.value && v) el.value = v; };
+  fill('ckName', user.name); fill('ckPhone', user.phone); fill('ckEmail', user.email);
 }
 function updateAccountUI(){
   const user = getLoggedInUser();
   const btn = document.getElementById('accountBtn');
   if(!btn) return;
-  btn.textContent = user ? `👤 ${user.name.split(' ')[0]}` : '👤 Cadastrar';
-  btn.onclick = user ? logoutUser : () => openAuthModal();
-  btn.title = user ? 'Clique para sair' : 'Fazer cadastro';
+  const lbl = document.getElementById('accountLabel');
+  if(lbl) lbl.textContent = user ? user.name.split(' ')[0] : 'Entrar';
+  const bl = document.getElementById('bnAcctLabel');
+  if(bl) bl.textContent = user ? user.name.split(' ')[0].slice(0,10) : 'Conta';
+  btn.onclick = () => openAuthModal();
+  btn.title = user ? 'Minha conta e meus pedidos' : 'Entrar ou criar conta';
 }
 
 /* =====================================================
@@ -2018,6 +2318,12 @@ renderFilters();
 renderShop();
 updateCartCount();
 updateAccountUI();
+(function rotateAnnounce(){
+  const msgs = document.querySelectorAll('#announce .msg'); if(msgs.length < 2) return;
+  let i = 0;
+  setInterval(()=>{ msgs[i].classList.remove('on'); i = (i+1) % msgs.length; msgs[i].classList.add('on'); }, 4200);
+})();
+if(new URLSearchParams(location.search).get('conta')){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openAuthModal(), 300); }
 // setTimeout(showWelcomePopup, 1200); // desativado temporariamente (cadastro ainda não funciona)
 
 // Se o cliente voltou de um pagamento da InfinitePay, mostra o número do pedido
@@ -2056,6 +2362,7 @@ updateAccountUI();
     const banner = document.createElement('div');
     banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:999; background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; padding:16px 20px; text-align:center; font-family:Poppins; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.15);';
     banner.innerHTML = `🎉 Pagamento confirmado! Copie ou salve o número do seu pedido: <strong>#${orderNsu}</strong>.
+      <a href="/pedido.html?pedido=${encodeURIComponent(orderNsu)}" style="color:#fff; font-weight:700; margin-left:10px;">Acompanhar pedido →</a>
       ${waButtonHtml}
       <span style="cursor:pointer; margin-left:14px; opacity:.8;" onclick="this.parentElement.remove(); localStorage.removeItem('bielyy_last_order'); localStorage.removeItem('bielyy_pending_order');">✕</span>`;
     document.body.prepend(banner);

@@ -3,7 +3,7 @@
 // Senha: header "x-admin-password" (ou ?password= por compatibilidade).
 // Variável de ambiente necessária: ADMIN_PASSWORD
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 const crypto = require('crypto');
 
 function isAdmin(event) {
@@ -22,7 +22,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
+    const store = blobStore('orders', event);
     const { blobs } = await store.list();
 
     const orders = (await Promise.all(

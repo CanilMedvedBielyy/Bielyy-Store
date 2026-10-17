@@ -1,7 +1,7 @@
 // Netlify Function: lista as avaliações APROVADAS de um produto (público)
 // Rota automática: /.netlify/functions/get-reviews?productId=123
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 exports.handler = async function (event) {
   const productId = event.queryStringParameters && event.queryStringParameters.productId;
@@ -10,7 +10,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('reviews');
+    const store = blobStore('reviews', event);
     const { blobs } = await store.list({ prefix: `${productId}_` });
 
     const all = await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' })));

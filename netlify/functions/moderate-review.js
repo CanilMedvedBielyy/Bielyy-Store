@@ -1,7 +1,7 @@
 // Netlify Function: aprova ou rejeita uma avaliação (protegida por senha)
 // Rota automática: /.netlify/functions/moderate-review
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -24,7 +24,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('reviews');
+    const store = blobStore('reviews', event);
 
     if (action === 'reject') {
       await store.delete(reviewId);

@@ -1,7 +1,7 @@
 // Netlify Function: lista avaliações pendentes de moderação (protegida por senha)
 // Rota automática: /.netlify/functions/get-pending-reviews?password=XXX
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 exports.handler = async function (event) {
   const password = event.queryStringParameters && event.queryStringParameters.password;
@@ -10,7 +10,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('reviews');
+    const store = blobStore('reviews', event);
     const { blobs } = await store.list();
     const all = await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' })));
     const pending = all

@@ -1,7 +1,7 @@
 // Netlify Function: recebe uma avaliação de produto (fica pendente até aprovação)
 // Rota automática: /.netlify/functions/submit-review
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -25,7 +25,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('reviews');
+    const store = blobStore('reviews', event);
     const id = `${productId}_${Date.now()}`;
     await store.setJSON(id, {
       id,

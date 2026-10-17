@@ -120,6 +120,16 @@
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 18px; border-radius:999px; font-size:13px; z-index:99; opacity:0; pointer-events:none; transition:.25s;}
   .toast.show{opacity:1;}
   @media (max-width:560px){ .kv{grid-template-columns:96px 1fr;} .o-total{font-size:16px;} }
+
+  /* entrega hoje */
+  .hint{font-size:12.5px; color:var(--ink-soft); line-height:1.55;}
+  .field.sm{width:auto; display:inline-block; padding:8px 10px; margin:0 4px;}
+  .dl-grid{display:flex; flex-wrap:wrap; gap:10px 22px; margin:14px 0 8px; font-size:13.5px; align-items:center;}
+  .dl-days{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 14px;}
+  .dl-days label{font-size:12.5px; background:var(--lavender); padding:6px 11px; border-radius:999px; cursor:pointer;}
+  .dl-zones input{width:100px; padding:7px 9px; border-radius:10px; border:1.5px solid var(--line);}
+  .dl-zones td{vertical-align:middle;}
+  .dl-ok{color:var(--green); font-weight:700;} .dl-bad{color:#C24E7A; font-weight:700;}
 </style>
 </head>
 <body>
@@ -148,6 +158,7 @@
       <button class="tab on" data-tab="orders" onclick="setTab('orders')">📦 Pedidos <span class="badge hide" id="newBadge"></span></button>
       <button class="tab" data-tab="customers" onclick="setTab('customers')">👥 Clientes</button>
       <button class="tab" data-tab="reviews" onclick="setTab('reviews')">⭐ Avaliações</button>
+      <button class="tab" data-tab="delivery" onclick="setTab('delivery')">🛵 Entrega hoje</button>
     </div>
 
     <!-- PEDIDOS -->
@@ -178,6 +189,34 @@
 
     <!-- AVALIAÇÕES -->
     <section id="tab-reviews" class="hide"><div id="reviewsList"></div></section>
+
+    <!-- ENTREGA HOJE -->
+    <section id="tab-delivery" class="hide">
+      <div class="card">
+        <h3>🛵 Entrega no mesmo dia (motoboy / Uber / 99 / Lalamove)</h3>
+        <p class="hint">A cliente digita o CEP no carrinho. O site calcula a distância até a loja e mostra o preço fixo da faixa.
+          Você não precisa cotar CEP por CEP: os preços abaixo já cobrem o custo médio de um Uber Envios Moto até o fim de cada faixa.</p>
+        <div class="dl-grid">
+          <label><input type="checkbox" id="dlEnabled"> <b>Ativar entrega hoje</b></label>
+          <label>CEP da loja <input class="field sm" id="dlCep" maxlength="9"></label>
+          <label>Pedidos pagos até <input class="field sm" id="dlCut" type="number" min="6" max="22"> h saem no mesmo dia</label>
+          <label>Peso máximo (moto) <input class="field sm" id="dlWeight" type="number" min="1" max="30" step="0.5"> kg</label>
+        </div>
+        <div class="dl-days" id="dlDays"></div>
+        <table class="it dl-zones"><thead><tr><th>Até (km de rota)</th><th>Preço para a cliente</th><th>Grátis acima de (opcional)</th><th>Custo estimado do Uber*</th><th></th></tr></thead><tbody id="dlZones"></tbody></table>
+        <div class="btnrow"><button class="ghost" onclick="dlAddZone()">+ Adicionar faixa</button>
+          <button class="ghost" onclick="dlReset()">Voltar ao padrão sugerido</button>
+          <button class="btn" onclick="dlSave()">Salvar</button></div>
+        <p class="hint" style="margin-top:10px">* Estimativa conservadora: R$ 5 + R$ 1,95 por km de rota (inclui o tempo parado no trânsito). Em horário de pico ou chuva o app pode cobrar mais — por isso a sugestão é cobrar pelo fim da faixa e despachar fora do pico quando possível.</p>
+      </div>
+      <div class="card">
+        <h3>🔎 Testar um CEP</h3>
+        <div class="toolbar"><input class="field sm" id="dlTest" placeholder="00000-000" maxlength="9" onkeydown="if(event.key==='Enter') dlTestCep()">
+          <input class="field sm" id="dlTestSub" type="number" placeholder="Valor dos produtos (R$)">
+          <button class="btn" onclick="dlTestCep()">Ver preço</button></div>
+        <div id="dlTestOut" class="hint"></div>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -319,7 +358,8 @@ function markSeen(){
 /* ============ abas ============ */
 function setTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  ['orders','customers','reviews'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  ['orders','customers','reviews','delivery'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  if(t==='delivery') dlLoad();
   if(t==='orders') markSeen();
   if(t==='customers') renderCustomers();
   if(t==='reviews') loadReviews();
@@ -378,7 +418,7 @@ function renderOrders(){
         <div class="o-sub">#${esc(o.order_nsu)} · ${dt(o._date)} · ${o._pm==='whatsapp'?'WhatsApp':'InfinitePay'}</div></div>
       <div class="o-right"><div class="o-total">${fmt(o._total)}</div><span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div>
       <div class="o-items">${n} ${n===1?'item':'itens'}: ${esc(itemsText(o))}</div>
-      <div class="tags">${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
+      <div class="tags">${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
     </div>`;
   }).join('');
 }
@@ -392,12 +432,14 @@ function openDetail(id){
   const stepper = o.status==='cancelado' ? '<p style="color:#777;font-size:13px">Pedido cancelado.</p>' :
     `<div class="steps">${FLOW.map((s,i)=>`<div class="step ${i<idx?'done':''} ${i===idx?'now done':''}">${STATUS_LABEL[s].replace(/^\S+ /,'')}</div>`).join('')}</div>`;
   const next = NEXT[o.status];
+  const link = trackUrl(o.order_nsu);
   const msgStatus = {
     pago:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o pagamento do seu pedido #${o.order_nsu}. Já vamos separar tudo com carinho 💜`,
     em_preparacao:`Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} está sendo preparado 📦`,
     enviado:`Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} foi enviado 🚚${o.trackingCode?' Código de rastreio: '+o.trackingCode:''}`,
     aguardando_pagamento:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o seu pedido #${o.order_nsu} (${fmt(o._total)}). Vamos combinar o pagamento? 💜`
   }[o.status] || `Oi, ${(c.name||'').split(' ')[0]}! Sobre o seu pedido #${o.order_nsu} da Bielyy Store.`;
+  const msgFull = msgStatus + `\n\nAcompanhe seu pedido aqui: ${link}`;
   document.getElementById('detail').innerHTML = `
     <div class="d-top"><div><h2>Pedido #${esc(o.order_nsu)}</h2>
       <div class="o-sub">${dt(o._date)} · <span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div></div>
@@ -444,7 +486,12 @@ function openDetail(id){
       <input class="field" id="trk" placeholder="Código de rastreio (Correios)" value="${esc(o.trackingCode||'')}">
       <textarea class="field" id="note" placeholder="Observação interna (só você vê)">${esc(o.note||'')}</textarea>
       <div class="btnrow"><button class="btn" onclick="saveExtras()">Salvar</button>
-        <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgStatus)}" target="_blank" rel="noopener">💬 Avisar cliente no WhatsApp</a></div></div>`;
+        <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Avisar cliente no WhatsApp</a></div>
+      <div class="cm" style="margin-top:12px">🔗 <b>Página de acompanhamento da cliente</b><br>
+        <span style="word-break:break-all">${esc(link)}</span><br>
+        O status e o código de rastreio que você salvar aqui aparecem nessa página e na conta da cliente.
+        <div class="btnrow" style="margin-top:8px"><button class="ghost" onclick="copy(trackUrl(CUR),'Link copiado ✓')">Copiar link</button>
+        <a class="ghost" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener">Ver como a cliente vê</a></div></div></div>`;
   document.getElementById('ov').classList.add('show');
 }
 function closeDetail(){ document.getElementById('ov').classList.remove('show'); CUR=null; }
@@ -464,8 +511,14 @@ function setStatus(status){
   }
   post({ order_nsu:CUR, status, trackingCode:tracking }).then(d=>{ if(d.success){ applyUpdated(d.order); toast('Status atualizado ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
 }
+function trackUrl(nsu){ return location.origin + '/pedido.html?pedido=' + encodeURIComponent(nsu); }
 function saveExtras(){
-  post({ order_nsu:CUR, trackingCode:document.getElementById('trk').value, note:document.getElementById('note').value })
+  const o = ORDERS.find(x=>x.order_nsu===CUR) || {};
+  const trk = document.getElementById('trk').value.trim();
+  const body = { order_nsu:CUR, trackingCode:trk, note:document.getElementById('note').value };
+  if(trk && trk !== (o.trackingCode||'') && ['pago','em_preparacao','aguardando_pagamento'].includes(o.status)
+     && confirm('Marcar este pedido como "Enviado" também?')) body.status = 'enviado';
+  post(body)
     .then(d=>{ if(d.success){ applyUpdated(d.order); toast('Salvo ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
 }
 function printLabel(){
@@ -569,6 +622,59 @@ function moderate(id, action){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
 const saved = sessionStorage.getItem('bielyy_admin_pwd');
 if(saved){ PASSWORD = saved; refresh(false, false); }
+
+/* ============ entrega hoje ============ */
+let DL = null, DL_DEFAULTS = null;
+const DL_DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const dlCost = km => 5 + 1.95*km;
+function dlLoad(){
+  api('local-delivery-config').then(d=>{ DL = d.config; DL_DEFAULTS = d.defaults; dlRender(); })
+    .catch(e=>{ if(e.message==='senha') return logout(); toast('Não consegui carregar a configuração'); });
+}
+function dlRender(){
+  document.getElementById('dlEnabled').checked = !!DL.enabled;
+  document.getElementById('dlCep').value = fmtCep(DL.originCep);
+  document.getElementById('dlCut').value = DL.cutoffHour;
+  document.getElementById('dlWeight').value = DL.maxWeightKg;
+  document.getElementById('dlDays').innerHTML = DL_DAYS.map((n,i)=>`<label><input type="checkbox" data-day="${i}" ${DL.workDays.includes(i)?'checked':''}> ${n}</label>`).join('');
+  document.getElementById('dlZones').innerHTML = DL.zones.map((z,i)=>{
+    const c = dlCost(z.maxKm), ok = z.price >= c;
+    return `<tr>
+      <td><input type="number" step="0.5" min="0.5" value="${z.maxKm}" onchange="DL.zones[${i}].maxKm=+this.value; dlRender()"> km</td>
+      <td>R$ <input type="number" step="0.1" min="0" value="${z.price}" onchange="DL.zones[${i}].price=+this.value; dlRender()"></td>
+      <td>R$ <input type="number" step="1" min="0" value="${z.freeAbove==null?'':z.freeAbove}" placeholder="—" onchange="DL.zones[${i}].freeAbove=this.value===''?null:+this.value"></td>
+      <td>${fmt(c)} <span class="${ok?'dl-ok':'dl-bad'}">${ok?'✓ cobre':'⚠ abaixo do custo'}</span></td>
+      <td><button class="ghost" onclick="DL.zones.splice(${i},1); dlRender()">remover</button></td></tr>`;
+  }).join('');
+}
+function dlCollect(){
+  DL.enabled = document.getElementById('dlEnabled').checked;
+  DL.originCep = document.getElementById('dlCep').value.replace(/\D/g,'');
+  DL.cutoffHour = +document.getElementById('dlCut').value;
+  DL.maxWeightKg = +document.getElementById('dlWeight').value;
+  DL.workDays = [...document.querySelectorAll('#dlDays input:checked')].map(x=>+x.dataset.day);
+}
+function dlAddZone(){ dlCollect(); const last = DL.zones[DL.zones.length-1] || {maxKm:0}; const km = last.maxKm + 4; DL.zones.push({maxKm:km, price:Math.ceil(dlCost(km))-0.1, freeAbove:null}); dlRender(); }
+function dlReset(){ if(!confirm('Voltar às faixas e preços sugeridos?')) return; DL = JSON.parse(JSON.stringify(DL_DEFAULTS)); dlRender(); }
+function dlSave(){
+  dlCollect();
+  api('local-delivery-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:DL})})
+    .then(d=>{ if(d.success){ DL=d.config; dlRender(); toast('Entrega hoje salva ✓'); } else alert(d.error||'Erro'); })
+    .catch(()=>alert('Sem conexão.'));
+}
+function dlTestCep(){
+  const cep = document.getElementById('dlTest').value.replace(/\D/g,''); const out = document.getElementById('dlTestOut');
+  if(cep.length!==8){ out.textContent='Digite um CEP com 8 dígitos.'; return; }
+  out.textContent = 'Calculando...';
+  api('local-delivery-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testCep:cep, subtotal:+document.getElementById('dlTestSub').value||0})})
+    .then(d=>{
+      const i = d.info||{}, o = d.option;
+      const where = [i.district, i.city].filter(Boolean).join(', ');
+      if(o) out.innerHTML = `<span class="dl-ok">✓ Atende</span> · ${esc(where)} · ~${i.routeKm} km de rota · cliente paga <b>${o.free?'Grátis':fmt(o.price)}</b> · ${esc(o.label)} · custo estimado do Uber ${fmt(dlCost(i.routeKm))}`;
+      else out.innerHTML = `<span class="dl-bad">✗ Não atende</span> · ${esc(where)} ${i.routeKm?'· ~'+i.routeKm+' km de rota':''} · motivo: ${({'fora-da-area':'fora das faixas','cep-sem-coordenadas':'não achei a localização desse CEP','peso':'pedido pesado demais'})[i.reason]||(i.enabled===false?'entrega hoje desativada':i.reason||'?')}`;
+    }).catch(()=>{ out.textContent='Sem conexão.'; });
+}
+
 </script>
 </body>
 </html>

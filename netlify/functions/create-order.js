@@ -2,7 +2,7 @@
 // Rota automática: /.netlify/functions/create-order
 // O pedido fica no painel admin com status "aguardando_pagamento".
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
@@ -47,6 +47,7 @@ exports.handler = async function (event) {
     status: 'aguardando_pagamento',
     createdAt: new Date().toISOString(),
     paymentMethod: 'whatsapp',
+    accountEmail: clean(b.accountEmail, 120).toLowerCase(),
     customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120) },
     address: {
       cep: clean(address.cep, 12), street: clean(address.street, 160), number: clean(address.number, 20),
@@ -56,12 +57,12 @@ exports.handler = async function (event) {
     itemsDetailed: items,
     subtotal: num(b.subtotal),
     coupon,
-    shipping: b.shipping ? { label: clean(b.shipping.label, 60), price: num(b.shipping.price), free: !!b.shipping.free } : null,
+    shipping: b.shipping ? { label: clean(b.shipping.label, 60), price: num(b.shipping.price), free: !!b.shipping.free, local: !!b.shipping.local } : null,
     total: num(b.total)
   };
 
   try {
-    const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
+    const store = blobStore('orders', event);
     // nunca sobrescreve um pedido que já existe
     if (await store.get(orderNsu, { type: 'json' })) {
       orderNsu = 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);

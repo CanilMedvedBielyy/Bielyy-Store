@@ -2,7 +2,7 @@
 // Rota automática: /.netlify/functions/infinitepay-webhook
 // Configure essa URL como webhook_url no Checkout Integrado da InfinitePay.
 
-const { getStore } = require('@netlify/blobs');
+const { blobStore } = require('../lib/blobs');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -22,7 +22,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const store = getStore('orders', { siteID: process.env.BLOBS_SITE_ID, token: process.env.BLOBS_ACCESS_TOKEN });
+    const store = blobStore('orders', event);
     const existing = await store.get(orderNsu, { type: 'json' });
 
     if (!existing) {
@@ -30,8 +30,13 @@ exports.handler = async function (event) {
       return { statusCode: 200, body: JSON.stringify({ success: true, message: null }) };
     }
 
-    existing.status = 'pago';
-    existing.paidAt = new Date().toISOString();
+    // Só avança para "pago" se ainda estava aguardando (a InfinitePay pode reenviar o aviso
+    // e não queremos voltar um pedido "enviado" para "pago")
+    if (!existing.status || existing.status === 'aguardando_pagamento') {
+      existing.status = 'pago';
+      existing.statusUpdatedAt = new Date().toISOString();
+    }
+    if (!existing.paidAt) existing.paidAt = new Date().toISOString();
     existing.paid_amount = body.paid_amount;
     existing.capture_method = body.capture_method;
     existing.transaction_nsu = body.transaction_nsu;
