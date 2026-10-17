@@ -540,6 +540,37 @@
   .free-nudge .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--pink),var(--purple)); border-radius:99px;}
   /* navegação inferior (celular) */
   .wa-float{z-index:190 !important;}
+  .acct-wrap{position:relative;}
+  .acct-btn .chev{width:14px; height:14px; margin-left:-2px; transition:transform .2s;}
+  .acct-btn[aria-expanded="true"] .chev{transform:rotate(180deg);}
+  .acct-menu{position:fixed; top:70px; right:16px; width:270px; background:#fff; border:1px solid var(--line); border-radius:20px; box-shadow:0 18px 40px -14px rgba(58,46,82,.35); padding:8px; z-index:260; opacity:0; transform:translateY(-6px); pointer-events:none; transition:.18s;}
+  .acct-menu.show{opacity:1; transform:none; pointer-events:auto;}
+  .acct-menu .am-head{padding:10px 12px 12px; border-bottom:1px solid var(--line); margin-bottom:6px;}
+  .acct-menu .am-head b{display:block; font-size:14.5px; color:var(--purple-deep);}
+  .acct-menu .am-head span{font-size:12px; color:var(--ink-soft); word-break:break-all;}
+  .acct-menu button, .acct-menu a{display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border-radius:14px; background:none; font-size:14px; font-weight:600; color:var(--ink); text-align:left;}
+  .acct-menu button:hover, .acct-menu a:hover{background:var(--lavender); color:var(--purple-deep);}
+  .acct-menu .am-ic{width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
+  .acct-menu small{display:block; font-size:11.5px; font-weight:500; color:var(--ink-soft);}
+  .acct-menu .am-sep{height:1px; background:var(--line); margin:6px 4px;}
+  .acct-menu .am-out{color:#B5501C;}
+  .am-backdrop{display:none;}
+  @media (max-width:920px){
+    .acct-menu{position:fixed; top:auto; left:10px; right:10px; width:auto; bottom:calc(76px + env(safe-area-inset-bottom)); transform:translateY(14px); border-radius:24px; padding:10px;}
+    .am-backdrop{display:block; position:fixed; inset:0; background:rgba(58,46,82,.35); z-index:255; opacity:0; pointer-events:none; transition:.18s;}
+    .am-backdrop.show{opacity:1; pointer-events:auto;}
+  }
+  .promo10{display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#FFE4EF,#F3ECFF); border:1.5px dashed var(--pink); border-radius:16px; padding:12px 14px; margin-bottom:12px; cursor:pointer;}
+  .promo10 .p10-ic{font-size:26px;}
+  .promo10 b{display:block; font-size:13.5px; color:var(--purple-deep);}
+  .promo10 span{font-size:12px; color:var(--ink-soft);}
+  .promo10 code, .p10-code{font-family:'Baloo 2'; font-weight:800; color:var(--pink); letter-spacing:.5px; font-size:14px;}
+  .p10-float{position:fixed; left:16px; bottom:24px; z-index:180; display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--pink-soft); border-radius:999px; padding:8px 14px 8px 8px; box-shadow:0 12px 30px -12px rgba(255,127,174,.6); cursor:pointer; font-size:13px; font-weight:700; color:var(--purple-deep); transition:.2s;}
+  .p10-float:hover{transform:translateY(-2px);}
+  .p10-float .p10-badge{background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff; font-family:'Baloo 2'; font-size:15px; font-weight:800; border-radius:999px; padding:4px 10px;}
+  .p10-float .p10-x{margin-left:4px; color:var(--ink-soft); font-weight:600; padding:0 4px;}
+  .p10-float .p10-txt-s{display:none;}
+  @media (max-width:920px){ .p10-float{bottom:calc(84px + env(safe-area-inset-bottom)); left:12px; font-size:12px; max-width:calc(100vw - 90px); white-space:nowrap;} .p10-float .p10-txt{display:none;} .p10-float .p10-txt-s{display:inline;} }
   .bottom-nav{display:none;}
   @media (max-width:920px){
     .bottom-nav{display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:150; background:rgba(255,255,255,.96); backdrop-filter:blur(12px); border-top:1px solid var(--line); box-shadow:0 -8px 24px -16px rgba(109,66,184,.5); padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
@@ -593,6 +624,7 @@
 <!-- ============ AVISOS ============ -->
 <div class="announce" id="announce">
   <div class="msg on">🛵 <b>Entrega hoje</b> no Ipiranga e região · pedidos até 15h</div>
+  <div class="msg">🎁 <b>10% OFF na 1ª compra</b> criando sua conta · cupom <b>PRIMEIRA10</b></div>
   <div class="msg">💜 <b>Desconto no Pix</b> em todos os produtos</div>
   <div class="msg">💳 Parcele no cartão pelo link seguro da InfinitePay</div>
   <div class="msg">🔁 Troca fácil em até 7 dias · <b>marcas importadas originais</b></div>
@@ -614,10 +646,14 @@
       <a href="#preorder" onclick="showView('preorder')">Encomendas</a>
       <a href="#allBrands" onclick="goToBrands(event)">Marcas</a>
       <a href="#about" onclick="showView('about')">Sobre</a>
+      <a href="/pedido.html" onclick="if(getLoggedInUser()){ event.preventDefault(); openAuthModal(); }">📦 Meus pedidos</a>
     </nav>
     <div class="nav-actions">
       <button class="icon-btn hide-m" title="Buscar produto" onclick="openSearch()"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
-      <button class="icon-btn acct-btn" id="accountBtn" title="Entrar ou criar conta"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="accountLabel">Entrar</span></button>
+      <div class="acct-wrap">
+        <button class="icon-btn acct-btn" id="accountBtn" title="Minha conta e meus pedidos" aria-haspopup="true" aria-expanded="false"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="accountLabel">Entrar</span><svg class="icon chev hide-m" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="acct-menu" id="acctMenu" role="menu"></div>
+      </div>
       <a class="icon-btn hide-m" title="Fale no WhatsApp" href="https://wa.me/5511915971151?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida" target="_blank" rel="noopener">
         <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       </a>
@@ -643,12 +679,14 @@
   </div>
 </div>
 
+<div class="am-backdrop" id="amBackdrop" onclick="closeAcctMenu()"></div>
+<div class="p10-float" id="p10Float" style="display:none" onclick="openPromo10()"><span class="p10-badge">10% OFF</span><span class="p10-txt">na 1ª compra · crie sua conta</span><span class="p10-txt-s">Crie sua conta</span><span class="p10-x" onclick="event.stopPropagation(); hidePromo10Float()">✕</span></div>
 <!-- ============ NAVEGAÇÃO INFERIOR (celular) ============ -->
 <nav class="bottom-nav" id="bottomNav" aria-label="Navegação">
   <button id="bnHome" class="active" onclick="showView('home')"><svg class="icon" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2Z"/></svg>Início</button>
   <button id="bnShop" onclick="showView('shop')"><svg class="icon" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Loja</button>
   <button id="bnPre" onclick="showView('preorder')"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>Encomendas</button>
-  <button id="bnAcct" onclick="openAuthModal()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="bnAcctLabel">Conta</span></button>
+  <button id="bnAcct" onclick="event.stopPropagation(); toggleAcctMenu()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="bnAcctLabel">Conta</span></button>
   <button id="bnCart" onclick="openCart()"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrinho<span class="bn-count" id="bnCount" style="display:none">0</span></button>
 </nav>
 
@@ -991,6 +1029,7 @@
   </div>
   <div class="drawer-body" id="cartBody"></div>
   <div class="drawer-foot" id="cartFoot" style="display:none;">
+    <div id="promo10Cart"></div>
     <div class="cep-box">
       <label>🎟️ Cupom de desconto</label>
       <div class="cep-row">
@@ -1206,6 +1245,7 @@ const COUPONS = {
   "BIELYY10": { fixed: 10, minSubtotal: 150, firstPurchaseOnly: true, requiresAccount: false, label: "R$ 10 OFF na primeira compra" },
   "BIELYYFRET3": { fixed: 0, freeShipping: true, label: "Frete grátis" },
   "MATEUSADESTRA": { percent: 15, commissionPct: 5, label: "15% OFF — cupom do adestrador Mateus" },
+  "PRIMEIRA10": { percent: 10, firstPurchaseOnly: true, requiresAccount: true, accountFirstOrder: true, label: "10% OFF na primeira compra (conta nova)" },
   "1478180803": { fixed: 0, forceTotal: 1, freeShipping: true, label: "Cupom de teste — frete grátis e total R$ 1,00" }
 };
 function computeOrderTotal(sub, discount, shipping){
@@ -1225,7 +1265,8 @@ function couponDiscount(sub){
   if(appliedCoupon.fixed != null) return Math.min(appliedCoupon.fixed, sub);
   return Math.round(sub * (appliedCoupon.percent/100) * 100) / 100;
 }
-function applyCoupon(){
+function applyCoupon(opts_skipCheck){
+  if(opts_skipCheck !== true) opts_skipCheck = false;
   const raw = (document.getElementById('couponInput').value || '').trim().toUpperCase();
   const resultBox = document.getElementById('couponResult');
   if(!raw){ resultBox.innerHTML = ''; return; }
@@ -1245,8 +1286,21 @@ function applyCoupon(){
   }
   if(coupon.requiresAccount && !getLoggedInUser()){
     appliedCoupon = null;
-    resultBox.innerHTML = `<p style="color:#E0703B; font-size:12px; margin-top:8px;">Esse cupom precisa de cadastro. <a href="#" onclick="openAuthModal(); return false;" style="color:var(--purple-deep); font-weight:700;">Cadastrar grátis</a></p>`;
+    resultBox.innerHTML = `<p style="color:#E0703B; font-size:12px; margin-top:8px;">Esse cupom é para quem tem conta na loja. <a href="#" onclick="openAuthModal('signup'); return false;" style="color:var(--purple-deep); font-weight:700;">Cadastrar grátis</a></p>`;
     renderCart();
+    return;
+  }
+  if(coupon.accountFirstOrder && !opts_skipCheck){
+    resultBox.innerHTML = `<p style="color:var(--ink-soft); font-size:12px; margin-top:8px;">Conferindo seu cupom...</p>`;
+    fetch('/.netlify/functions/my-orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: getLoggedInUser().token }) })
+      .then(r => r.json().then(j => ({ status: r.status, j })))
+      .then(({ status, j }) => {
+        if(status === 401){ resultBox.innerHTML = `<p style="color:#E0703B; font-size:12px; margin-top:8px;">Entre de novo na sua conta para usar esse cupom. <a href="#" onclick="openAuthModal('login'); return false;" style="color:var(--purple-deep); font-weight:700;">Entrar</a></p>`; appliedCoupon = null; renderCart(); return; }
+        const used = (j.orders || []).some(o => o.status !== 'cancelado');
+        if(used){ appliedCoupon = null; resultBox.innerHTML = `<p style="color:#E0703B; font-size:12px; margin-top:8px;">Esse cupom é só para a primeira compra da conta — e você já é de casa 💜</p>`; renderCart(); return; }
+        applyCoupon(true);
+      })
+      .catch(() => applyCoupon(true)); // sem conexão para conferir: deixa aplicar (você confere no painel)
     return;
   }
   if(coupon.minSubtotal && sub < coupon.minSubtotal){
@@ -1593,6 +1647,7 @@ function renderCart(){
     }
   }
   renderFreeNudge(lines);
+  renderPromo10();
   if(lines.length===0){
     body.innerHTML = `<div class="empty-cart">
       <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -2107,7 +2162,7 @@ function renderAuthModal(tab){
   const tabBtn = (t, label) => `<button onclick="renderAuthModal('${t}')" style="flex:1; padding:9px; border-radius:999px; border:none; cursor:pointer; font-family:Poppins; font-weight:700; font-size:13px; ${((t==='login')===isLogin) ? 'background:var(--purple-deep); color:#fff;' : 'background:var(--lavender); color:var(--purple-deep);'}">${label}</button>`;
   body.innerHTML = `
     <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:4px;">${isLogin ? 'Entrar na sua conta 🐾' : 'Criar sua conta 🐾'}</h2>
-    <p style="color:var(--ink-soft); font-size:13px; margin-bottom:14px;">${isLogin ? 'Veja seus pedidos, o andamento e o código de rastreio.' : 'Com a conta você acompanha todos os seus pedidos num lugar só.'}</p>
+    <p style="color:var(--ink-soft); font-size:13px; margin-bottom:14px;">${isLogin ? 'Veja seus pedidos, o andamento e o código de rastreio.' : 'Com a conta você acompanha todos os seus pedidos num lugar só — e ganha <b style="color:var(--pink)">10% OFF na primeira compra</b> com o cupom <b style="color:var(--pink)">PRIMEIRA10</b> 🎁'}</p>
     <div style="display:flex; gap:8px; margin-bottom:16px;">${tabBtn('login','Entrar')}${tabBtn('signup','Criar conta')}</div>
     ${isLogin ? '' : `<input id="authName" placeholder="Seu nome" autocomplete="name" style="${AUTH_INPUT}">
     <input id="authPhone" type="tel" placeholder="Seu WhatsApp (com DDD)" autocomplete="tel" style="${AUTH_INPUT}">`}
@@ -2142,7 +2197,11 @@ function doAuth(mode){
       setLoggedInUser({ name: j.user.name, email: j.user.email, phone: j.user.phone || '', token: j.token });
       updateAccountUI();
       prefillCheckout();
-      pulseToast(mode === 'signup' ? `Conta criada! Bem-vinda, ${j.user.name.split(' ')[0]} 🎉` : `Oi, ${j.user.name.split(' ')[0]}! 💜`);
+      pulseToast(mode === 'signup' ? `Conta criada! Use o cupom ${PROMO10} e ganhe 10% OFF 🎉` : `Oi, ${j.user.name.split(' ')[0]}! 💜`);
+      renderPromo10();
+      if(mode === 'signup' && Object.keys(cart).length && !appliedCoupon){
+        const ci = document.getElementById('couponInput'); if(ci){ ci.value = PROMO10; applyCoupon(); }
+      }
       renderAccount();
     })
     .catch(err => {
@@ -2179,7 +2238,8 @@ function renderAccount(){
       if(status === 401){ try { localStorage.removeItem('bielyy_user'); } catch(e){} updateAccountUI(); renderAuthModal('login'); pulseToast('Entre de novo na sua conta 🐾'); return; }
       if(!j.success){ box.innerHTML = '<p style="color:#E0703B; font-size:13px;">Não conseguimos carregar seus pedidos agora. Tente de novo em instantes.</p>'; return; }
       if(!j.orders.length){
-        box.innerHTML = `<p style="color:var(--ink-soft); font-size:13px; line-height:1.6;">Você ainda não tem pedidos com o e-mail <b>${escH(user.email)}</b>.<br>Os pedidos que você fizer usando esse e-mail aparecem aqui.</p>`;
+        box.innerHTML = `<p style="color:var(--ink-soft); font-size:13px; line-height:1.6;">Você ainda não tem pedidos com o e-mail <b>${escH(user.email)}</b>.<br>Os pedidos que você fizer usando esse e-mail aparecem aqui.</p>
+          <div class="promo10" style="margin-top:12px; cursor:default;"><span class="p10-ic">🎁</span><div><b>Seu presente de boas-vindas</b><span>Use <code>${PROMO10}</code> no carrinho e ganhe 10% OFF na primeira compra</span></div></div>`;
         return;
       }
       box.innerHTML = j.orders.map(o => {
@@ -2203,6 +2263,48 @@ function renderAccount(){
       if(box) box.innerHTML = '<p style="color:#E0703B; font-size:13px;">Sem conexão. Tente de novo em instantes.</p>';
     });
 }
+function acctMenuHTML(){
+  const user = getLoggedInUser();
+  const item = (ic, bg, title, sub, act, cls) => `<button role="menuitem" class="${cls||''}" onclick="closeAcctMenu(); ${act}"><span class="am-ic" style="background:${bg}">${ic}</span><span>${title}${sub?`<small>${sub}</small>`:''}</span></button>`;
+  if(user){
+    return `<div class="am-head"><b>Oi, ${escH(user.name.split(' ')[0])}! 💜</b><span>${escH(user.email)}</span></div>`
+      + item('📦','#F3ECFF','Meus pedidos','Status e código de rastreio','openAuthModal()')
+      + item('🔍','#E3EDFF','Acompanhar pelo número','Para pedidos sem conta',"location.href='/pedido.html'")
+      + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151?text='+encodeURIComponent('Oi! Preciso de ajuda com um pedido.'),'_blank')")
+      + `<div class="am-sep"></div>`
+      + item('🚪','#FFF1EA','Sair da conta','', 'logoutUser()', 'am-out');
+  }
+  return `<div class="am-head"><b>Bem-vinda à Bielyy 🐾</b><span>Entre para ver seus pedidos</span></div>`
+    + item('✨','#FFE4EF','Criar conta e ganhar 10% OFF','Cupom PRIMEIRA10 na 1ª compra',"openAuthModal('signup')")
+    + item('👤','#F3ECFF','Entrar','Já tenho conta',"openAuthModal('login')")
+    + `<div class="am-sep"></div>`
+    + item('📦','#E3EDFF','Acompanhar pedido','Pelo número do pedido',"location.href='/pedido.html'")
+    + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151','_blank')");
+}
+function toggleAcctMenu(){
+  const m = document.getElementById('acctMenu');
+  if(m.classList.contains('show')){ closeAcctMenu(); return; }
+  // o cabeçalho tem efeito de vidro, então o menu fica fora dele e é posicionado pelo botão
+  if(m.parentElement !== document.body) document.body.appendChild(m);
+  if(window.innerWidth > 920){
+    const r = document.getElementById('accountBtn').getBoundingClientRect();
+    m.style.top = (r.bottom + 10) + 'px';
+    m.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
+  } else { m.style.top = ''; m.style.right = ''; }
+  m.innerHTML = acctMenuHTML();
+  m.classList.add('show');
+  document.getElementById('amBackdrop').classList.add('show');
+  document.getElementById('accountBtn').setAttribute('aria-expanded','true');
+}
+function closeAcctMenu(){
+  const m = document.getElementById('acctMenu'); if(!m) return;
+  m.classList.remove('show');
+  document.getElementById('amBackdrop').classList.remove('show');
+  document.getElementById('accountBtn').setAttribute('aria-expanded','false');
+}
+document.addEventListener('click', e => { const m = document.getElementById('acctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target)) closeAcctMenu(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeAcctMenu(); });
+window.addEventListener('scroll', () => { if(window.innerWidth > 920) closeAcctMenu(); }, {passive:true});
 function prefillCheckout(){
   const user = getLoggedInUser();
   if(!user) return;
@@ -2213,33 +2315,57 @@ function updateAccountUI(){
   const user = getLoggedInUser();
   const btn = document.getElementById('accountBtn');
   if(!btn) return;
+  renderPromo10();
   const lbl = document.getElementById('accountLabel');
   if(lbl) lbl.textContent = user ? user.name.split(' ')[0] : 'Entrar';
   const bl = document.getElementById('bnAcctLabel');
   if(bl) bl.textContent = user ? user.name.split(' ')[0].slice(0,10) : 'Conta';
-  btn.onclick = () => openAuthModal();
+  btn.onclick = (e) => { e.stopPropagation(); toggleAcctMenu(); };
   btn.title = user ? 'Minha conta e meus pedidos' : 'Entrar ou criar conta';
 }
 
 /* =====================================================
    WELCOME POPUP (primeira visita)
 ===================================================== */
-function showWelcomePopup(){
-  if(localStorage.getItem('bielyy_welcome_seen')) return;
-  localStorage.setItem('bielyy_welcome_seen', '1');
+var PROMO10 = 'PRIMEIRA10';
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+// Popup de boas-vindas: só para quem não tem conta, no máximo 1 vez a cada 3 dias
+function showWelcomePopup(force){
+  if(getLoggedInUser()) return;
+  const last = Number(lsGet('bielyy_p10_popup') || 0);
+  if(!force && Date.now() - last < 3*864e5) return;
+  if(!force && document.querySelector('.modal.show, .drawer.show')) return; // não atrapalha quem já está comprando
+  lsSet('bielyy_p10_popup', String(Date.now()));
   document.getElementById('authModal').classList.add('show');
   document.getElementById('overlay').classList.add('show');
-  const body = document.getElementById('authModalBody');
-  body.innerHTML = `
-    <div style="text-align:center; margin-bottom:16px;">
-      <div style="font-size:40px;">🎁</div>
-      <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin:8px 0 4px;">Bem-vinda à Bielyy Store!</h2>
-      <p style="color:var(--ink-soft); font-size:13.5px;">Cadastre-se agora e ganhe</p>
-      <div style="background:var(--lavender); border-radius:12px; padding:10px; margin:10px 0; font-family:'Baloo 2'; font-size:22px; color:var(--purple-deep);">R$10 OFF</div>
-      <p style="color:var(--ink-soft); font-size:12px;">em compras acima de R$150</p>
-    </div>
-  `;
-  renderAuthModal();
+  document.getElementById('authModalBody').innerHTML = `
+    <div style="text-align:center; padding-top:6px;">
+      <div style="font-size:46px; line-height:1;">🎁</div>
+      <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin:10px 0 4px; font-size:26px;">Ganhe 10% OFF na primeira compra!</h2>
+      <p style="color:var(--ink-soft); font-size:13.5px; line-height:1.55;">Crie sua conta em 1 minutinho e use o cupom abaixo.<br>Com a conta você também acompanha seus pedidos e o rastreio. 💜</p>
+      <div style="background:linear-gradient(135deg,#FFE4EF,#F3ECFF); border:2px dashed var(--pink); border-radius:16px; padding:12px; margin:16px 0 18px;">
+        <div style="font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:1px; font-weight:700;">Seu cupom</div>
+        <div style="font-family:'Baloo 2'; font-size:30px; font-weight:800; color:var(--pink); letter-spacing:1px;">${PROMO10}</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="renderAuthModal('signup')">Criar conta e ganhar 10% 🎉</button>
+      <button style="background:none; margin-top:12px; font-size:13px; color:var(--purple-deep); font-weight:700;" onclick="renderAuthModal('login')">Já tenho conta — entrar</button>
+      <p style="font-size:11px; color:var(--ink-soft); margin-top:12px;">Válido na primeira compra de cada conta. Não acumula com outros cupons.</p>
+    </div>`;
+}
+function openPromo10(){ showWelcomePopup(true); }
+function hidePromo10Float(){ lsSet('bielyy_p10_float_off', String(Date.now())); renderPromo10(); }
+function renderPromo10(){
+  const user = getLoggedInUser();
+  const fl = document.getElementById('p10Float');
+  if(fl){
+    const off = Number(lsGet('bielyy_p10_float_off') || 0);
+    fl.style.display = (!user && Date.now() - off > 864e5) ? 'flex' : 'none';
+  }
+  const box = document.getElementById('promo10Cart');
+  if(box){
+    box.innerHTML = user ? '' : `<div class="promo10" onclick="closeCart(); openAuthModal('signup');"><span class="p10-ic">🎁</span><div><b>Ganhe 10% OFF nesta compra</b><span>Crie sua conta e use o cupom <code>${PROMO10}</code> →</span></div></div>`;
+  }
 }
 
 /* =====================================================
@@ -2323,7 +2449,7 @@ updateAccountUI();
   setInterval(()=>{ msgs[i].classList.remove('on'); i = (i+1) % msgs.length; msgs[i].classList.add('on'); }, 4200);
 })();
 if(new URLSearchParams(location.search).get('conta')){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openAuthModal(), 300); }
-// setTimeout(showWelcomePopup, 1200); // desativado temporariamente (cadastro ainda não funciona)
+setTimeout(() => showWelcomePopup(false), 7000); // convite com 10% OFF para quem ainda não tem conta
 
 // Se o cliente voltou de um pagamento da InfinitePay, mostra o número do pedido
 (function checkPaymentReturn(){
