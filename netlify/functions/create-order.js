@@ -21,7 +21,7 @@ exports.handler = async function (event) {
   }
 
   const items = (Array.isArray(b.itemsDetailed) ? b.itemsDetailed : []).slice(0, 60).map(it => ({
-    name: clean(it.name, 160),
+    name: clean(it.name, 320),
     variant: clean(it.variant, 60),
     qty: Math.max(1, Math.min(99, parseInt(it.qty, 10) || 1)),
     unitPrice: num(it.unitPrice),
