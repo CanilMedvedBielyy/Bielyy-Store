@@ -2,6 +2,7 @@
 // Rota automática: /.netlify/functions/create-payment-link
 
 const { blobStore } = require('../lib/blobs');
+const { cleanStockItems } = require('../lib/catalog');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -54,7 +55,9 @@ exports.handler = async function (event) {
         itemsDetailed: Array.isArray(orderDetails.itemsDetailed) ? orderDetails.itemsDetailed.slice(0, 60) : null,
         subtotal: orderDetails.subtotal != null ? orderDetails.subtotal : null,
         coupon: orderDetails.coupon || null,
-        paymentUrl: data.url || null
+        paymentUrl: data.url || null,
+        stockItems: cleanStockItems(orderDetails.stockItems),
+        trackStock: true
       };
       await store.setJSON(payload.order_nsu, order);
     } catch (blobErr) {

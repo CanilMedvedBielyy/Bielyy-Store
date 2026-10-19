@@ -711,8 +711,9 @@
 
 <!-- ============ AVISOS ============ -->
 <div class="announce" id="announce">
-  <div class="msg on">🛵 <b>Entrega hoje</b> no Ipiranga e região · pedidos até 15h</div>
-  <div class="msg">🎁 <b>10% OFF na 1ª compra</b> criando sua conta · cupom <b>PRIMEIRA10</b></div>
+  <div class="msg on">🚚 <b>Enviamos para todo o Brasil</b></div>
+  <div class="msg">🛵 <b>Entrega hoje em SP</b> · pedidos até 15h</div>
+  <div class="msg">🎁 <b>10% OFF na 1ª compra</b> · cupom <b>PRIMEIRA10</b></div>
   <div class="msg">💜 <b>Desconto no Pix</b> em todos os produtos</div>
   <div class="msg">💳 Parcele no cartão pelo link seguro da InfinitePay</div>
   <div class="msg">🔁 Troca fácil em até 7 dias · <b>marcas importadas originais</b></div>
@@ -807,7 +808,7 @@
 
   <section class="benefits">
     <div class="wrap benefits-grid">
-      <div class="benefit"><div class="bi" style="background:#FFE4EF">🛵</div><div><b>Entrega hoje</b><span>Ipiranga e região, direto da loja</span></div></div>
+      <div class="benefit"><div class="bi" style="background:#FFE4EF">🛵</div><div><b>Entrega hoje em SP</b><span>Pedidos até 15h · consulte seu CEP</span></div></div>
       <div class="benefit"><div class="bi" style="background:#E3F5EC">💸</div><div><b>Desconto no Pix</b><span>O menor preço da loja</span></div></div>
       <div class="benefit"><div class="bi" style="background:#F3ECFF">💳</div><div><b>Parcele no cartão</b><span>Link de pagamento seguro</span></div></div>
       <div class="benefit"><div class="bi" style="background:#FFF4D6">🔁</div><div><b>Troca em 7 dias</b><span>Produto lacrado, sem stress</span></div></div>
@@ -879,7 +880,7 @@
         <div class="perk-card">
           <div class="picon"><svg class="icon" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
           <h3>Entrega hoje ou Correios</h3>
-          <p>Perto da loja (Ipiranga e região)? Seu pedido sai de motoboy no mesmo dia. Para todo o Brasil, PAC e SEDEX com valor e prazo calculados na hora.</p>
+          <p>Enviamos para todo o Brasil por PAC e SEDEX, com valor e prazo calculados na hora. Em São Paulo, pedidos pagos até as 15h podem sair de motoboy no mesmo dia: é só colocar o CEP no carrinho para ver se o seu endereço está na área.</p>
         </div>
         <div class="perk-card">
           <div class="picon"><svg class="icon" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
@@ -1293,6 +1294,116 @@ PREORDER_FAMILIES.forEach((f,i)=>{
   f.sizes = detectSizes(f);
 });
 
+/* =====================================================
+   CATÁLOGO EDITÁVEL PELO PAINEL (estoque, preços, produtos novos)
+   As mudanças ficam no servidor e chegam aqui sem precisar de deploy.
+===================================================== */
+var CAT_MASTER = null;           // todos os produtos (inclusive ocultos), na ordem original
+var CAT_DOC_V = -1;
+function catPhotoUrl(k){ return '/.netlify/functions/product-photo?k=' + encodeURIComponent(k); }
+function catFind(id){ id = Number(id); return (CAT_MASTER || []).find(f => f.id === id) || PRODUCT_FAMILIES.find(f => f.id === id) || PREORDER_FAMILIES.find(f => f.id === id); }
+function catSnapshot(f){
+  if(f._base) return;
+  f._base = { stock: f.stock || 0, preorder: !!f.preorder, name: f.name, desc: f.desc || '', brand: f.brand, category: f.category, photo: f.photo || null,
+    variants: f.variants.map(v => Object.assign({}, v)) };
+}
+function applyCatalog(doc){
+  if(!doc || typeof doc !== 'object') return false;
+  if(!CAT_MASTER){
+    CAT_MASTER = [...PRODUCT_FAMILIES.filter(f => !f.kit), ...PREORDER_FAMILIES];
+    CAT_MASTER.forEach(catSnapshot);
+  }
+  const P = doc.products || {}, A = doc.added || {};
+  // produtos cadastrados pelo painel
+  Object.keys(A).forEach(k => {
+    const a = A[k]; const id = Number(a.id || k);
+    let f = CAT_MASTER.find(x => x.id === id);
+    if(!f){ f = { id, added: true, variants: [] }; CAT_MASTER.push(f); }
+    f.added = true;
+    f._base = { stock: Number(a.stock) || 0, preorder: !!a.preorder, name: a.name, desc: a.desc || '', brand: a.brand || 'Bielyy', category: a.category || 'Brinquedos',
+      photo: a.photo || null, variants: (a.variants || []).map(v => Object.assign({}, v)) };
+  });
+  CAT_MASTER.forEach((f, i) => {
+    const b = f._base, o = P[String(f.id)] || {};
+    f._removed = !!(f.added && !A[String(f.id)]);
+    f.name = o.name || b.name; f.desc = (o.desc != null && o.desc !== '') ? o.desc : b.desc;
+    f.brand = o.brand || b.brand; f.category = o.category || b.category;
+    const ph = o.photo || b.photo;
+    if(ph && /^p\d+_/.test(ph)) PRODUCT_IMAGES[ph] = catPhotoUrl(ph);
+    f.photo = ph || undefined;
+    f.preorder = ('preorder' in o) ? !!o.preorder : b.preorder;
+    f.variants = (o.variants || b.variants).map(v => Object.assign({}, v));
+    const baseStock = ('stock' in o) ? Number(o.stock) : b.stock;
+    f.stock = Math.max(0, (Number(baseStock) || 0) - (Number(o.sold) || 0));
+    if(!f.preorder){
+      if(o.soldOut || f.stock <= 0) f.variants.forEach(v => v.available = false);
+      else if(!o.variants && f.variants.every(v => v.available === false)) f.variants.forEach(v => v.available = true);
+    }
+    f._hidden = !!o.hidden || f._removed || !f.variants.length;
+    if(f.added || !f.color){ f.color = PALETTE[f.id % PALETTE.length]; f.iconColor = ICON_COLORS[f.id % ICON_COLORS.length]; }
+    f.icon = CATEGORY_ICONS2[f.category] || 'paw';
+    f.sizes = detectSizes(f);
+  });
+  const kits = PRODUCT_FAMILIES.filter(f => f.kit);
+  const vis = CAT_MASTER.filter(f => !f._hidden);
+  PRODUCT_FAMILIES.splice(0, PRODUCT_FAMILIES.length, ...kits, ...vis.filter(f => !f.preorder));
+  PREORDER_FAMILIES.splice(0, PREORDER_FAMILIES.length, ...vis.filter(f => f.preorder));
+  return true;
+}
+function catRefreshCategories(){
+  if(typeof CATEGORIES === 'undefined') return;
+  const cats = [...new Set(PRODUCT_FAMILIES.filter(f => !f.kit).map(f => f.category))];
+  const order = ['Kits Bielyy', 'Para Gatos'];
+  const sorted = [...order.filter(c => c === 'Kits Bielyy' ? PRODUCT_FAMILIES.some(f => f.kit) : cats.includes(c)), ...cats.filter(c => !order.includes(c))];
+  CATEGORIES.splice(0, CATEGORIES.length, ...sorted);
+  PREORDER_CATEGORIES.splice(0, PREORDER_CATEGORIES.length, ...new Set(PREORDER_FAMILIES.map(f => f.category)));
+}
+function catRefreshKits(){
+  if(typeof KIT_FAMILIES === 'undefined') return;
+  KIT_FAMILIES.forEach(k => {
+    k.variants.forEach(v => {
+      const full = v.comps.reduce((a,c) => ({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix || c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
+      v.fullCartao = Math.round(full.cartao*100)/100; v.fullPix = Math.round(full.pix*100)/100;
+      v.cartao = kitPrice(full.cartao*(1-KIT_DISCOUNT)); v.pix = kitPrice(full.pix*(1-KIT_DISCOUNT));
+      const cap = v.comps.length ? Math.min(...v.comps.map(c => (c.f._hidden || c.f.preorder || c.f.variants[0].available === false) ? 0 : Math.floor((c.f.stock||0)/c.qty))) : 0;
+      v.cap = Math.min(cap, KIT_MAX_PER_KIT); v.available = v.cap > 0;
+    });
+    k.stock = Math.max(0, ...k.variants.map(v => v.cap));
+    k.photo = (k.variants[0].comps.find(c => c.f.photo) || {f:{}}).f.photo;
+  });
+}
+function catClampCart(){
+  let changed = false;
+  Object.keys(cart).forEach(key => {
+    const [fid, vi] = key.split(':').map(Number); const f = familyById(fid);
+    if(!f || !f.variants[vi]){ delete cart[key]; changed = true; return; }
+    if(f.preorder) return;
+    const lim = f.kit ? KIT_MAX_PER_KIT : (f.stock || 0);
+    if(f.variants[vi].available === false || lim <= 0){ delete cart[key]; changed = true; }
+    else if(cart[key] > lim){ cart[key] = lim; changed = true; }
+  });
+  if(changed){ saveCart(); updateCartCount(); }
+}
+function catRerender(){
+  const safe = fn => { try { fn(); } catch(e){ console.warn(e); } };
+  safe(catRefreshKits); safe(catRefreshCategories);
+  safe(renderCatTiles); safe(renderFeatured); safe(renderFilters); safe(renderShop); safe(renderFiltersPre); safe(renderPreorder);
+  safe(catClampCart); safe(dropPreorderFromCart);
+  if(typeof modalFamilyId !== 'undefined' && modalFamilyId && document.getElementById('productModal').classList.contains('show') && familyById(modalFamilyId)) safe(renderModalBody);
+}
+function loadCatalog(){
+  fetch('/.netlify/functions/catalog', { cache: 'no-store' }).then(r => r.json()).then(doc => {
+    if(!doc || doc.v === CAT_DOC_V) return;
+    try { localStorage.setItem('bielyy_catalog', JSON.stringify(doc)); } catch(e){}
+    CAT_DOC_V = doc.v;
+    if(applyCatalog(doc)) catRerender();
+  }).catch(() => {});
+}
+// aplica a última versão conhecida já na abertura (sem piscar), e depois confere a mais nova
+(function(){
+  try { const d = JSON.parse(localStorage.getItem('bielyy_catalog') || 'null'); if(d){ CAT_DOC_V = d.v; applyCatalog(d); } } catch(e){}
+})();
+
 
 const CATALOG_BRANDS = new Set(PRODUCT_FAMILIES.map(f=>f.brand));
 const PREORDER_CATALOG_BRANDS = new Set(PREORDER_FAMILIES.map(f=>f.brand));
@@ -1601,9 +1712,9 @@ const KIT_MAX_PER_KIT = 1; // quantos de cada kit ficam à venda (você repõe c
 function kitPrice(v){ return v > 50 ? Math.floor(v) - 0.10 : Math.round(v*100)/100; } // termina em ,90
 const KIT_FAMILIES = KIT_DEFS.map(k => {
   const variants = k.variants.map(v => {
-    const comps = v.items.map(([id,qty]) => ({ f: PRODUCT_FAMILIES.find(x=>x.id===id), qty })).filter(c=>c.f);
+    const comps = v.items.map(([id,qty]) => ({ f: catFind(id), qty })).filter(c=>c.f);
     const full = comps.reduce((a,c)=>({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix||c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
-    const cap = comps.length ? Math.min(...comps.map(c => (c.f.variants[0].available===false ? 0 : Math.floor((c.f.stock||0)/c.qty)))) : 0;
+    const cap = comps.length ? Math.min(...comps.map(c => ((c.f._hidden || c.f.preorder || c.f.variants[0].available===false) ? 0 : Math.floor((c.f.stock||0)/c.qty)))) : 0;
     const capKit = Math.min(cap, KIT_MAX_PER_KIT);
     return { label: v.label, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
       cartao: kitPrice(full.cartao*(1-KIT_DISCOUNT)), pix: kitPrice(full.pix*(1-KIT_DISCOUNT)), available: capKit > 0, cap: capKit };
@@ -1930,7 +2041,7 @@ function cartLines(){
   return Object.entries(cart).map(([k,qty])=>{
     const [fid, vidx] = k.split(':').map(Number);
     const f = familyById(fid);
-    if(!f) return null;
+    if(!f || !f.variants[vidx]) return null;
     const variant = f.variants[vidx];
     return {key:k, family:f, variant, qty};
   }).filter(Boolean);
@@ -2330,6 +2441,16 @@ function checkoutPrice(variant){
   }
   return variant.cartao;
 }
+// Produtos que saem do estoque neste pedido (kits viram os itens de dentro; encomendas não contam)
+function stockItemsOf(lines){
+  const out = [];
+  lines.forEach(l => {
+    if(l.family.preorder) return;
+    if(l.family.kit){ (l.variant.comps||[]).forEach(c => out.push({ productId: c.f.id, qty: c.qty * l.qty })); }
+    else out.push({ productId: l.family.id, qty: l.qty });
+  });
+  return out;
+}
 function finalizeOrder(){
   const lines = cartLines();
   if(lines.length===0){ pulseToast('Seu carrinho está vazio 🐾'); return; }
@@ -2380,7 +2501,7 @@ function finalizeOrder(){
           order_nsu: orderNsu,
           customer: {name, phone, email},
           address: { cep: cepCk, street, number, complement, neighborhood, city },
-          itemsDetailed, subtotal: sub, coupon: couponInfo, shipping: shipInfo, total,
+          itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total,
           accountEmail: (getLoggedInUser() || {}).email || ''
         })
       }).catch(()=>{});
@@ -2443,6 +2564,7 @@ function finalizeOrder(){
       shipping: shipInfo,
       paymentDetail: selectedPixOrCartao,
       itemsDetailed,
+      stockItems: stockItemsOf(lines),
       subtotal: sub,
       coupon: couponInfo,
       accountEmail: (getLoggedInUser() || {}).email || ''
@@ -2932,6 +3054,8 @@ updateAccountUI();
   setInterval(()=>{ msgs[i].classList.remove('on'); i = (i+1) % msgs.length; msgs[i].classList.add('on'); }, 4200);
 })();
 loadReviewSummary();
+loadCatalog();
+setInterval(loadCatalog, 120000); // confere mudanças de estoque a cada 2 minutos
 { const av = new URLSearchParams(location.search).get('avaliar'); if(av){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openReviewFlow(av), 400); } }
 if(new URLSearchParams(location.search).get('conta')){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openAuthModal(), 300); }
 setTimeout(() => showWelcomePopup(false), 7000); // convite com 10% OFF para quem ainda não tem conta

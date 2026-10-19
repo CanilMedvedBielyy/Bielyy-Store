@@ -3,6 +3,7 @@
 // Configure essa URL como webhook_url no Checkout Integrado da InfinitePay.
 
 const { blobStore } = require('../lib/blobs');
+const { syncOrderStock } = require('../lib/catalog');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -42,6 +43,7 @@ exports.handler = async function (event) {
     existing.transaction_nsu = body.transaction_nsu;
     existing.receipt_url = body.receipt_url;
 
+    await syncOrderStock(existing, event); // baixa o estoque dos produtos vendidos
     await store.setJSON(orderNsu, existing);
 
     return { statusCode: 200, body: JSON.stringify({ success: true, message: null }) };

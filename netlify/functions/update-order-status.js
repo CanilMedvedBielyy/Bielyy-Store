@@ -2,6 +2,7 @@
 // Rota automática: /.netlify/functions/update-order-status
 
 const { blobStore } = require('../lib/blobs');
+const { syncOrderStock } = require('../lib/catalog');
 
 const VALID_STATUSES = ['aguardando_pagamento', 'pago', 'em_preparacao', 'enviado', 'entregue', 'cancelado'];
 const crypto = require('crypto');
@@ -63,6 +64,7 @@ exports.handler = async function (event) {
       order.note = String(note).slice(0, 1000);
     }
 
+    if (status) await syncOrderStock(order, event); // baixa/devolve estoque automaticamente
     await store.setJSON(order_nsu, order);
 
     return { statusCode: 200, body: JSON.stringify({ success: true, order }) };

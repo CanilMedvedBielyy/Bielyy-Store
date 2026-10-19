@@ -3,6 +3,7 @@
 // O pedido fica no painel admin com status "aguardando_pagamento".
 
 const { blobStore } = require('../lib/blobs');
+const { cleanStockItems } = require('../lib/catalog');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
@@ -58,7 +59,9 @@ exports.handler = async function (event) {
     subtotal: num(b.subtotal),
     coupon,
     shipping: b.shipping ? { label: clean(b.shipping.label, 60), price: num(b.shipping.price), free: !!b.shipping.free, local: !!b.shipping.local } : null,
-    total: num(b.total)
+    total: num(b.total),
+    stockItems: cleanStockItems(b.stockItems),
+    trackStock: true
   };
 
   try {
