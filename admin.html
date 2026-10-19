@@ -260,6 +260,11 @@ function copy(text, okMsg){
   else fallback();
   function fallback(){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){toast('Não consegui copiar');} ta.remove(); }
 }
+function reviewUrl(o){ return location.origin + '/?avaliar=' + encodeURIComponent(o.order_nsu); }
+function reviewMsg(o, c){
+  const first = String((c && c.name) || '').trim().split(' ')[0];
+  return `Oi${first ? ', ' + first : ''}! 💜 Aqui é da Bielyy Store. Seu pedido #${o.order_nsu} já chegou? Conta pra gente o que seu pet achou! Leva só 1 minutinho e ajuda muito outros tutores:\n${reviewUrl(o)}`;
+}
 function waLink(phone, text){
   let d = digits(phone); if(d.length<=11) d = '55'+d;
   return 'https://wa.me/'+d+(text?('?text='+encodeURIComponent(text)):'');
@@ -492,6 +497,9 @@ function openDetail(id){
       <textarea class="field" id="note" placeholder="Observação interna (só você vê)">${esc(o.note||'')}</textarea>
       <div class="btnrow"><button class="btn" onclick="saveExtras()">Salvar</button>
         <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Avisar cliente no WhatsApp</a></div>
+      ${(o.status==='enviado'||o.status==='entregue') && c.phone ? `<div class="cm" style="margin-top:12px">⭐ <b>Pedir avaliação</b><br>Mande o link para a cliente avaliar os produtos (só quem comprou consegue avaliar).
+        <div class="btnrow" style="margin-top:8px"><a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, reviewMsg(o, c))}" target="_blank" rel="noopener">💬 Pedir avaliação no WhatsApp</a>
+        <button class="ghost" onclick="copy(reviewUrl(CUR),'Link copiado ✓')">Copiar link</button></div></div>` : ''}
       <div class="cm" style="margin-top:12px">🔗 <b>Página de acompanhamento da cliente</b><br>
         <span style="word-break:break-all">${esc(link)}</span><br>
         O status e o código de rastreio que você salvar aqui aparecem nessa página e na conta da cliente.
@@ -624,19 +632,30 @@ function exportCustomersCSV(){
 }
 
 /* ============ avaliações (moderação) ============ */
-function loadReviews(){
-  const box = document.getElementById('reviewsList'); box.innerHTML = '<div class="empty">Carregando...</div>';
-  fetch('/.netlify/functions/get-pending-reviews?password='+encodeURIComponent(PASSWORD)).then(r=>r.json()).then(d=>{
+let RV_TAB = 'pending';
+function rvPhotoUrl(k){ return '/.netlify/functions/review-photo?k='+encodeURIComponent(k)+'&p='+encodeURIComponent(PASSWORD); }
+function loadReviews(tab){
+  if(tab) RV_TAB = tab;
+  const box = document.getElementById('reviewsList');
+  const head = `<div class="btnrow" style="margin:0 0 12px"><button class="${RV_TAB==='pending'?'btn':'ghost'}" onclick="loadReviews('pending')">⏳ Esperando aprovação</button><button class="${RV_TAB==='approved'?'btn':'ghost'}" onclick="loadReviews('approved')">✅ Publicadas no site</button></div>`;
+  box.innerHTML = head + '<div class="empty">Carregando...</div>';
+  fetch('/.netlify/functions/get-pending-reviews?password='+encodeURIComponent(PASSWORD)+(RV_TAB==='approved'?'&status=approved':'')).then(r=>r.json()).then(d=>{
     const rs = d.reviews||[];
-    box.innerHTML = rs.length ? rs.map(r=>`<div class="c-row" id="rv-${esc(r.id)}"><div class="c-top"><div class="c-name">${esc(r.name)}</div><div>${'⭐'.repeat(Math.max(0,Math.min(5,r.rating)))}</div></div>
-      <div class="c-meta">Produto #${esc(r.productId)}</div><p style="margin:8px 0 10px;line-height:1.5">${esc(r.comment)}</p>
-      <div class="btnrow" style="margin-top:0"><button class="btn" onclick="moderate('${esc(r.id)}','approve')">✓ Aprovar</button><button class="btn red" onclick="moderate('${esc(r.id)}','reject')">✕ Rejeitar</button></div></div>`).join('') : '<div class="empty">Nenhuma avaliação pendente 🎉</div>';
-  }).catch(()=>{ box.innerHTML='<div class="empty">Erro ao carregar.</div>'; });
+    const empty = RV_TAB==='pending' ? 'Nenhuma avaliação esperando aprovação 🎉' : 'Nenhuma avaliação publicada ainda.';
+    box.innerHTML = head + (rs.length ? rs.map(r=>`<div class="c-row" id="rv-${esc(r.id)}"><div class="c-top"><div class="c-name">${esc(r.name)}</div><div>${'⭐'.repeat(Math.max(0,Math.min(5,r.rating)))}</div></div>
+      <div class="c-meta">${esc(r.productName||('Produto #'+r.productId))}${r.orderNsu?' · pedido #'+esc(r.orderNsu):''}${r.verified?' · <b style="color:#2F7D4A">✔ compra verificada</b>':''} · ${r.createdAt?dt(r.createdAt):''}</div>
+      <p style="margin:8px 0 10px;line-height:1.5">${esc(r.comment)}</p>
+      ${(r.photos||[]).length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${r.photos.map(k=>`<a href="${rvPhotoUrl(k)}" target="_blank" rel="noopener"><img src="${rvPhotoUrl(k)}" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid #eee"></a>`).join('')}</div>`:''}
+      <div class="btnrow" style="margin-top:0">${RV_TAB==='pending'
+        ? `<button class="btn" onclick="moderate('${esc(r.id)}','approve')">✓ Aprovar e publicar</button><button class="btn red" onclick="if(confirm('Excluir esta avaliação?')) moderate('${esc(r.id)}','reject')">✕ Excluir</button>`
+        : `<button class="btn red" onclick="if(confirm('Tirar esta avaliação do site e excluir?')) moderate('${esc(r.id)}','reject')">🗑 Excluir do site</button>`}</div></div>`).join('') : `<div class="empty">${empty}</div>`);
+  }).catch(()=>{ box.innerHTML = head + '<div class="empty">Erro ao carregar.</div>'; });
 }
 function moderate(id, action){
   fetch('/.netlify/functions/moderate-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:PASSWORD,reviewId:id,action})})
-    .then(r=>r.json()).then(d=>{ if(d.success){ const el=document.getElementById('rv-'+id); if(el) el.remove(); } else alert('Erro: '+(d.error||'')); }).catch(()=>alert('Sem conexão.'));
+    .then(r=>r.json()).then(d=>{ if(d.success){ const el=document.getElementById('rv-'+id); if(el) el.remove(); toastMsg(action==='approve'?'Publicada no site ✓':'Avaliação excluída'); } else alert('Erro: '+(d.error||'')); }).catch(()=>alert('Sem conexão.'));
 }
+function toastMsg(m){ try { if(typeof toast==='function') return toast(m); } catch(e){} }
 
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
 const saved = sessionStorage.getItem('bielyy_admin_pwd');

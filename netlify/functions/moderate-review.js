@@ -27,6 +27,11 @@ exports.handler = async function (event) {
     const store = blobStore('reviews', event);
 
     if (action === 'reject') {
+      const r = await store.get(reviewId, { type: 'json' }).catch(() => null);
+      if (r && Array.isArray(r.photos) && r.photos.length) {
+        const photos = blobStore('review-photos', event);
+        for (const k of r.photos) { try { await photos.delete(k); } catch (e) { /* ignora */ } }
+      }
       await store.delete(reviewId);
       return { statusCode: 200, body: JSON.stringify({ success: true }) };
     }
