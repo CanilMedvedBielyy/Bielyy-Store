@@ -274,7 +274,7 @@ let pollTimer = null;
 
 // Cupons com comissão (para calcular quanto pagar ao adestrador)
 const COUPON_INFO = {
-  'MATEUSADESTRA': { who: 'Mateus (adestrador)', pct: 0.05 }
+  'MATEUSADESTRA': { who: 'Mateus (adestrador)', pct: 0.05 } // pedidos antigos: 5%. Os novos trazem a comissão no próprio pedido (5% na 1ª compra, 10% nas próximas)
 };
 const STATUS_LABEL = {
   aguardando_pagamento: '⏳ Aguardando pagamento', pago: '✅ Pago', em_preparacao: '📦 Em preparação',
@@ -324,7 +324,8 @@ function normalize(o){
   const total = o.paid_amount ? o.paid_amount/100 : (o.total != null ? o.total : Math.max(0, subtotal-discount)+shipPrice);
   const addr = o.address || {};
   const pm = o.paymentMethod || 'infinitepay';
-  const info = coupon ? COUPON_INFO[coupon.code] : null;
+  const baseInfo = coupon ? COUPON_INFO[coupon.code] : null;
+  const info = baseInfo ? Object.assign({}, baseInfo, coupon.commissionPct != null ? { pct: Number(coupon.commissionPct)/100 } : {}, coupon.first === true ? { tag: '1ª compra' } : coupon.first === false ? { tag: 'recompra' } : {}) : null;
   const commission = info && COUNTS_AS_SALE.includes(o.status) ? info.pct * Math.max(0, subtotal - discount) : 0;
   return Object.assign({}, o, { _items:items, _subtotal:subtotal, _coupon:coupon, _discount:discount, _ship:o.shipping||null, _total:total,
     _addr:addr, _pm:pm, _commission:commission, _info:info,
@@ -517,7 +518,7 @@ function openDetail(id){
         <div><span>Frete${o._ship&&o._ship.label?' ('+esc(o._ship.label)+')':''}</span><span>${o._ship?(o._ship.free?'Grátis':fmt(o._ship.price)):'—'}</span></div>
         <div class="tot"><span>Total</span><span>${fmt(o._total)}</span></div>
       </div>
-      ${o._info?`<div class="cm">💰 Comissão do cupom ${esc(o._coupon.code)} (${esc(o._info.who)}): <b>${fmt(o._info.pct*Math.max(0,o._subtotal-o._discount))}</b> (${(o._info.pct*100).toFixed(0)}% de ${fmt(Math.max(0,o._subtotal-o._discount))})${o._sale?'':' — só conta depois que o pagamento for confirmado.'}</div>`:''}
+      ${o._info?`<div class="cm">💰 Comissão do cupom ${esc(o._coupon.code)} (${esc(o._info.who)}${o._info.tag?' · '+esc(o._info.tag):''}): <b>${fmt(o._info.pct*Math.max(0,o._subtotal-o._discount))}</b> (${(o._info.pct*100).toFixed(0)}% de ${fmt(Math.max(0,o._subtotal-o._discount))})${o._sale?'':' — só conta depois que o pagamento for confirmado.'}</div>`:''}
     </div>
 
     <div class="card"><h3>💳 Pagamento</h3>

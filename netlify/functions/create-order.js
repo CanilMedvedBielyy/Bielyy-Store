@@ -40,7 +40,10 @@ exports.handler = async function (event) {
   const coupon = b.coupon && b.coupon.code ? {
     code: clean(b.coupon.code, 40).toUpperCase(),
     label: clean(b.coupon.label, 120),
-    discount: num(b.coupon.discount)
+    discount: num(b.coupon.discount),
+    percent: b.coupon.percent != null ? num(b.coupon.percent) : null,
+    commissionPct: b.coupon.commissionPct != null ? Math.max(0, Math.min(50, num(b.coupon.commissionPct))) : null,
+    first: b.coupon.first === true ? true : (b.coupon.first === false ? false : undefined)
   } : null;
 
   const order = {

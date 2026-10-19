@@ -593,7 +593,7 @@
   .card{border:1px solid var(--line); box-shadow:var(--shadow-xs); border-radius:20px;}
   .card:hover{transform:translateY(-4px); box-shadow:var(--shadow);}
   .card-media img{transition:transform .45s ease;}
-  .card:hover .card-media img{transform:scale(1.05);}
+  @media (hover:hover){ .card:hover .card-media > img{transform:scale(1.05);} }
   .add-btn{background:var(--purple-deep); color:#fff; box-shadow:0 6px 14px -6px rgba(109,66,184,.6);}
   .add-btn:hover{background:var(--pink); transform:scale(1.06);}
   /* toast escondido de verdade */
@@ -645,12 +645,20 @@
   .btn-wa{display:flex; justify-content:center; width:100%; background:#25D366; color:#fff; box-shadow:0 8px 20px -10px rgba(37,211,102,.8);}
   .btn-wa:hover{background:#1EBE5A;}
   @media (max-width:600px){ .card-foot .add-btn.wa-btn{width:100%; justify-content:center;} }
-  .kit-collage{position:absolute; inset:0; display:grid; gap:3px; background:#fff; padding:3px;}
-  .kit-collage.n1{grid-template-columns:1fr;} .kit-collage.n2{grid-template-columns:1fr 1fr;}
-  .kit-collage.n3{grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;} .kit-collage.n3 img:first-child{grid-row:span 2;}
-  .kit-collage.n4{grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;}
-  .kit-collage img{width:100%; height:100%; object-fit:cover; border-radius:10px; min-height:0;}
+  /* colagem dos kits: posições absolutas (funciona igual no iPhone/Safari e no Chrome) */
+  .kit-collage{position:absolute; inset:0; background:#fff; overflow:hidden;}
+  .kit-collage img{position:absolute; display:block; object-fit:cover; border-radius:10px; width:auto; height:auto; max-width:none; transform:none !important;}
+  .kit-collage.n1 img{top:3px; left:3px; right:3px; bottom:3px; width:calc(100% - 6px); height:calc(100% - 6px);}
+  .kit-collage.n2 img{top:3px; bottom:3px; width:calc(50% - 4.5px); height:calc(100% - 6px);}
+  .kit-collage.n2 img:nth-child(1){left:3px;} .kit-collage.n2 img:nth-child(2){right:3px;}
+  .kit-collage.n3 img:nth-child(1){top:3px; left:3px; width:calc(50% - 4.5px); height:calc(100% - 6px);}
+  .kit-collage.n3 img:nth-child(2){top:3px; right:3px; width:calc(50% - 4.5px); height:calc(50% - 4.5px);}
+  .kit-collage.n3 img:nth-child(3){bottom:3px; right:3px; width:calc(50% - 4.5px); height:calc(50% - 4.5px);}
+  .kit-collage.n4 img{width:calc(50% - 4.5px); height:calc(50% - 4.5px);}
+  .kit-collage.n4 img:nth-child(1){top:3px; left:3px;} .kit-collage.n4 img:nth-child(2){top:3px; right:3px;}
+  .kit-collage.n4 img:nth-child(3){bottom:3px; left:3px;} .kit-collage.n4 img:nth-child(4){bottom:3px; right:3px;}
   .kit-badge{position:absolute; left:50%; bottom:8px; transform:translateX(-50%); background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff; font-size:11px; font-weight:800; letter-spacing:.5px; padding:4px 10px; border-radius:999px; box-shadow:0 4px 12px -4px rgba(109,66,184,.6); white-space:nowrap;}
+  .kit-by{position:absolute; top:10px; left:10px; z-index:2; white-space:nowrap; max-width:calc(100% - 70px); overflow:hidden; text-overflow:ellipsis; background:#fff; color:#2B6CB0; font-weight:800; font-size:10.5px; padding:4px 9px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,.12);}
   .kit-off{position:absolute; top:10px; right:10px; background:var(--green); color:#fff; font-weight:800; font-size:11.5px; padding:4px 9px; border-radius:999px; z-index:2;}
   .modal-media .kit-collage{border-radius:inherit;}
   .kit-save{font-size:12.5px; background:#E3F5EC; color:#22704A; border-radius:12px; padding:8px 12px; margin-bottom:12px;}
@@ -1378,11 +1386,12 @@ function catClampCart(){
     const [fid, vi] = key.split(':').map(Number); const f = familyById(fid);
     if(!f || !f.variants[vi]){ delete cart[key]; changed = true; return; }
     if(f.preorder) return;
-    const lim = f.kit ? KIT_MAX_PER_KIT : (f.stock || 0);
-    if(f.variants[vi].available === false || lim <= 0){ delete cart[key]; changed = true; }
-    else if(cart[key] > lim){ cart[key] = lim; changed = true; }
+    const max = maxQtyFor(fid, vi);
+    if(max <= 0){ delete cart[key]; changed = true; }
+    else if(cart[key] > max){ cart[key] = max; changed = true; }
   });
-  if(changed){ saveCart(); updateCartCount(); }
+  if(changed){ saveCart(); updateCartCount(); try { renderCart(); } catch(e){} }
+  return changed;
 }
 function catRerender(){
   const safe = fn => { try { fn(); } catch(e){ console.warn(e); } };
@@ -1561,9 +1570,42 @@ function applyCoupon(opts_skipCheck){
     renderCart();
     return;
   }
+  if(coupon.tiered){ applyTieredCoupon(raw, coupon, opts_skipCheck); return; }
   appliedCoupon = { code: raw, ...coupon };
   resultBox.innerHTML = `<p style="color:var(--green); font-size:12px; margin-top:8px;">🎉 Cupom aplicado: ${coupon.label}</p>`;
   renderCart();
+}
+// Cupom com valor maior na 1ª compra (ex.: MATEUSADESTRA: 15% na 1ª compra, 10% nas próximas)
+function tieredLabel(c){
+  return c.first
+    ? `${c.firstPercent}% OFF na sua 1ª compra (depois, ${c.basePercent != null ? c.basePercent : c.percent}% OFF em todas as compras) · ${c.label}`
+    : `${c.basePercent != null ? c.basePercent : c.percent}% OFF · ${c.label}`;
+}
+function setTiered(raw, coupon, first){
+  appliedCoupon = Object.assign({ code: raw }, coupon, { first: !!first,
+    percent: first ? coupon.firstPercent : coupon.percent,
+    commissionPct: first ? coupon.firstCommissionPct : coupon.commissionPct,
+    basePercent: coupon.percent, baseCommissionPct: coupon.commissionPct });
+}
+function couponBuyerInfo(){
+  const u = getLoggedInUser();
+  return { email: (document.getElementById('ckEmail')||{}).value || (u && u.email) || '', phone: (document.getElementById('ckPhone')||{}).value || (u && u.phone) || '', token: u ? u.token : undefined };
+}
+function checkFirstPurchase(){
+  return fetch('/.netlify/functions/coupon-check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(couponBuyerInfo()) })
+    .then(r => r.json()).catch(() => ({ first: true, checked: false }));
+}
+function applyTieredCoupon(raw, coupon){
+  const resultBox = document.getElementById('couponResult');
+  const info = couponBuyerInfo();
+  const show = () => {
+    resultBox.innerHTML = `<p style="color:var(--green); font-size:12px; margin-top:8px;">🎉 Cupom aplicado: ${tieredLabel(appliedCoupon)}</p>`
+      + (appliedCoupon.first && !appliedCoupon.verified ? `<p style="color:var(--ink-soft); font-size:11px; margin-top:4px;">O desconto de ${coupon.firstPercent}% é para a 1ª compra: confirmamos pelo seu e-mail/telefone ao finalizar.</p>` : '');
+    renderCart();
+  };
+  if(!info.email && !info.phone && !info.token){ setTiered(raw, coupon, true); show(); return; }
+  resultBox.innerHTML = `<p style="color:var(--ink-soft); font-size:12px; margin-top:8px;">Conferindo seu cupom...</p>`;
+  checkFirstPurchase().then(r => { setTiered(raw, coupon, r.first !== false); appliedCoupon.verified = !!r.checked; show(); });
 }
 let selectedPaymentMethod = "whats";
 let selectedPixOrCartao = "pix";
@@ -1708,7 +1750,21 @@ KIT_DEFS.push({ id: 9008, emoji: '🧸', name: 'Kit Ursinho & Petiscos', color: 
     why: 'Vergalho bovino inteiro, orelha bovina inteira e focinho suíno: petiscos de um único ingrediente, sem corantes nem conservantes. Mastigar acalma, gasta energia e ajuda a limpar os dentes.',
     how: 'Ofereça um petisco por vez, sempre com supervisão e água fresca por perto. Indicado para cães de porte grande, por causa do vergalho.',
     variants: [ { label: 'Kit completo', items: [[30,1],[65,1],[66,1]] } ] });
-const KIT_MAX_PER_KIT = 1; // quantos de cada kit ficam à venda (você repõe conforme vender)
+
+// Kit recomendado pelo adestrador parceiro (aparece primeiro) + kits por fase da vida
+KIT_DEFS.push({ id: 9011, emoji: '⚡', name: 'Kit Fase Adolescente', color: '#FFF1D6', sizes: ['M'],
+    tags: ['6 a 18 meses','Gasta energia','Anti-destruição'],
+    hook: 'Para a fase da energia sem fim e dos dentes em tudo (6 a 18 meses).',
+    why: 'Na adolescência o cão tem muita energia e vontade de roer. O kit junta as três coisas que os adestradores indicam para essa fase: gastar energia com as bolas Chuckit! Ultra, que quicam e flutuam; direcionar a mastigação para o Benebone Stick, no lugar dos móveis; e cansar a mente com o labirinto da Nina Ottosson. O casco recheado LUV completa o kit como petisco natural.',
+    how: 'Comece o dia com 10 minutos de bolinha, ofereça o labirinto com parte da ração e deixe o Benebone sempre à disposição quando ele quiser roer. Indicado para cães de porte médio.',
+    variants: [ { label: 'Kit completo', items: [[4,1],[20,1],[43,1],[25,1]] } ] },
+  { id: 9012, emoji: '🤍', name: 'Kit Fase Sênior', color: '#F1EEF8', sizes: [],
+    tags: ['Cão idoso','Mente ativa','Conforto'],
+    hook: 'Conforto e mente ativa para os nossos velhinhos (7 anos ou mais).',
+    why: 'Cães idosos precisam continuar estimulados, mas sem esforço nas articulações e nos dentes. O Plutos Senior é macio e fácil de mastigar, o tapete Lickin\' Layers com patê natural ocupa a mente e acalma só com lambidas, e o ursinho Kong Wild Knots vira companhia para a hora da soneca.',
+    how: 'Espalhe o patê no tapete de lamber e ofereça depois das refeições ou em momentos de agitação. Use o Plutos Senior como petisco do dia. Ofereça o ursinho no cantinho onde ele descansa.',
+    variants: [ { label: 'Kit completo', items: [[64,1],[44,1],[23,1],[13,1]] } ] });
+const KIT_MAX_PER_KIT = Infinity; // sem limite fixo: o kit vende enquanto houver estoque de todos os itens dele
 function kitPrice(v){ return v > 50 ? Math.floor(v) - 0.10 : Math.round(v*100)/100; } // termina em ,90
 const KIT_FAMILIES = KIT_DEFS.map(k => {
   const variants = k.variants.map(v => {
@@ -1719,7 +1775,7 @@ const KIT_FAMILIES = KIT_DEFS.map(k => {
     return { label: v.label, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
       cartao: kitPrice(full.cartao*(1-KIT_DISCOUNT)), pix: kitPrice(full.pix*(1-KIT_DISCOUNT)), available: capKit > 0, cap: capKit };
   });
-  return { id: k.id, kit: true, brand: 'Kit Bielyy', category: 'Kits Bielyy', name: k.name, emoji: k.emoji,
+  return { id: k.id, kit: true, by: k.by || '', brand: 'Kit Bielyy', category: 'Kits Bielyy', name: k.name + (k.by ? ' by ' + k.by : ''), emoji: k.emoji,
     desc: k.hook, photo: (variants[0].comps.find(c=>c.f.photo)||{f:{}}).f.photo, color: k.color, iconColor: '#8B5FD1', icon: 'heart',
     stock: Math.max(0, ...variants.map(v=>v.cap)), sizes: k.sizes, variants, def: k };
 });
@@ -1833,8 +1889,8 @@ function productCard(f){
   <div class="card" onclick="openProduct(${f.id})" style="${available?'':'opacity:0.75;'}">
     <div class="card-media" style="background:${f.color};">
       ${mediaContent(f)}
-      <span class="brand-tag">${f.brand}</span>
-      ${f.kit && available ? `<span class="kit-off">-8%</span>` : ''}
+      ${f.by ? '' : `<span class="brand-tag">${f.brand}</span>`}
+      ${f.kit && available ? `<span class="kit-off">-8%</span>` : ''}${f.by ? `<span class="kit-by">🎓 by ${f.by.split(" ")[0]}</span>` : ''}
       ${!available ? `<span class="preorder-tag" style="background:#f2f2f2; color:#888;">Esgotado</span>` : (f.kit ? '' : f.preorder ? `<span class="preorder-tag">📦 Sob encomenda</span>` : (f.stock && f.stock<=3 ? `<span class="fav-btn" style="width:auto; padding:4px 10px; font-size:10.5px; font-weight:700; color:#E0703B;">🔥 Últimas unidades</span>` : ''))}
     </div>
     <div class="card-body">
@@ -1990,26 +2046,56 @@ function goToBrands(e){
    CART LOGIC
 ===================================================== */
 function ckey(familyId, variantIdx){ return familyId + ':' + variantIdx; }
-const MAX_QTY_PER_ITEM = 3;
+const MAX_QTY_PER_ITEM = Infinity; // sem limite por produto: o único limite é o estoque
+const STOCK_MSG = 'Não é possível adicionar mais unidades deste produto no momento 🐾';
+// Quanto deste produto já está no carrinho (contando os itens de dentro dos kits), sem contar a linha "skipKey"
+function cartDemand(pid, skipKey){
+  let n = 0;
+  Object.keys(cart).forEach(key => {
+    if(key === skipKey) return;
+    const [fid, vi] = key.split(':').map(Number); const fam = familyById(fid); if(!fam) return;
+    if(fam.id === pid) n += cart[key];
+    else if(fam.kit && fam.variants[vi]) (fam.variants[vi].comps||[]).forEach(c => { if(c.f.id === pid) n += c.qty * cart[key]; });
+  });
+  return n;
+}
+// Quantidade máxima que essa linha do carrinho pode ter (respeita o estoque real, sem mostrar o número para a cliente)
+function maxQtyFor(familyId, variantIdx){
+  const f = familyById(familyId); if(!f) return 0;
+  if(f.preorder) return Infinity;
+  const v = f.variants[variantIdx]; if(!v || v.available === false) return 0;
+  const key = ckey(familyId, variantIdx);
+  if(f.kit){
+    let m = KIT_MAX_PER_KIT - Object.keys(cart).filter(x => x !== key && x.split(':')[0] === String(familyId)).reduce((a,x) => a + cart[x], 0);
+    (v.comps||[]).forEach(c => {
+      if(c.f.preorder) return;
+      const free = (c.f.stock||0) - cartDemand(c.f.id, key);
+      m = Math.min(m, Math.floor(free / c.qty));
+    });
+    return Math.max(0, m);
+  }
+  return Math.max(0, Math.min(MAX_QTY_PER_ITEM, (f.stock||0) - cartDemand(f.id, key)));
+}
+function limitMsg(familyId){
+  const f = familyById(familyId);
+  return STOCK_MSG;
+}
+// devolve false quando não deu para adicionar nada
 function addToCart(familyId, variantIdx, qty){
   const k = ckey(familyId, variantIdx);
   const f = familyById(familyId);
-  if(f && f.preorder){ openInterest(familyId, variantIdx); return; }
-  if(f && f.kit){
-    const inCart = Object.keys(cart).filter(x=>x.split(':')[0]===String(familyId)).reduce((a,x)=>a+cart[x],0);
-    const v = f.variants[variantIdx];
-    if(!v || v.available===false){ pulseToast('Esse kit está esgotado no momento 🐾'); return; }
-    if(inCart + qty > KIT_MAX_PER_KIT){ pulseToast(`Temos ${KIT_MAX_PER_KIT} unidade desse kit no momento 🐾`); openCart(); return; }
-  }
-  const limit = (f && f.preorder) ? Infinity : Math.min(MAX_QTY_PER_ITEM, (f && f.stock) ? f.stock : MAX_QTY_PER_ITEM);
-  const newQty = Math.min((cart[k]||0) + qty, limit);
-  if((cart[k]||0) + qty > limit){
-    pulseToast(limit < MAX_QTY_PER_ITEM || (f && f.stock && f.stock < MAX_QTY_PER_ITEM) ? `Só temos ${limit} unidade${limit===1?'':'s'} em estoque 🐾` : `Máximo de ${limit} unidades por produto 🐾`);
-  }
-  cart[k] = newQty;
+  if(f && f.preorder){ openInterest(familyId, variantIdx); return false; }
+  const v = f && f.variants[variantIdx];
+  if(!v || v.available === false){ pulseToast(f && f.kit ? 'Esse kit está esgotado no momento 🐾' : 'Este produto está esgotado no momento 🐾'); return false; }
+  const max = maxQtyFor(familyId, variantIdx);
+  const room = max - (cart[k]||0);
+  if(room <= 0){ pulseToast(limitMsg(familyId)); return false; }
+  if(qty > room) pulseToast(limitMsg(familyId));
+  cart[k] = (cart[k]||0) + Math.min(qty, room);
   saveCart();
   updateCartCount();
   renderCart();
+  return true;
 }
 function removeFromCart(k){
   delete cart[k];
@@ -2018,19 +2104,21 @@ function removeFromCart(k){
   renderCart();
 }
 function changeQty(k, delta){
-  const familyId = parseInt(k.split(':')[0]);
-  const f = familyById(familyId);
-  const limit = (f && f.preorder) ? Infinity : Math.min(MAX_QTY_PER_ITEM, (f && f.stock) ? f.stock : MAX_QTY_PER_ITEM);
+  const [familyId, vi] = k.split(':').map(Number);
   const newQty = (cart[k]||0) + delta;
-  if(newQty > limit){
-    pulseToast(limit < MAX_QTY_PER_ITEM || (f && f.stock && f.stock < MAX_QTY_PER_ITEM) ? `Só temos ${limit} unidade${limit===1?'':'s'} em estoque 🐾` : `Máximo de ${limit} unidades por produto 🐾`);
-    return;
-  }
+  if(delta > 0 && newQty > maxQtyFor(familyId, vi)){ pulseToast(limitMsg(familyId)); return; }
   cart[k] = newQty;
   if(cart[k] <= 0) delete cart[k];
   saveCart();
   updateCartCount();
   renderCart();
+}
+// "+" da janela do produto
+function modalQtyPlus(){
+  const f = familyById(modalFamilyId); if(!f) return;
+  const room = maxQtyFor(modalFamilyId, modalVariantIdx) - (cart[ckey(modalFamilyId, modalVariantIdx)]||0);
+  if(modalQty + 1 > room){ pulseToast(room <= 0 ? 'Você já colocou no carrinho todas as unidades disponíveis deste produto 🐾' : limitMsg(modalFamilyId)); return; }
+  modalQty++; document.getElementById('modalQtyVal').textContent = modalQty;
 }
 function updateCartCount(){
   const count = Object.values(cart).reduce((a,b)=>a+b,0);
@@ -2275,7 +2363,7 @@ function renderModalBody(){
       <div class="modal-top-info">
         <span class="cat">${f.category}</span>
         <h2>${f.name}</h2>
-        <div class="brand-line">por ${f.brand}</div>
+        <div class="brand-line">${f.by ? `🎓 Recomendado pelo adestrador <b>${f.by}</b>` : `por ${f.brand}`}</div>
       </div>
     </div>
     <div class="modal-info">
@@ -2302,9 +2390,9 @@ function renderModalBody(){
       <div class="modal-qty">
         <button class="qty-btn" onclick="modalQty=Math.max(1,modalQty-1); document.getElementById('modalQtyVal').textContent=modalQty;">−</button>
         <span id="modalQtyVal" style="font-weight:700;">${modalQty}</span>
-        <button class="qty-btn" onclick="const __f=familyById(modalFamilyId); const __lim=(__f&&__f.preorder)?Infinity:MAX_QTY_PER_ITEM; if(modalQty<__lim){modalQty++; document.getElementById('modalQtyVal').textContent=modalQty;} else { pulseToast('Máximo de '+__lim+' unidades por produto 🐾'); }">+</button>
+        <button class="qty-btn" onclick="modalQtyPlus()">+</button>
       </div>
-      <button class="btn btn-primary" ${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="addToCart(${f.id}, modalVariantIdx, modalQty); closeProduct(); openCart();">${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'Indisponível no momento' : 'Adicionar ao carrinho'}</button>`}
+      <button class="btn btn-primary" ${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="if(addToCart(${f.id}, modalVariantIdx, modalQty)){ closeProduct(); openCart(); }">${f.variants[modalVariantIdx] && f.variants[modalVariantIdx].available===false ? 'Indisponível no momento' : 'Adicionar ao carrinho'}</button>`}
       ${false ? `<a href="https://wa.me/5511915971151?text=${encodeURIComponent(`Olá! Vim pelo site e gostaria de confirmar a disponibilidade de tamanho do produto: ${f.name}`)}" target="_blank" rel="noopener" class="btn btn-ghost" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;">
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#25D366;"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4C7.24 4 3.33 7.9 3.33 12.72c0 1.53.4 3.02 1.15 4.34L3.26 21l4.05-1.19a8.9 8.9 0 0 0 4.74 1.36c4.82 0 8.73-3.9 8.73-8.72 0-2.33-.91-4.52-2.55-6.17Z"/></svg>
         Confirmar tamanho disponível no WhatsApp
@@ -2357,6 +2445,7 @@ document.addEventListener('keydown', e=>{
 })();
 function selectModalVariant(i){
   modalVariantIdx = i;
+  modalQty = 1; { const q = document.getElementById('modalQtyVal'); if(q) q.textContent = 1; }
   { const ff = familyById(modalFamilyId); const ib = document.getElementById('interestBtn'); if(ff && ff.preorder && ib) ib.href = interestLink(ff, i); }
   document.querySelectorAll('.size-pill').forEach(el=>{
     const active = Number(el.dataset.idx)===i;
@@ -2451,7 +2540,39 @@ function stockItemsOf(lines){
   });
   return out;
 }
-function finalizeOrder(){
+async function finalizeOrder(){
+  if(finalizeOrder.busy) return;
+  finalizeOrder.busy = true;
+  const before = JSON.stringify(cart);
+  const btn = document.getElementById('finalizeBtn'); const old = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Conferindo estoque...'; }
+  try {
+    const doc = await fetch('/.netlify/functions/catalog?nc=' + Date.now(), { cache: 'no-store' }).then(r => r.json());
+    if(doc && doc.v !== CAT_DOC_V){ CAT_DOC_V = doc.v; try { localStorage.setItem('bielyy_catalog', JSON.stringify(doc)); } catch(e){} applyCatalog(doc); catRerender(); }
+  } catch(e){ /* sem conexão: segue com o que já temos */ }
+  finalizeOrder.busy = false;
+  if(btn){ btn.disabled = false; btn.textContent = old; }
+  if(appliedCoupon && appliedCoupon.tiered){
+    const r = await checkFirstPurchase();
+    const coupon = COUPONS[appliedCoupon.code];
+    if(coupon && r.checked && (r.first !== false) !== !!appliedCoupon.first){
+      setTiered(appliedCoupon.code, coupon, r.first !== false); appliedCoupon.verified = true;
+      const box = document.getElementById('couponResult'); if(box) box.innerHTML = `<p style="color:var(--green); font-size:12px; margin-top:8px;">🎉 Cupom aplicado: ${tieredLabel(appliedCoupon)}</p>`;
+      renderCart(); try { renderCheckout(); } catch(e){}
+      alert(appliedCoupon.first
+        ? `Boa notícia! Esta é a sua 1ª compra, então o cupom ${appliedCoupon.code} ficou em ${appliedCoupon.percent}% OFF 💜 Confira o novo total e confirme de novo.`
+        : `Como você já comprou com a gente antes, o cupom ${appliedCoupon.code} fica em ${appliedCoupon.percent}% OFF nesta compra 💜 Confira o novo total e confirme de novo.`);
+      return;
+    }
+    if(r.checked) appliedCoupon.verified = true;
+  }
+  if(catClampCart() || JSON.stringify(cart) !== before){
+    alert('Ops! Algum produto do seu carrinho acabou de esgotar ou ficou com menos unidades disponíveis. Ajustamos o carrinho para você: confira antes de finalizar 💜');
+    openCart(); return;
+  }
+  finalizeOrderNow();
+}
+function finalizeOrderNow(){
   const lines = cartLines();
   if(lines.length===0){ pulseToast('Seu carrinho está vazio 🐾'); return; }
   const name = document.getElementById('ckName').value || 'Cliente';
@@ -2485,7 +2606,7 @@ function finalizeOrder(){
     productId: l.family.id
   }));
   const freeShip = !!(appliedCoupon && appliedCoupon.freeShipping);
-  const couponInfo = (appliedCoupon && (discount > 0 || freeShip)) ? { code: appliedCoupon.code, label: appliedCoupon.label || '', discount } : null;
+  const couponInfo = (appliedCoupon && (discount > 0 || freeShip)) ? { code: appliedCoupon.code, label: appliedCoupon.tiered ? tieredLabel(appliedCoupon) : (appliedCoupon.label || ''), discount, percent: appliedCoupon.percent || null, commissionPct: appliedCoupon.commissionPct != null ? appliedCoupon.commissionPct : null, first: appliedCoupon.tiered ? !!appliedCoupon.first : undefined } : null;
   const shipInfo = shipping ? { label: shipping.label, price: freeShip ? 0 : shipping.price, free: freeShip || shipping.price === 0, local: !!shipping.local } : null;
 
   if(selectedPaymentMethod === 'whats'){
@@ -3046,6 +3167,7 @@ renderFeatured();
 renderFilters();
 renderShop();
 dropPreorderFromCart();
+catClampCart();
 updateCartCount();
 updateAccountUI();
 (function rotateAnnounce(){
