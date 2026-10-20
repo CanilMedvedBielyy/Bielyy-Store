@@ -50,7 +50,8 @@ exports.handler = async function (event) {
     order_nsu: orderNsu,
     status: 'aguardando_pagamento',
     createdAt: new Date().toISOString(),
-    paymentMethod: 'whatsapp',
+    paymentMethod: b.paymentMethod === 'pix' ? 'pix' : 'whatsapp',
+    paymentDetail: b.paymentMethod === 'pix' ? 'pix' : undefined,
     accountEmail: clean(b.accountEmail, 120).toLowerCase(),
     customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120) },
     address: {

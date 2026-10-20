@@ -176,6 +176,7 @@
       <button class="tab" data-tab="products" onclick="setTab('products')">🏷️ Produtos e estoque</button>
       <button class="tab" data-tab="reviews" onclick="setTab('reviews')">⭐ Avaliações</button>
       <button class="tab" data-tab="delivery" onclick="setTab('delivery')">🛵 Entrega hoje</button>
+      <button class="tab" data-tab="pix" onclick="setTab('pix')">💠 Pix</button>
     </div>
 
     <!-- PEDIDOS -->
@@ -226,6 +227,26 @@
 
     <!-- AVALIAÇÕES -->
     <section id="tab-reviews" class="hide"><div id="reviewsList"></div></section>
+
+    <!-- PIX -->
+    <section id="tab-pix" class="hide">
+      <div class="card">
+        <h3>💠 Pix direto no site</h3>
+        <p class="hint">Quem escolhe <b>Pix</b> no site recebe na hora o QR Code e o "copia e cola" com o valor exato do pedido, direto na sua chave. Assim ninguém consegue pagar no cartão com o preço do Pix. Quem escolhe <b>cartão</b> continua indo para a InfinitePay.<br>
+        O Pix não confirma sozinho: quando o dinheiro cair, abra o pedido e clique em <b>✅ Confirmar pagamento</b> (o estoque baixa nessa hora).</p>
+        <div class="pe-grid" style="margin-top:12px">
+          <div><label>Tipo da chave</label><select class="field" id="pxType">
+            <option value="email">E-mail</option><option value="celular">Celular</option><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="aleatoria">Chave aleatória</option></select></div>
+          <div><label>Chave Pix</label><input class="field" id="pxKey" placeholder="ex.: seuemail@gmail.com" autocomplete="off"></div>
+          <div><label>Nome do titular (como aparece no banco)</label><input class="field" id="pxName" maxlength="25" placeholder="Ex.: Luiza dos Reis Bonini"></div>
+          <div><label>Cidade</label><input class="field" id="pxCity" maxlength="15" placeholder="Sao Paulo"></div>
+          <div class="pe-full"><label style="display:flex;gap:8px;align-items:center;font-size:13.5px"><input type="checkbox" id="pxEnabled"> <b>Ativar Pix direto no site</b></label></div>
+        </div>
+        <div class="btnrow"><button class="btn" onclick="pxSave()">💾 Salvar</button><button class="ghost" onclick="pxTest()">🧪 Gerar Pix de teste (R$ 1,00)</button></div>
+        <div id="pxTestBox" style="margin-top:14px"></div>
+        <div class="cm" style="margin-top:12px">⚠️ <b>Antes de ativar:</b> gere o Pix de teste, pague R$ 1,00 pelo app do seu banco e confira se aparece o <b>seu nome</b> e se o dinheiro cai na conta certa.</div>
+      </div>
+    </section>
 
     <!-- ENTREGA HOJE -->
     <section id="tab-delivery" class="hide">
@@ -343,6 +364,7 @@ function addrText(o){
 }
 function payLabel(o){
   if(o._pm==='whatsapp') return 'WhatsApp (pagamento combinado por lá)';
+  if(o._pm==='pix') return '💠 Pix direto no site — confira no seu banco se o valor caiu e depois confirme o pagamento';
   const d = o.paymentDetail ? (o.paymentDetail==='pix'?' · Pix':' · Cartão') : '';
   const cm = o.capture_method ? ' · '+esc(o.capture_method) : '';
   return 'InfinitePay'+d+cm;
@@ -401,12 +423,13 @@ function markSeen(){
 /* ============ abas ============ */
 function setTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  ['orders','customers','products','reviews','delivery'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  ['orders','customers','products','reviews','delivery','pix'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
   if(t==='delivery') dlLoad();
   if(t==='orders') markSeen();
   if(t==='customers') renderCustomers();
   if(t==='reviews') loadReviews();
   if(t==='products') loadProducts();
+  if(t==='pix') pxLoad();
 }
 function renderAll(){ renderStats(); renderChips(); renderCouponFilter(); renderOrders(); renderCustomers(); }
 
@@ -670,6 +693,36 @@ function exportCustomersCSV(){
   download('clientes-bielyy.csv', csv(rows));
 }
 
+
+
+/* ============ Pix direto no site ============ */
+function pxLoad(){
+  fetch('/.netlify/functions/pix-config?nc='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(c=>{
+    document.getElementById('pxType').value = c.type || 'email';
+    document.getElementById('pxKey').value = c.key || 'bielyystore@jim.com'; // chave da loja (InfinitePay) já preenchida
+    document.getElementById('pxName').value = c.name || 'Bielyy Store';
+    document.getElementById('pxCity').value = c.city || 'Sao Paulo';
+    document.getElementById('pxEnabled').checked = !!c.enabled;
+  }).catch(()=>{});
+}
+function pxForm(){ return { type: document.getElementById('pxType').value, key: document.getElementById('pxKey').value.trim(), name: document.getElementById('pxName').value.trim(), city: document.getElementById('pxCity').value.trim(), enabled: document.getElementById('pxEnabled').checked }; }
+function pxSave(){
+  const c = pxForm();
+  if(c.type==='email' && /@(gmial|gmal|gmai|gnail|hotmial)\./i.test(c.key) && !confirm('O e-mail "'+c.key+'" parece ter um erro de digitação. Salvar mesmo assim?')) return;
+  fetch('/.netlify/functions/pix-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:PASSWORD,config:c})})
+    .then(r=>r.json()).then(d=>{ if(d.success){ toast(d.config.enabled?'Pix salvo e ativado no site ✓':'Pix salvo (desativado)'); } else alert('Erro: '+(d.error||'')); }).catch(()=>alert('Sem conexão.'));
+}
+function pxTest(){
+  const c = pxForm();
+  if(!c.key){ alert('Coloque a chave Pix.'); return; }
+  if(!window.BielyyPix || typeof qrcode!=='function'){ alert('Carregando... tente de novo em 2 segundos.'); return; }
+  const code = BielyyPix.payload({ type:c.type, key:c.key, name:c.name, city:c.city, amount:1, txid:'TESTE'+Date.now().toString().slice(-6) });
+  document.getElementById('pxTestBox').innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+    <div style="width:200px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px">${BielyyPix.qrSvg(code,200).replace('<svg','<svg style="width:100%;height:auto;display:block"')}</div>
+    <div style="flex:1;min-width:220px"><div class="hint" style="margin-bottom:6px">Chave usada: <b>${esc(BielyyPix.normKey(c.type,c.key))}</b> · Nome: <b>${esc(c.name)}</b></div>
+    <textarea class="field" readonly style="height:90px;font-family:monospace;font-size:11.5px" onclick="this.select()">${esc(code)}</textarea>
+    <div class="hint">Leia o QR com o app do seu banco (ou cole o código). O banco mostra o nome do titular da conta: confira se é o mesmo que você escreveu acima, porque é ele que a cliente vai ver.</div></div></div>`;
+}
 
 /* ============ produtos e estoque ============ */
 let CAT_BASE = null;     // catálogo original do site (lido do index.html)
@@ -972,5 +1025,7 @@ function dlTestCep(){
 }
 
 </script>
+<script src="qrcode.js" defer></script>
+<script src="pix.js" defer></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Netlify Function: confere se é a 1ª compra da cliente (para cupons com valor diferente na 1ª compra)
-// POST { email?, phone?, token? }  ->  { first: true|false }
+// POST { email?, phone?, token? }  ->  { first: true|false, paid: nº de compras pagas }
 // Conta como "já comprou" qualquer pedido pago (pago, em preparação, enviado ou entregue)
 // com o mesmo e-mail ou o mesmo telefone.
 const { blobStore } = require('../lib/blobs');
@@ -23,11 +23,12 @@ exports.handler = async function (event) {
     const store = blobStore('orders', event);
     const { blobs } = await store.list();
     const all = await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' }).catch(() => null)));
-    const bought = all.some(o => o && SALE.includes(o.status) && (
+    const mine = all.filter(o => o && SALE.includes(o.status) && (
       (emails.size && (emails.has(lower(o.accountEmail)) || emails.has(lower(o.customer && o.customer.email)))) ||
       (ph && phoneKey(o.customer && o.customer.phone) === ph)
     ));
-    return { statusCode: 200, headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ first: !bought, checked: true }) };
+    // paid = quantas compras pagas a cliente já tem (o VOLTEI5 vale quando paid === 1)
+    return { statusCode: 200, headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ first: mine.length === 0, paid: mine.length, checked: true }) };
   } catch (err) {
     console.error('Erro ao conferir 1ª compra:', err);
     return { statusCode: 200, headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ first: true, checked: false }) };
