@@ -61,6 +61,15 @@ async function savePhoto(event, id, dataUrl) {
   return key;
 }
 
+// O Netlify Blobs pode devolver uma cópia de até ~1 minuto atrás logo depois de um salvamento.
+// O painel manda junto a versão mais nova que ele tem (base); se ela for mais nova que a lida, usamos ela.
+function pickNewest(doc, base) {
+  if (!base || typeof base !== 'object') return doc;
+  if (!(Number(base.v) > Number(doc.v || 0))) return doc;
+  if (typeof base.products !== 'object' || typeof base.added !== 'object' || !base.products || !base.added) return doc;
+  return { products: base.products, added: base.added, v: Number(base.v), updatedAt: base.updatedAt || doc.updatedAt };
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
   if ((event.body || '').length > 2600000) return { statusCode: 413, body: JSON.stringify({ error: 'Arquivo grande demais' }) };
@@ -69,7 +78,7 @@ exports.handler = async function (event) {
   if (!isAdmin(event, body.password)) return { statusCode: 401, body: JSON.stringify({ error: 'Senha incorreta' }) };
 
   try {
-    const doc = await getDoc(event);
+    const doc = pickNewest(await getDoc(event), body.base);
     const id = String(body.id || (body.product && body.product.id) || '').replace(/\D/g, '').slice(0, 9);
 
     if (body.op === 'update') {

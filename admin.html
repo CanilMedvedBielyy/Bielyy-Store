@@ -743,7 +743,12 @@ async function loadProducts(force){
       CAT_BASE = [...pf.map(f=>Object.assign(f,{preorder:false})), ...pre.map(f=>Object.assign(f,{preorder:true}))];
     } catch(e){ box.innerHTML = '<div class="empty">Não consegui ler o catálogo do site.</div>'; return; }
   }
-  try { CAT_DOC = await fetch('/.netlify/functions/catalog?nc='+Date.now(), {cache:'no-store'}).then(r=>r.json()); } catch(e){}
+  // O Netlify pode demorar até ~1 minuto para "espalhar" uma alteração. Se a cópia que chegou
+  // for mais antiga do que a que já temos aqui (de um salvamento recente), fica a nossa.
+  try {
+    const fresh = await fetch('/.netlify/functions/catalog?nc='+Date.now(), {cache:'no-store'}).then(r=>r.json());
+    if(fresh && (!CAT_DOC || !(Number(CAT_DOC.v) > Number(fresh.v||0)))) CAT_DOC = fresh;
+  } catch(e){}
   CAT_DOC.products = CAT_DOC.products || {}; CAT_DOC.added = CAT_DOC.added || {};
   renderProducts();
 }
@@ -816,12 +821,24 @@ function pStep(id, d){
   const inp = document.getElementById('ps'+id); if(inp){ inp.value = P_DIRTY[id]; inp.classList.add('dirty'); }
   const b = document.getElementById('pss'+id); if(b) b.classList.remove('hide');
 }
-async function catSave(body){
-  const r = await fetch('/.netlify/functions/catalog-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:PASSWORD},body))});
-  const d = await r.json().catch(()=>({}));
-  if(!r.ok || !d.success) throw new Error(d.error || 'Erro ao salvar');
-  CAT_DOC = d.doc; CAT_DOC.products = CAT_DOC.products||{}; CAT_DOC.added = CAT_DOC.added||{};
-  return d;
+// Um salvamento de cada vez (em fila), sempre mandando a versão mais nova que temos:
+// assim um salvamento não apaga o outro quando você mexe em vários produtos seguidos.
+let CAT_QUEUE = Promise.resolve();
+function catSave(body){
+  const run = async () => {
+    const base = (CAT_DOC && CAT_DOC.v) ? { v: CAT_DOC.v, products: CAT_DOC.products || {}, added: CAT_DOC.added || {}, updatedAt: CAT_DOC.updatedAt } : null;
+    let r, d;
+    try {
+      r = await fetch('/.netlify/functions/catalog-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:PASSWORD, base},body))});
+      d = await r.json().catch(()=>({}));
+    } catch(e){ throw new Error('Sem conexão com o site. Confira a internet e tente de novo.'); }
+    if(!r.ok || !d.success) throw new Error(d.error || ('Erro ao salvar (código ' + r.status + ')'));
+    CAT_DOC = d.doc; CAT_DOC.products = CAT_DOC.products||{}; CAT_DOC.added = CAT_DOC.added||{};
+    return d;
+  };
+  const p = CAT_QUEUE.then(run, run);
+  CAT_QUEUE = p.catch(()=>{});
+  return p;
 }
 async function pSaveStock(id){
   const n = P_DIRTY[id]; if(n == null) return;

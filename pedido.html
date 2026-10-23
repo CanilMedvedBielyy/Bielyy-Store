@@ -226,7 +226,7 @@ function render(order){
     ${items}
     ${tracking}
     ${(order.status === 'enviado' || order.status === 'entregue') ? `<div class="review-cta"><b>⭐ ${order.status === 'entregue' ? 'Chegou! O que seu pet achou?' : 'Já recebeu? Conta o que achou!'}</b><span>Sua avaliação ajuda outros tutores a escolher.</span><a class="pill-btn" href="/?avaliar=${encodeURIComponent(order.order_nsu)}">Avaliar produtos</a></div>` : ''}
-    ${['pago','em_preparacao','enviado','entregue'].includes(order.status) ? `<div class="voltei-cta">💜 <b>Obrigada pela compra!</b> Na próxima, use o cupom <b>VOLTEI5</b> e ganhe 5% OFF na sua segunda compra (com a sua conta na loja).</div>` : ''}
+    ${['pago','em_preparacao','enviado','entregue'].includes(order.status) ? `<div class="voltei-cta">🎁 <b>Obrigada pela compra!</b> Tem um cupom de cliente fiel esperando por você: entre em <b>Minha conta</b> no site para ver.</div>` : ''}
     ${order.statusUpdatedAt ? `<p class="meta">Última atualização: ${dt(order.statusUpdatedAt)}</p>` : ''}
     ${help}`;
 }
