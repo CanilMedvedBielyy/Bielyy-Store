@@ -115,10 +115,24 @@ exports.handler = async function (event) {
       delete doc.products[id];
     } else if (body.op === 'photo') {
       if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Produto inválido' }) };
+      const slot = Math.max(0, Math.min(2, parseInt(body.slot, 10) || 0)); // 0 = principal, 1 e 2 = fotos extras
       const key = await savePhoto(event, id, body.dataUrl);
       const target = doc.added[id] || (doc.products[id] = doc.products[id] || {});
-      const old = target.photo;
-      target.photo = key;
+      let old;
+      if (slot === 0) { old = target.photo; target.photo = key; }
+      else {
+        const arr = Array.isArray(target.photos) ? target.photos.slice(0, 2) : [];
+        while (arr.length < slot - 1) arr.push(null);
+        old = arr[slot - 1]; arr[slot - 1] = key;
+        target.photos = arr.filter(Boolean);
+      }
+      if (old && /^p\d+_/.test(old)) { try { await blobStore('product-photos', event).delete(old); } catch (e) { /* ignora */ } }
+    } else if (body.op === 'photo-del') {
+      if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Produto inválido' }) };
+      const slot = Math.max(1, Math.min(2, parseInt(body.slot, 10) || 1));
+      const target = doc.added[id] || (doc.products[id] = doc.products[id] || {});
+      const arr = Array.isArray(target.photos) ? target.photos.slice() : [];
+      const old = arr[slot - 1]; arr.splice(slot - 1, 1); target.photos = arr.filter(Boolean);
       if (old && /^p\d+_/.test(old)) { try { await blobStore('product-photos', event).delete(old); } catch (e) { /* ignora */ } }
     } else {
       return { statusCode: 400, body: JSON.stringify({ error: 'Operação inválida' }) };

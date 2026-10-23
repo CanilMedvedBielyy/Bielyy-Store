@@ -774,7 +774,7 @@ function pAll(){
     const out = !preorder && (soldOut || stock<=0);
     return { id:b.id, added, b, o, preorder, stock, sold:Number(o.sold)||0, variants,
       name: o.name || b.name, desc: (o.desc!=null && o.desc!=='') ? o.desc : (b.desc||''), brand: o.brand || b.brand, category: o.category || b.category,
-      photo: o.photo || b.photo, hidden: !!o.hidden, soldOut, soon, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
+      photo: o.photo || b.photo, photos: (o.photos || b.photos || []).filter(Boolean), hidden: !!o.hidden, soldOut, soon, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
   });
 }
 function renderProducts(){
@@ -895,14 +895,19 @@ function openProductEditor(id){
   const p = id == null ? null : pAll().find(x=>x.id===id);
   const cats = [...new Set(pAll().map(x=>x.category).filter(Boolean))].sort();
   const brands = [...new Set(pAll().map(x=>x.brand).filter(Boolean))].sort();
-  PE = p ? { id:p.id, added:p.added, photoData:null, variants:p.variants.map(v=>Object.assign({},v)) } : { id:null, added:true, photoData:null, variants:[{label:'Único', pix:'', cartao:'', available:true}] };
+  PE = p ? { id:p.id, added:p.added, photoData:null, extra:[null,null], extraDel:[false,false], variants:p.variants.map(v=>Object.assign({},v)) } : { id:null, added:true, photoData:null, extra:[null,null], extraDel:[false,false], variants:[{label:'Único', pix:'', cartao:'', available:true}] };
   const img = p ? pPhoto(p.photo) : '';
+  const ex = p ? (p.photos || []) : [];
+  const exSlot = i => `<div class="pe-photo" style="margin-top:8px"><span id="pePrev${i}">${ex[i-1] && pPhoto(ex[i-1]) ? `<img src="${esc(pPhoto(ex[i-1]))}" alt="">` : '<div class="p-ph">＋</div>'}</span>
+        <label class="ghost" style="cursor:pointer">${ex[i-1]?'Trocar':'Adicionar'} foto ${i+1}<input type="file" accept="image/*" hidden onchange="pePickExtra(this,${i})"></label>
+        ${ex[i-1] ? `<button class="ghost" onclick="peDelExtra(${i})">🗑 Remover</button>` : ''}</div>`;
   document.getElementById('detail').innerHTML = `
     <div class="d-top"><h2>${p ? '✏️ '+esc(p.name) : '➕ Novo produto'}</h2><button class="x" onclick="closeDetail()">✕</button></div>
-    <div class="card"><h3>📷 Foto</h3>
+    <div class="card"><h3>📷 Fotos (até 3)</h3>
       <div class="pe-photo"><span id="pePrev">${img ? `<img src="${esc(img)}" alt="">` : '<div class="p-ph">🐾</div>'}</span>
-        <label class="ghost" style="cursor:pointer">${img?'Trocar foto':'Escolher foto'}<input type="file" accept="image/*" hidden onchange="pePick(this)"></label></div>
-      <p class="hint" style="margin-top:6px">Use uma foto quadrada com fundo claro. O painel já diminui o tamanho para o site ficar leve.</p></div>
+        <label class="ghost" style="cursor:pointer">${img?'Trocar foto principal':'Escolher foto principal'}<input type="file" accept="image/*" hidden onchange="pePick(this)"></label></div>
+      ${exSlot(1)}${exSlot(2)}
+      <p class="hint" style="margin-top:6px">A foto principal aparece na vitrine. As outras aparecem quando a cliente abre o produto e toca na foto. Use fotos quadradas com fundo claro: o painel já diminui o tamanho para o site ficar leve.</p></div>
     <div class="card"><h3>📝 Informações</h3><div class="pe-grid">
       <div class="pe-full"><label>Nome do produto</label><input class="field" id="peName" value="${esc(p?p.name:'')}" placeholder="Ex.: Kong Classic Large"></div>
       <div><label>Marca</label><input class="field" id="peBrand" list="peBrands" value="${esc(p?p.brand:'')}"><datalist id="peBrands">${brands.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></div>
@@ -948,6 +953,16 @@ async function pePick(inp){
   const f = inp.files && inp.files[0]; if(!f) return;
   try { PE.photoData = await pShrink(f); document.getElementById('pePrev').innerHTML = `<img src="${PE.photoData}" alt="">`; } catch(e){ alert(e.message); }
 }
+async function pePickExtra(inp, i){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  try { PE.extra[i-1] = await pShrink(f); PE.extraDel[i-1] = false; document.getElementById('pePrev'+i).innerHTML = `<img src="${PE.extra[i-1]}" alt="">`; } catch(e){ alert(e.message); }
+}
+function peDelExtra(i){ PE.extra[i-1] = null; PE.extraDel[i-1] = true; document.getElementById('pePrev'+i).innerHTML = '<div class="p-ph">✕</div>'; }
+async function peSaveExtras(id){
+  // primeiro apaga (de trás para frente, para as posições não se trocarem), depois envia as novas
+  for(let i = 2; i >= 1; i--) if(PE.extraDel[i-1] && !PE.extra[i-1]) await catSave({ op:'photo-del', id, slot:i });
+  for(let i = 1; i <= 2; i++) if(PE.extra[i-1]) await catSave({ op:'photo', id, slot:i, dataUrl: PE.extra[i-1] });
+}
 async function peSave(){
   const val = id => (document.getElementById(id)||{}).value || '';
   const variants = PE.variants.map(v=>({ label:(v.label||'').trim()||'Único', pix:parseFloat(String(v.pix).replace(',','.'))||0, cartao:parseFloat(String(v.cartao).replace(',','.'))||0, available:v.available!==false }));
@@ -963,7 +978,8 @@ async function peSave(){
   const btn = document.getElementById('peSaveBtn'); btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     if(PE.id == null){
-      await catSave({ op:'add', product: patch, dataUrl: PE.photoData || undefined });
+      const d = await catSave({ op:'add', product: patch, dataUrl: PE.photoData || undefined });
+      if(d && d.id) await peSaveExtras(d.id);
       toast('Produto cadastrado ✓ já está no site');
     } else {
       // só manda o estoque se ele mudou (para não zerar as vendas contadas)
@@ -972,10 +988,11 @@ async function peSave(){
       if(cur){ // manda só o que mudou
         const same = (k, v) => JSON.stringify(v) === JSON.stringify(k==='variants' ? cur.variants.map(x=>({label:x.label||'Único', pix:Number(x.pix)||Number(x.cartao), cartao:Number(x.cartao), available:x.available!==false})) : cur[k]);
         ['name','brand','category','desc','preorder','variants','hidden','soldOut','cost'].forEach(k => { if(k in patch && same(k, patch[k])) delete patch[k]; });
-        if(!Object.keys(patch).length && !PE.photoData){ closeDetail(); toast('Nada mudou'); return; }
+        if(!Object.keys(patch).length && !PE.photoData && !PE.extra.some(Boolean) && !PE.extraDel.some(Boolean)){ closeDetail(); toast('Nada mudou'); return; }
       }
-      await catSave({ op:'update', id: PE.id, patch });
+      if(Object.keys(patch).length) await catSave({ op:'update', id: PE.id, patch });
       if(PE.photoData) await catSave({ op:'photo', id: PE.id, dataUrl: PE.photoData });
+      await peSaveExtras(PE.id);
       toast('Produto salvo ✓ já está no site');
     }
     closeDetail(); renderProducts();

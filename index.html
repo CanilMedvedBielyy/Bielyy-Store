@@ -1333,7 +1333,7 @@ function catPhotoUrl(k){ return '/.netlify/functions/product-photo?k=' + encodeU
 function catFind(id){ id = Number(id); return (CAT_MASTER || []).find(f => f.id === id) || PRODUCT_FAMILIES.find(f => f.id === id) || PREORDER_FAMILIES.find(f => f.id === id); }
 function catSnapshot(f){
   if(f._base) return;
-  f._base = { stock: f.stock || 0, soon: !!f.soon, preorder: !!f.preorder, name: f.name, desc: f.desc || '', brand: f.brand, category: f.category, photo: f.photo || null,
+  f._base = { stock: f.stock || 0, soon: !!f.soon, preorder: !!f.preorder, name: f.name, desc: f.desc || '', brand: f.brand, category: f.category, photo: f.photo || null, photos: (f.photos || []).slice(),
     variants: f.variants.map(v => Object.assign({}, v)) };
 }
 function applyCatalog(doc){
@@ -1351,7 +1351,7 @@ function applyCatalog(doc){
     if(!f){ f = { id, added: true, variants: [] }; CAT_MASTER.push(f); }
     f.added = true;
     f._base = { stock: Number(a.stock) || 0, preorder: !!a.preorder, name: a.name, desc: a.desc || '', brand: a.brand || 'Bielyy', category: a.category || 'Brinquedos',
-      photo: a.photo || null, variants: (a.variants || []).map(v => Object.assign({}, v)) };
+      photo: a.photo || null, photos: (a.photos || []).slice(), variants: (a.variants || []).map(v => Object.assign({}, v)) };
   });
   CAT_MASTER.forEach((f, i) => {
     const b = f._base, o = P[String(f.id)] || {};
@@ -1361,6 +1361,8 @@ function applyCatalog(doc){
     const ph = o.photo || b.photo;
     if(ph && /^p\d+_/.test(ph)) PRODUCT_IMAGES[ph] = catPhotoUrl(ph);
     f.photo = ph || undefined;
+    f.photos = (o.photos || b.photos || []).filter(Boolean).slice(0, 2);
+    f.photos.forEach(k => { if(/^p\d+_/.test(k)) PRODUCT_IMAGES[k] = catPhotoUrl(k); });
     f.preorder = ('preorder' in o) ? !!o.preorder : b.preorder;
     f.variants = (o.variants || b.variants).map(v => Object.assign({}, v));
     const baseStock = ('stock' in o) ? Number(o.stock) : b.stock;
@@ -1837,19 +1839,32 @@ KIT_DEFS.push({ id: 9013, emoji: '🎆', name: 'Kit Virada Tranquila', color: '#
     hook: 'Para o seu cão atravessar os fogos de fim de ano calmo, ocupado e longe do medo.',
     why: 'Montado com o que veterinários comportamentalistas e adestradores mais recomendam para os fogos: lamber e roer acalmam. O lambedor LickiMat com patê natural LUV mantém o cão lambendo devagar durante os estouros, o Kong recheado e congelado (nos kits PP, M e G) vira uma atividade longa, os mastigáveis naturais gastam a tensão e o petisco de recompensa serve para dar um a cada estouro, ensinando que barulho = coisa boa. Cada tamanho foi pensado para a boca e a força do seu cão.',
     how: 'De manhã, espalhe o patê no LickiMat, recheie o Kong e congele os dois. Passeie e dê a comida antes de escurecer, sempre de guia. Prepare um cantinho fechado, longe das janelas, com cortinas fechadas e música ou TV ligada. Quando os fogos começarem, ofereça o lambedor e o Kong e dê um pedacinho de petisco a cada estouro. Pode acolher o seu cão com calma: isso não reforça o medo. Ofereça os petiscos alguns dias antes, para ele já conhecer. Em caso de medo intenso, converse com o veterinário com antecedência.',
-    variants: [ { label: 'PP · mini (até 3 kg: Chihuahua, Spitz anão)', items: [[72,1],[95,1],[23,1],[28,1]] },
-                { label: 'P · porte pequeno (3 a 10 kg)', items: [[95,1],[23,1],[27,1],[28,1]] },
-                { label: 'M · porte médio (10 a 25 kg)', items: [[3,1],[95,1],[23,2],[25,1],[28,1]] },
-                { label: 'G · porte grande (acima de 25 kg)', items: [[73,1],[95,1],[23,2],[70,1],[30,1]] } ] });
+    // 'PICK' = a cliente escolhe UM LickiMat da lista abaixo
+    pick: { label: 'Escolha o seu LickiMat', ids: [95,90,84,85,86,87,88,89] },
+    variants: [ { label: 'PP · mini (até 3 kg: Chihuahua, Spitz anão)', items: [[72,1],['PICK',1],[23,1],[28,1]] },
+                { label: 'P · porte pequeno (3 a 10 kg)', items: [['PICK',1],[23,1],[27,1],[28,1]] },
+                { label: 'M · porte médio (10 a 25 kg)', items: [[3,1],['PICK',1],[23,2],[25,1],[28,1]] },
+                { label: 'G · porte grande (acima de 25 kg)', items: [[73,1],['PICK',1],[23,2],[70,1],[30,1]] } ] });
 const KIT_MAX_PER_KIT = Infinity; // sem limite fixo: o kit vende enquanto houver estoque de todos os itens dele
 function kitPrice(v){ return v > 50 ? Math.floor(v) - 0.10 : Math.round(v*100)/100; } // termina em ,90
+// Kits com escolha (ex.: tamanho + LickiMat): cada combinação vira uma opção do kit
+function kitExpand(k){
+  if(!k.pick) return k.variants;
+  const out = [];
+  k.variants.forEach(v => k.pick.ids.forEach(pid => {
+    const pf = catFind(pid); if(!pf) return;
+    out.push({ label: v.label + ' · ' + pf.name.replace(/^LickiMat /,''), size: v.label, pickId: pid, pickName: pf.name.replace(/^LickiMat /,''),
+      items: v.items.map(([id,q]) => [id === 'PICK' ? pid : id, q]) });
+  }));
+  return out;
+}
 const KIT_FAMILIES = KIT_DEFS.map(k => {
-  const variants = k.variants.map(v => {
+  const variants = kitExpand(k).map(v => {
     const comps = v.items.map(([id,qty]) => ({ f: catFind(id), qty })).filter(c=>c.f);
     const full = comps.reduce((a,c)=>({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix||c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
     const cap = comps.length ? Math.min(...comps.map(c => ((c.f._hidden || c.f.preorder || c.f.variants[0].available===false) ? 0 : Math.floor((c.f.stock||0)/c.qty)))) : 0;
     const capKit = kitHeld(k) ? 0 : Math.min(cap, KIT_MAX_PER_KIT);
-    return { label: v.label, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
+    return { label: v.label, size: v.size, pickId: v.pickId, pickName: v.pickName, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
       cartao: kitPrice(full.cartao*(1-KIT_DISCOUNT)), pix: kitPrice(full.pix*(1-KIT_DISCOUNT)), available: capKit > 0, cap: capKit };
   });
   return { id: k.id, kit: true, by: k.by || '', brand: 'Kit Bielyy', category: 'Kits Bielyy', name: k.name + (k.by ? ' by ' + k.by : ''), emoji: k.emoji,
@@ -2437,8 +2452,8 @@ function renderModalBody(){
   document.getElementById('modalCard').innerHTML = `
     <button class="modal-close" onclick="closeProduct()">✕</button>
     <div class="modal-top">
-      <div class="modal-media" style="background:${f.color};${f.kit?'cursor:zoom-in;':''}" ${f.kit ? `onclick="openKitGallery(${f.id},0)"` : hasPhoto ? `onclick="openLightbox('${f.photo}','${f.name.replace(/'/g,"")}')"` : ''}>
-        ${f.kit ? kitCollage(f) + `<span class="kit-photos-btn">📷 Ver fotos</span>` : hasPhoto ? `<img src="${PRODUCT_IMAGES[f.photo]}" alt="${f.name}" style="width:100%;height:100%;object-fit:${/guia/i.test(f.name) ? 'contain' : 'cover'};">` : `<div class="icon-wrap"><div style="color:${f.iconColor}; width:40px;">${ICONS[f.icon]}</div></div>`}
+      <div class="modal-media" style="background:${f.color};${f.kit?'cursor:zoom-in;':''}" ${f.kit ? `onclick="openKitGallery(${f.id},0)"` : hasPhoto ? `onclick="openProductGallery(${f.id},0)"` : ''}>
+        ${f.kit ? kitCollage(f) + `<span class="kit-photos-btn">📷 Ver fotos</span>` : hasPhoto ? `<img src="${PRODUCT_IMAGES[f.photo]}" alt="${f.name}" style="width:100%;height:100%;object-fit:${/guia/i.test(f.name) ? 'contain' : 'cover'};">${productPhotos(f).length > 1 ? `<span class="kit-photos-btn" style="left:6px;bottom:6px;font-size:11px;padding:4px 9px;">📷 ${productPhotos(f).length} fotos</span>` : ''}` : `<div class="icon-wrap"><div style="color:${f.iconColor}; width:40px;">${ICONS[f.icon]}</div></div>`}
       </div>
       <div class="modal-top-info">
         <span class="cat">${f.category}</span>
@@ -2455,7 +2470,7 @@ function renderModalBody(){
       <div id="sizeChartBox">${sizeChartHTML(f, modalVariantIdx)}</div>
       <p class="mdesc">${f.desc}</p>
       <div id="reviewsBox"></div>
-      ${multi ? `<div style="margin-bottom:16px;">
+      ${f.kit && f.def && f.def.pick ? kitPickHTML(f) : multi ? `<div style="margin-bottom:16px;">
         <label style="font-size:12.5px; font-weight:700; color:var(--purple-deep); display:block; margin-bottom:8px;">Escolha o tamanho:</label>
         <div id="sizeRow" style="display:flex; gap:8px; flex-wrap:wrap;">
           ${f.variants.map((v,i)=>{
@@ -2500,6 +2515,8 @@ function lbRender(){
   document.getElementById('lbDots').innerHTML = n > 1 ? LB_ITEMS.map((_,i)=>`<i class="${i===LB_IDX?'on':''}"></i>`).join('') : '';
 }
 function lbStep(d){ if(LB_ITEMS.length < 2) return; LB_IDX = (LB_IDX + d + LB_ITEMS.length) % LB_ITEMS.length; lbRender(); }
+function productPhotos(f){ return [f.photo, ...(f.photos || [])].filter(k => k && PRODUCT_IMAGES[k]); }
+function openProductGallery(id, idx){ const f = familyById(id); if(!f) return; openGallery(productPhotos(f).map(k => ({ src: PRODUCT_IMAGES[k], name: f.name })), idx || 0); }
 function openLightbox(photoKey, name){ openGallery([{src: PRODUCT_IMAGES[photoKey], name: ''}], 0); }
 function kitGalleryItems(f){
   const v = f.variants[modalFamilyId===f.id ? modalVariantIdx : 0] || f.variants[0];
@@ -2524,6 +2541,28 @@ document.addEventListener('keydown', e=>{
   document.addEventListener('touchstart', e=>{ const lb=document.getElementById('lightbox'); if(lb && lb.classList.contains('show')) x0 = e.touches[0].clientX; }, {passive:true});
   document.addEventListener('touchend', e=>{ if(x0===null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 40) lbStep(dx < 0 ? 1 : -1); }, {passive:true});
 })();
+function kitPickHTML(f){
+  const cur = f.variants[modalVariantIdx] || f.variants[0];
+  const sizes = [...new Set(f.variants.map(v => v.size))];
+  const chip = (label, active, ok, onclick) => `<button class="chip" style="padding:8px 14px; font-size:12.5px; ${active ? 'background:var(--purple-deep);border-color:var(--purple-deep);color:#fff;' : ''}${ok ? '' : 'opacity:0.45; text-decoration:line-through; cursor:not-allowed; background:#f2f2f2; border-color:#ddd; color:#999;'}" ${ok ? `onclick="${onclick}"` : 'disabled'}>${label}${ok ? '' : ' <span style="font-size:9.5px;">(indisponível)</span>'}</button>`;
+  const lab = t => `<label style="font-size:12.5px; font-weight:700; color:var(--purple-deep); display:block; margin:0 0 8px;">${t}</label>`;
+  const sizeRow = sizes.map(sz => chip(sz, sz === cur.size, f.variants.some(v => v.size === sz && v.available !== false), `kitPick('size', ${JSON.stringify(sz).replace(/"/g,'&quot;')})`)).join('');
+  const pickRow = f.variants.filter(v => v.size === cur.size).map(v => chip(v.pickName + ` <span style="font-size:10.5px;opacity:.75">${fmt(v.pix)} Pix</span>`, v === cur, v.available !== false, `kitPick('pick', ${v.pickId})`)).join('');
+  return `<div style="margin-bottom:14px;">${lab('1. Escolha o tamanho:')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${sizeRow}</div></div>
+    <div style="margin-bottom:16px;">${lab('2. ' + f.def.pick.label + ':')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${pickRow}</div></div>`;
+}
+function kitPick(kind, val){
+  const f = familyById(modalFamilyId); if(!f) return;
+  const cur = f.variants[modalVariantIdx] || f.variants[0];
+  let i;
+  if(kind === 'size'){
+    i = f.variants.findIndex(v => v.size === val && v.pickId === cur.pickId && v.available !== false);
+    if(i < 0) i = f.variants.findIndex(v => v.size === val && v.available !== false);
+    if(i < 0) i = f.variants.findIndex(v => v.size === val);
+  } else i = f.variants.findIndex(v => v.size === cur.size && v.pickId === val);
+  if(i < 0) return;
+  modalVariantIdx = i; modalQty = 1; renderModalBody();
+}
 function selectModalVariant(i){
   modalVariantIdx = i;
   modalQty = 1; { const q = document.getElementById('modalQtyVal'); if(q) q.textContent = 1; }
