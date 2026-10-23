@@ -1325,6 +1325,8 @@ PREORDER_FAMILIES.forEach((f,i)=>{
    CATÁLOGO EDITÁVEL PELO PAINEL (estoque, preços, produtos novos)
    As mudanças ficam no servidor e chegam aqui sem precisar de deploy.
 ===================================================== */
+var CAT_OVR = {};               // alterações do painel (inclusive kits ativados/pausados)
+function kitHeld(def){ const o = CAT_OVR[String(def.id)] || {}; return ('soldOut' in o) ? !!o.soldOut : !!def.soon; }
 var CAT_MASTER = null;           // todos os produtos (inclusive ocultos), na ordem original
 var CAT_DOC_V = -1;
 function catPhotoUrl(k){ return '/.netlify/functions/product-photo?k=' + encodeURIComponent(k); }
@@ -1341,6 +1343,7 @@ function applyCatalog(doc){
     CAT_MASTER.forEach(catSnapshot);
   }
   const P = doc.products || {}, A = doc.added || {};
+  CAT_OVR = P;
   // produtos cadastrados pelo painel
   Object.keys(A).forEach(k => {
     const a = A[k]; const id = Number(a.id || k);
@@ -1395,8 +1398,10 @@ function catRefreshKits(){
       v.fullCartao = Math.round(full.cartao*100)/100; v.fullPix = Math.round(full.pix*100)/100;
       v.cartao = kitPrice(full.cartao*(1-KIT_DISCOUNT)); v.pix = kitPrice(full.pix*(1-KIT_DISCOUNT));
       const cap = v.comps.length ? Math.min(...v.comps.map(c => (c.f._hidden || c.f.preorder || c.f.variants[0].available === false) ? 0 : Math.floor((c.f.stock||0)/c.qty))) : 0;
-      v.cap = Math.min(cap, KIT_MAX_PER_KIT); v.available = v.cap > 0;
+      const held = kitHeld(k.def);
+      v.cap = held ? 0 : Math.min(cap, KIT_MAX_PER_KIT); v.available = v.cap > 0;
     });
+    k.soon = kitHeld(k.def) || k.variants.every(v => !v.available && v.comps.some(c => c.f.soon));
     k.stock = Math.max(0, ...k.variants.map(v => v.cap));
     k.photo = (k.variants[0].comps.find(c => c.f.photo) || {f:{}}).f.photo;
   });
@@ -1827,15 +1832,15 @@ KIT_DEFS.push({ id: 9011, emoji: '⚡', name: 'Kit Fase Adolescente', color: '#F
     why: 'Cães idosos precisam continuar estimulados, mas sem esforço nas articulações e nos dentes. O Plutos Senior é macio e fácil de mastigar, o tapete Lickin\' Layers com patê natural ocupa a mente e acalma só com lambidas, e o ursinho Kong Wild Knots vira companhia para a hora da soneca.',
     how: 'Espalhe o patê no tapete de lamber e ofereça depois das refeições ou em momentos de agitação. Use o Plutos Senior como petisco do dia. Ofereça o ursinho no cantinho onde ele descansa.',
     variants: [ { label: 'Kit completo', items: [[64,1],[44,1],[23,1],[13,1]] } ] });
-KIT_DEFS.push({ id: 9013, emoji: '🎆', name: 'Kit Virada Tranquila', color: '#EDE7FF', sizes: [],
+KIT_DEFS.push({ id: 9013, emoji: '🎆', name: 'Kit Virada Tranquila', color: '#EDE7FF', sizes: ['P','M','G'], soon: true,
     tags: ['Fogos de artifício','Lamber acalma','Fim de ano'],
-    hook: 'Para o seu cão passar a virada do ano calmo, distraído e longe do medo dos fogos.',
-    why: 'Montado com o que veterinários comportamentalistas e adestradores mais recomendam para os fogos: lamber e roer acalmam. O Kong Classic recheado e congelado e o lambedor LickiMat UFO com patê natural LUV mantêm o cão ocupado durante os estouros, o casco recheado garante mastigação longa e a Manjubinha é o petisco perfeito para dar um a cada estouro, ensinando que barulho = coisa boa. No Essencial, petiscos naturais de mastigação longa para todos os cães relaxarem na festa.',
-    how: 'De manhã, recheie o Kong e o LickiMat com o patê e congele. Passeie e dê a comida antes de escurecer. Prepare um cantinho fechado, longe das janelas, com música ou TV ligada. Quando os fogos começarem, ofereça o Kong e o lambedor e dê um pedacinho de Manjubinha a cada estouro. Pode acolher o seu cão com calma: isso não reforça o medo. Em caso de medo intenso, converse com o veterinário com antecedência.',
-    variants: [ { label: 'Completo · LickiMat roxo', items: [[3,1],[84,1],[23,2],[25,1],[28,1]] },
-                { label: 'Completo · LickiMat azul', items: [[3,1],[85,1],[23,2],[25,1],[28,1]] },
-                { label: 'Completo · LickiMat rosa', items: [[3,1],[86,1],[23,2],[25,1],[28,1]] },
-                { label: 'Essencial (para todos os cães)', items: [[27,1],[23,1],[65,1],[28,1]] } ] });
+    hook: 'Para o seu cão atravessar os fogos de fim de ano calmo, ocupado e longe do medo.',
+    why: 'Montado com o que veterinários comportamentalistas e adestradores mais recomendam para os fogos: lamber e roer acalmam. O lambedor LickiMat com patê natural LUV mantém o cão lambendo devagar durante os estouros, o Kong recheado e congelado (nos kits PP, M e G) vira uma atividade longa, os mastigáveis naturais gastam a tensão e o petisco de recompensa serve para dar um a cada estouro, ensinando que barulho = coisa boa. Cada tamanho foi pensado para a boca e a força do seu cão.',
+    how: 'De manhã, espalhe o patê no LickiMat, recheie o Kong e congele os dois. Passeie e dê a comida antes de escurecer, sempre de guia. Prepare um cantinho fechado, longe das janelas, com cortinas fechadas e música ou TV ligada. Quando os fogos começarem, ofereça o lambedor e o Kong e dê um pedacinho de petisco a cada estouro. Pode acolher o seu cão com calma: isso não reforça o medo. Ofereça os petiscos alguns dias antes, para ele já conhecer. Em caso de medo intenso, converse com o veterinário com antecedência.',
+    variants: [ { label: 'PP · mini (até 3 kg: Chihuahua, Spitz anão)', items: [[72,1],[95,1],[23,1],[28,1]] },
+                { label: 'P · porte pequeno (3 a 10 kg)', items: [[95,1],[23,1],[27,1],[28,1]] },
+                { label: 'M · porte médio (10 a 25 kg)', items: [[3,1],[95,1],[23,2],[25,1],[28,1]] },
+                { label: 'G · porte grande (acima de 25 kg)', items: [[73,1],[95,1],[23,2],[70,1],[30,1]] } ] });
 const KIT_MAX_PER_KIT = Infinity; // sem limite fixo: o kit vende enquanto houver estoque de todos os itens dele
 function kitPrice(v){ return v > 50 ? Math.floor(v) - 0.10 : Math.round(v*100)/100; } // termina em ,90
 const KIT_FAMILIES = KIT_DEFS.map(k => {
@@ -1843,13 +1848,14 @@ const KIT_FAMILIES = KIT_DEFS.map(k => {
     const comps = v.items.map(([id,qty]) => ({ f: catFind(id), qty })).filter(c=>c.f);
     const full = comps.reduce((a,c)=>({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix||c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
     const cap = comps.length ? Math.min(...comps.map(c => ((c.f._hidden || c.f.preorder || c.f.variants[0].available===false) ? 0 : Math.floor((c.f.stock||0)/c.qty)))) : 0;
-    const capKit = Math.min(cap, KIT_MAX_PER_KIT);
+    const capKit = kitHeld(k) ? 0 : Math.min(cap, KIT_MAX_PER_KIT);
     return { label: v.label, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
       cartao: kitPrice(full.cartao*(1-KIT_DISCOUNT)), pix: kitPrice(full.pix*(1-KIT_DISCOUNT)), available: capKit > 0, cap: capKit };
   });
   return { id: k.id, kit: true, by: k.by || '', brand: 'Kit Bielyy', category: 'Kits Bielyy', name: k.name + (k.by ? ' by ' + k.by : ''), emoji: k.emoji,
     desc: k.hook, photo: (variants[0].comps.find(c=>c.f.photo)||{f:{}}).f.photo, color: k.color, iconColor: '#8B5FD1', icon: 'heart',
-    stock: Math.max(0, ...variants.map(v=>v.cap)), sizes: k.sizes, variants, def: k };
+    stock: Math.max(0, ...variants.map(v=>v.cap)), sizes: k.sizes, variants, def: k,
+    soon: kitHeld(k) || variants.every(v => !v.available && v.comps.some(c => c.f.soon)) };
 });
 CATEGORIES.unshift('Kits Bielyy');
 { const gi = CATEGORIES.indexOf('Para Gatos'); if(gi > 1){ CATEGORIES.splice(gi,1); CATEGORIES.splice(1,0,'Para Gatos'); } }

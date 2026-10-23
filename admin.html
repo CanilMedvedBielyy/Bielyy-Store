@@ -223,6 +223,7 @@
         <button class="btn" onclick="openProductEditor(null)">➕ Novo produto</button>
       </div>
       <p class="hint" style="margin:-4px 0 12px">As mudanças aparecem no site na hora, sem gastar créditos da Netlify. O estoque baixa sozinho quando um pedido é pago (kits baixam cada item de dentro) e volta se o pedido for cancelado.</p>
+      <div id="kitsList" style="margin-bottom:14px"></div>
       <div id="productsList"></div>
     </section>
 
@@ -728,6 +729,7 @@ function pxTest(){
 /* ============ produtos e estoque ============ */
 let CAT_BASE = null;     // catálogo original do site (lido do index.html)
 let CAT_IMG = {};
+let CAT_KITS = [];
 let CAT_DOC = { products:{}, added:{} };
 let P_DIRTY = {};        // estoque digitado e ainda não salvo
 const PIX_DIV = 0.65*0.85, CARD_DIV = (1-0.05-0.0828-0.30)*0.85; // mesma fórmula da precificação (30% de margem já com cupom e taxa)
@@ -740,6 +742,10 @@ async function loadProducts(force){
       const html = await fetch('/index.html?nc='+Date.now(), {cache:'no-store'}).then(r=>r.text());
       const grab = n => { const m = new RegExp('const '+n+' = (\\[.*?\\]|\\{.*?\\});\\n').exec(html); return m ? JSON.parse(m[1]) : null; };
       const pf = grab('PRODUCT_FAMILIES') || [], pre = grab('PREORDER_FAMILIES') || [];
+      // kits (definidos no site): id, nome e se começam "aguardando" (soon)
+      CAT_KITS = []; const kre = /KIT_DEFS\.(?:push|unshift)\(\{ id: (\d+), emoji: '([^']*)', name: '([^']*)'(?:, by: '([^']*)')?([^\n]*)/g; let km;
+      while((km = kre.exec(html))) CAT_KITS.push({ id: Number(km[1]), name: km[2] + ' ' + km[3] + (km[4] ? ' by ' + km[4] : ''), soon: /soon: true/.test(km[5]) });
+      { const kre2 = /\n  \{ id: (90\d\d), emoji: '([^']*)', name: '([^']*)'/g; let k2; while((k2 = kre2.exec(html))) if(!CAT_KITS.find(k=>k.id===Number(k2[1]))) CAT_KITS.push({ id: Number(k2[1]), name: k2[2] + ' ' + k2[3], soon: false }); }
       CAT_IMG = grab('PRODUCT_IMAGES') || {};
       CAT_BASE = [...pf.map(f=>Object.assign(f,{preorder:false})), ...pre.map(f=>Object.assign(f,{preorder:true}))];
     } catch(e){ box.innerHTML = '<div class="empty">Não consegui ler o catálogo do site.</div>'; return; }
@@ -797,6 +803,15 @@ function renderProducts(){
     return true;
   });
   const fmtR = v => v ? 'R$ '+Number(v).toFixed(2).replace('.',',') : '—';
+  const kitsBox = document.getElementById('kitsList');
+  if(kitsBox){
+    kitsBox.innerHTML = CAT_KITS.length ? '<div class="p-sub" style="margin:4px 0 8px;font-weight:700">🎁 Kits</div>' + CAT_KITS.map(k => {
+      const o = CAT_DOC.products[String(k.id)] || {}; const held = ('soldOut' in o) ? !!o.soldOut : k.soon;
+      return `<div class="p-row"><div class="p-ph">🎁</div><div><div class="p-name">${esc(k.name)} ${held ? (k.soon && !('soldOut' in o) ? '<span class="p-badge b-pre">⏳ Aguardando</span>' : '<span class="p-badge b-out">Pausado</span>') : '<span class="p-badge b-low" style="background:#E3F6EC;color:#2E8C68">À venda</span>'}</div>
+        <div class="p-sub">O kit só vende quando todos os produtos dele têm estoque.</div></div>
+        <div class="p-act">${held ? `<button class="btn" style="width:auto;height:auto;border-radius:999px;font-size:12px;padding:7px 12px" onclick="kitToggle(${k.id}, false)">✅ Ativar kit</button>` : `<button class="ghost" onclick="kitToggle(${k.id}, true)">⏸ Pausar kit</button>`}</div></div>`;
+    }).join('') : '';
+  }
   document.getElementById('productsList').innerHTML = list.length ? list.map(p => {
     const v0 = p.variants[0] || {};
     const img = pPhoto(p.photo);
@@ -845,6 +860,10 @@ function catSave(body){
   const p = CAT_QUEUE.then(run, run);
   CAT_QUEUE = p.catch(()=>{});
   return p;
+}
+async function kitToggle(id, pause){
+  try { await catSave({ op:'update', id, patch:{ soldOut: !!pause } }); toast(pause ? 'Kit pausado' : 'Kit ativado ✓ (vende quando todos os itens tiverem estoque)'); renderProducts(); }
+  catch(e){ alert(e.message); }
 }
 async function pActivate(id){
   const n = P_DIRTY[id];
