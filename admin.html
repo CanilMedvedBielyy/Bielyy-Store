@@ -214,6 +214,7 @@
           <option value="estoque">Pronta entrega</option>
           <option value="baixo">Estoque baixo (até 2)</option>
           <option value="esgotado">Esgotados</option>
+          <option value="chegando">⏳ Aguardando chegada</option>
           <option value="encomenda">Sob encomenda</option>
           <option value="oculto">Ocultos do site</option>
           <option value="novo">Cadastrados no painel</option>
@@ -762,10 +763,12 @@ function pAll(){
     const baseStock = ('stock' in o) ? Number(o.stock) : (Number(b.stock)||0);
     const stock = Math.max(0, baseStock - (Number(o.sold)||0));
     const variants = (o.variants || b.variants || []).map(v=>Object.assign({},v));
-    const out = !preorder && (!!o.soldOut || stock<=0);
+    const soon = !('soldOut' in o) && !!b.soon; // aguardando chegada (até você clicar em Ativar)
+    const soldOut = ('soldOut' in o) ? !!o.soldOut : !!b.soon;
+    const out = !preorder && (soldOut || stock<=0);
     return { id:b.id, added, b, o, preorder, stock, sold:Number(o.sold)||0, variants,
       name: o.name || b.name, desc: (o.desc!=null && o.desc!=='') ? o.desc : (b.desc||''), brand: o.brand || b.brand, category: o.category || b.category,
-      photo: o.photo || b.photo, hidden: !!o.hidden, soldOut: !!o.soldOut, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
+      photo: o.photo || b.photo, hidden: !!o.hidden, soldOut, soon, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
   });
 }
 function renderProducts(){
@@ -776,7 +779,8 @@ function renderProducts(){
     ['Pronta entrega', live.filter(p=>!p.out).length],
     ['Peças em estoque', live.reduce((a,p)=>a+(p.out?0:p.stock),0)],
     ['Estoque baixo', live.filter(p=>!p.out && p.stock<=2).length],
-    ['Esgotados', live.filter(p=>p.out).length],
+    ['Esgotados', live.filter(p=>p.out && !p.soon).length],
+    ['Aguardando chegada', live.filter(p=>p.soon).length],
     ['Sob encomenda', all.filter(p=>!p.hidden && p.preorder).length]
   ].map(([l,v])=>`<div class="stat"><div class="hint">${l}</div><div style="font-family:'Baloo 2';font-size:24px;font-weight:700;color:var(--purple-deep)">${v}</div></div>`).join('');
   const q = (document.getElementById('pq').value||'').toLowerCase().trim();
@@ -785,7 +789,8 @@ function renderProducts(){
     if(q && !(`${p.name} ${p.brand} ${p.category} ${p.id}`.toLowerCase().includes(q))) return false;
     if(f==='estoque') return !p.hidden && !p.preorder;
     if(f==='baixo') return !p.hidden && !p.preorder && !p.out && p.stock<=2;
-    if(f==='esgotado') return !p.hidden && !p.preorder && p.out;
+    if(f==='esgotado') return !p.hidden && !p.preorder && p.out && !p.soon;
+    if(f==='chegando') return !p.hidden && !p.preorder && p.soon;
     if(f==='encomenda') return !p.hidden && p.preorder;
     if(f==='oculto') return p.hidden;
     if(f==='novo') return p.added;
@@ -796,7 +801,7 @@ function renderProducts(){
     const v0 = p.variants[0] || {};
     const img = pPhoto(p.photo);
     const badges = (p.hidden?'<span class="p-badge b-hid">Oculto</span>':'') + (p.preorder?'<span class="p-badge b-pre">Encomenda</span>':'')
-      + (!p.preorder && p.out ? '<span class="p-badge b-out">Esgotado</span>' : '') + (!p.preorder && !p.out && p.stock<=2 ? '<span class="p-badge b-low">Últimas</span>' : '')
+      + (!p.preorder && p.soon ? '<span class="p-badge b-pre">⏳ Aguardando chegada</span>' : (!p.preorder && p.out ? '<span class="p-badge b-out">Esgotado</span>' : '')) + (!p.preorder && !p.out && p.stock<=2 ? '<span class="p-badge b-low">Últimas</span>' : '')
       + (p.added?'<span class="p-badge b-new">Novo</span>':'');
     const dirty = P_DIRTY[p.id] != null;
     const val = dirty ? P_DIRTY[p.id] : p.stock;
@@ -810,6 +815,7 @@ function renderProducts(){
           <input type="number" min="0" id="ps${p.id}" class="${dirty?'dirty':''}" value="${val}" oninput="P_DIRTY[${p.id}]=Math.max(0,parseInt(this.value)||0); this.classList.add('dirty'); document.getElementById('pss${p.id}').classList.remove('hide')">
           <button onclick="pStep(${p.id},1)">+</button>
           <button class="btn ${dirty?'':'hide'}" id="pss${p.id}" style="width:auto;height:auto;border-radius:999px;font-size:12px;padding:7px 12px" onclick="pSaveStock(${p.id})">Salvar</button></div>`}
+        ${p.soon ? `<button class="btn" style="width:auto;height:auto;border-radius:999px;font-size:12px;padding:7px 12px" onclick="pActivate(${p.id})">✅ Chegou! Ativar</button>` : ''}
         <button class="ghost" onclick="openProductEditor(${p.id})">✏️ Editar</button>
       </div></div>`;
   }).join('') : '<div class="empty">Nenhum produto aqui.</div>';
@@ -839,6 +845,12 @@ function catSave(body){
   const p = CAT_QUEUE.then(run, run);
   CAT_QUEUE = p.catch(()=>{});
   return p;
+}
+async function pActivate(id){
+  const n = P_DIRTY[id];
+  const patch = { soldOut: false }; if(n != null) patch.stock = n;
+  try { await catSave({ op:'update', id, patch }); delete P_DIRTY[id]; toast('Produto ativado ✓ já está à venda no site'); renderProducts(); }
+  catch(e){ alert(e.message); }
 }
 async function pSaveStock(id){
   const n = P_DIRTY[id]; if(n == null) return;
@@ -889,7 +901,7 @@ function openProductEditor(id){
       <button class="ghost" style="margin-top:8px" onclick="PE.variants.push({label:'',pix:'',cartao:'',available:true}); peVarsRender()">+ Adicionar tamanho/opção</button></div>
     <div class="card"><h3>👀 No site</h3>
       ${p ? `<label style="display:flex;gap:8px;align-items:center;font-size:13.5px"><input type="checkbox" id="peHidden" ${p.hidden?'checked':''}> Ocultar este produto do site</label>
-      <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin-top:6px"><input type="checkbox" id="peSoldOut" ${p.soldOut?'checked':''}> Marcar como esgotado (mesmo com estoque)</label>` : '<p class="hint">O produto aparece no site assim que você salvar.</p>'}
+      <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin-top:6px"><input type="checkbox" id="peSoldOut" ${p.soldOut?'checked':''}> Marcar como esgotado (mesmo com estoque)${p.soon?' <b style="color:#6D42B8">· aguardando chegada: desmarque quando o produto chegar</b>':''}</label>` : '<p class="hint">O produto aparece no site assim que você salvar.</p>'}
       <div class="btnrow"><button class="btn" id="peSaveBtn" onclick="peSave()">💾 Salvar e publicar</button>
         ${p && !p.added && p.changed ? `<button class="ghost" onclick="peReset(${p.id})">↺ Voltar ao original</button>` : ''}
         ${p && p.added ? `<button class="btn red" onclick="peRemove(${p.id})">🗑 Apagar produto</button>` : ''}</div></div>`;
