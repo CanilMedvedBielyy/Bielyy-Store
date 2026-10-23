@@ -2030,35 +2030,47 @@ function productCard(f){
   </div>`;
 }
 var FEATURED_ALL = false;
-function toggleFeaturedAll(){
-  if(FEATURED_ALL){ showView('shop'); return; } // já abertos: o próximo clique leva para a loja com filtros
-  const y = window.scrollY;
-  FEATURED_ALL = true; renderFeatured(); // abre os produtos ali mesmo, sem voltar para o topo
-  window.scrollTo(0, y); // o navegador às vezes "pula" para o botão: fica onde a cliente estava
-}
-function renderFeatured(){
-  // Vitrine da home: só os destaques (com foto, em estoque, com descrição caprichada), o resto fica na Loja
+function setHTMLIfChanged(el, html){ if(el && el._html !== html){ el.innerHTML = html; el._html = html; } }
+function featuredLists(){
   const avail = PRODUCT_FAMILIES.filter(f=>!f.kit && isFamilyAvailable(f) && f.photo && PRODUCT_IMAGES[f.photo]);
   const score = f => (storyOf(f)?2:0) + (f.stock && f.stock<=3 ? 1 : 0);
   const seenBrand = {};
   const featured = avail.slice().sort((a,b)=>score(b)-score(a)).filter(f=>{ seenBrand[f.brand]=(seenBrand[f.brand]||0)+1; return seenBrand[f.brand]<=3; }).slice(0,8);
-  const all = PRODUCT_FAMILIES.filter(f => !f.kit).slice().sort((a,b) => (isFamilyAvailable(b)?1:0) - (isFamilyAvailable(a)?1:0));
-  document.getElementById('featuredGrid').innerHTML = (FEATURED_ALL ? all : featured).map(productCard).join('');
+  const ids = new Set(featured.map(f=>f.id));
+  const rest = PRODUCT_FAMILIES.filter(f => !f.kit && !ids.has(f.id)).sort((a,b) => (isFamilyAvailable(b)?1:0) - (isFamilyAvailable(a)?1:0));
+  return { featured, rest };
+}
+function toggleFeaturedAll(){
+  if(FEATURED_ALL){ showView('shop'); return; } // já abertos: o próximo clique leva para a loja com filtros
+  // abre os outros produtos EMBAIXO dos que já estão na tela, sem mexer em nada acima (a página não sobe)
+  const y = window.scrollY;
+  FEATURED_ALL = true;
+  const g = document.getElementById('featuredGrid'); const { featured, rest } = featuredLists();
+  g.insertAdjacentHTML('beforeend', rest.map(productCard).join(''));
+  g._html = [...featured, ...rest].map(productCard).join('');
+  const btn = document.getElementById('seeAllBtn'); if(btn) btn.textContent = 'Abrir a loja com filtros →';
+  window.scrollTo(0, y);
+}
+function renderFeatured(){
+  // Vitrine da home: só os destaques (com foto, em estoque, com descrição caprichada), o resto fica na Loja
+  // só redesenha o que mudou (assim a página não "pula" quando o estoque é atualizado)
+  const { featured, rest } = featuredLists();
+  setHTMLIfChanged(document.getElementById('featuredGrid'), (FEATURED_ALL ? [...featured, ...rest] : featured).map(productCard).join(''));
   const btn = document.getElementById('seeAllBtn');
-  if(btn) btn.textContent = FEATURED_ALL ? 'Abrir a loja com filtros →' : `Ver todos os ${all.length} produtos ↓`;
+  if(btn) btn.textContent = FEATURED_ALL ? 'Abrir a loja com filtros →' : `Ver todos os ${featured.length + rest.length} produtos ↓`;
   renderCatTiles();
   const kg = document.getElementById('kitsGrid');
-  if(kg) kg.innerHTML = KIT_FAMILIES.map(productCard).join('');
+  if(kg) setHTMLIfChanged(kg, KIT_FAMILIES.map(productCard).join(''));
 }
 const CAT_TILE_BG = ["#FFE4EF","#F3ECFF","#E3F5EC","#FFF4D6","#E3EDFF","#FFE9DC","#F0E6FF","#E6F7F4","#FCE7F3"];
 function renderCatTiles(){
   const box = document.getElementById('catTiles'); if(!box) return;
   const cats = CATEGORIES.map(c=>({c, n:PRODUCT_FAMILIES.filter(f=>inCategory(f,c)).length})).filter(x=>x.n>0);
   // (Kits Bielyy aparece primeiro)
-  box.innerHTML = cats.map((x,i)=>`<div class="cat-tile" onclick="goCategory('${x.c.replace(/'/g,"\\'")}')">
+  setHTMLIfChanged(box, cats.map((x,i)=>`<div class="cat-tile" onclick="goCategory('${x.c.replace(/'/g,"\\'")}')">
       <div class="ci" style="background:${CAT_TILE_BG[i%CAT_TILE_BG.length]}">${CAT_ICONS[x.c]||'🐾'}</div>
       <b>${x.c}</b><small>${x.n} ${x.c==='Kits Bielyy' ? (x.n===1?'kit':'kits') : (x.n===1?'produto':'produtos')}</small></div>`).join('')
-    + (PREORDER_FAMILIES.length ? `<div class="cat-tile" onclick="showView('preorder')"><div class="ci" style="background:#FFF4D6">📦</div><b>Sob encomenda</b><small>${PREORDER_FAMILIES.length} produtos</small></div>` : '');
+    + (PREORDER_FAMILIES.length ? `<div class="cat-tile" onclick="showView('preorder')"><div class="ci" style="background:#FFF4D6">📦</div><b>Sob encomenda</b><small>${PREORDER_FAMILIES.length} produtos</small></div>` : ''));
 }
 function goCategory(c){ showView('shop'); setCategory(c); }
 function openSearch(){ showView('shop'); setTimeout(()=>{ const i=document.getElementById('searchInput'); if(i){ i.focus(); } }, 350); }
