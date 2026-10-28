@@ -4,6 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bielyy Store — Pet Boutique</title>
+<meta name="description" id="metaDesc" content="Pet boutique em São Paulo com marcas premium: Kong, Zee Dog, Chuckit!, Benebone, LUV e mais. Brinquedos, petiscos naturais e acessórios para cães e gatos. Entrega no mesmo dia em SP e envio para todo o Brasil.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bielyy Store">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" id="ogTitle" content="Bielyy Store — Pet Boutique">
+<meta property="og:description" id="ogDesc" content="Brinquedos, petiscos naturais e acessórios premium para o seu pet. Entrega no mesmo dia em SP e envio para todo o Brasil.">
+<meta property="og:url" id="ogUrl" content="https://bielyystore.com.br/">
+<meta property="og:image" id="ogImage" content="https://bielyystore.com.br/site-asset-1.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "PetStore",
+  "name": "Bielyy Store",
+  "alternateName": "Bielyy Store Pet Boutique",
+  "url": "https://bielyystore.com.br/",
+  "logo": "https://bielyystore.com.br/site-asset-0.jpg",
+  "image": "https://bielyystore.com.br/site-asset-1.jpg",
+  "description": "Pet boutique em São Paulo com marcas premium de brinquedos, petiscos naturais e acessórios para cães e gatos.",
+  "telephone": "+55 11 91597-1151",
+  "priceRange": "$$",
+  "currenciesAccepted": "BRL",
+  "paymentAccepted": "Pix, Cartão de crédito",
+  "address": { "@type": "PostalAddress", "addressLocality": "São Paulo", "addressRegion": "SP", "addressCountry": "BR" },
+  "areaServed": [{ "@type": "City", "name": "São Paulo" }, { "@type": "Country", "name": "Brasil" }],
+  "sameAs": ["https://instagram.com/bielyy_store"]
+}
+</script>
 <link rel="icon" type="image/jpeg" href="site-asset-0.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
@@ -2498,6 +2527,7 @@ function openProduct(id, fromHistory){
   m.classList.add('show');
   const card = document.getElementById('modalCard'); if(card) card.scrollTop = 0;
   document.title = f.name + ' | Bielyy Store';
+  try { setProductSEO(f); } catch(e){}
   if(!fromHistory){
     try { history.pushState({ p: id }, '', location.pathname + '?produto=' + productSlug(f)); } catch(e){}
   }
@@ -2506,7 +2536,55 @@ function hideProductPage(){
   const m = document.getElementById('productModal'); const was = m.classList.contains('show');
   m.classList.remove('show');
   document.title = PP_TITLE;
+  try { clearProductSEO(); } catch(e){}
   if(was && PP_SCROLL != null){ const y = PP_SCROLL; window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); }
+}
+/* ---------- SEO da página de produto (Google lê título, descrição, link oficial e dados do produto) ---------- */
+const SITE_ORIGIN = 'https://bielyystore.com.br';
+const SEO_HOME = { title: 'Bielyy Store — Pet Boutique', url: SITE_ORIGIN + '/', image: SITE_ORIGIN + '/site-asset-1.jpg', desc: null, ogDesc: null };
+function seoAbs(src){ try { return new URL(src, SITE_ORIGIN + '/').href; } catch(e){ return SITE_ORIGIN + '/' + src; } }
+function seoSet(id, attr, val){
+  let el = document.getElementById(id);
+  if(!el && id === 'canonicalLink'){ el = document.createElement('link'); el.rel = 'canonical'; el.id = 'canonicalLink'; document.head.appendChild(el); }
+  if(el && val != null) el.setAttribute(attr, val);
+}
+function setProductSEO(f){
+  if(SEO_HOME.desc === null){
+    const d = document.getElementById('metaDesc'); SEO_HOME.desc = d ? d.getAttribute('content') : '';
+    const o = document.getElementById('ogDesc'); SEO_HOME.ogDesc = o ? o.getAttribute('content') : '';
+  }
+  const url = SITE_ORIGIN + '/?produto=' + productSlug(f);
+  const photos = productPhotos(f).map(k => seoAbs(PRODUCT_IMAGES[k]));
+  let desc = String(f.desc || '').trim();
+  desc = (desc ? desc.replace(/\.?$/, '. ') : '') + (f.brand ? f.brand + ' na ' : 'Na ') + 'Bielyy Store, pet boutique em São Paulo' + (f.preorder ? ' (sob encomenda).' : ' com entrega no mesmo dia em SP.');
+  if(desc.length > 158) desc = desc.slice(0, 155).replace(/\s+\S*$/, '') + '...';
+  seoSet('metaDesc', 'content', desc);
+  seoSet('canonicalLink', 'href', url);
+  seoSet('ogTitle', 'content', f.name + ' | Bielyy Store');
+  seoSet('ogDesc', 'content', desc);
+  seoSet('ogUrl', 'content', url);
+  if(photos[0]) seoSet('ogImage', 'content', photos[0]);
+  const data = { '@context': 'https://schema.org', '@type': 'Product', name: f.name, sku: String(f.id), url,
+    description: String(f.desc || f.name), category: f.category || undefined };
+  if(photos.length) data.image = photos;
+  if(f.brand) data.brand = { '@type': 'Brand', name: f.brand };
+  if(!f.preorder){
+    data.offers = (f.variants || []).filter(v => Number(v.cartao) > 0).map(v => ({
+      '@type': 'Offer', name: v.label && v.label !== 'Único' ? v.label : undefined, url,
+      price: Number(v.cartao).toFixed(2), priceCurrency: 'BRL', itemCondition: 'https://schema.org/NewCondition',
+      availability: v.available !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      seller: { '@type': 'Organization', name: 'Bielyy Store' }
+    }));
+  }
+  let tag = document.getElementById('productLd');
+  if(!tag){ tag = document.createElement('script'); tag.type = 'application/ld+json'; tag.id = 'productLd'; document.head.appendChild(tag); }
+  tag.textContent = JSON.stringify(data);
+}
+function clearProductSEO(){
+  if(SEO_HOME.desc !== null){ seoSet('metaDesc', 'content', SEO_HOME.desc); seoSet('ogDesc', 'content', SEO_HOME.ogDesc); }
+  seoSet('canonicalLink', 'href', SEO_HOME.url); seoSet('ogTitle', 'content', SEO_HOME.title);
+  seoSet('ogUrl', 'content', SEO_HOME.url); seoSet('ogImage', 'content', SEO_HOME.image);
+  const tag = document.getElementById('productLd'); if(tag) tag.remove();
 }
 function shareProduct(id){
   const f = familyById(id); if(!f) return;
@@ -3475,6 +3553,7 @@ loadPixConfig();
 loadCatalog();
 setInterval(loadCatalog, 120000); // confere mudanças de estoque a cada 2 minutos
 { const pr = new URLSearchParams(location.search).get('produto');
+  if(!pr){ try { clearProductSEO(); } catch(e){} } // link oficial da página inicial
   if(pr){ const id = parseInt(pr, 10);
     const go = () => { if(familyById(id)){ try { history.replaceState({}, '', location.pathname); history.pushState({ p: id }, '', location.pathname + '?produto=' + pr); } catch(e){} openProduct(id, true); } };
     setTimeout(go, 50); } }

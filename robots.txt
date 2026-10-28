@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /pedido.html
+Disallow: /.netlify/functions/
+Allow: /.netlify/functions/product-photo
+Allow: /.netlify/functions/catalog
+
+Sitemap: https://bielyystore.com.br/sitemap.xml
