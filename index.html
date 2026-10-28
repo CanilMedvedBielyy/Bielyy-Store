@@ -1095,7 +1095,9 @@
             </div>
             <div class="form-row">
               <div class="form-field"><label>E-mail da sua conta</label><input id="ckEmail" type="email" placeholder="seu@email.com" readonly style="background:#F7F3FD; color:var(--ink-soft);"></div>
+              <div class="form-field"><label>CPF</label><input id="ckCpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" oninput="maskCpf(this)"></div>
             </div>
+            <p style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 12px;">O CPF é obrigatório para emitirmos a etiqueta e a declaração de conteúdo do envio.</p>
             <div class="form-row">
               <div class="form-field"><label>CEP</label><input id="ckCep" placeholder="00000-000"></div>
               <div class="form-field"><label>Cidade / UF</label><input id="ckCity" placeholder="São Paulo / SP"></div>
@@ -2958,6 +2960,13 @@ function finalizeOrderNow(){
   const name = document.getElementById('ckName').value || 'Cliente';
   const phone = document.getElementById('ckPhone').value || '';
   const email = document.getElementById('ckEmail').value || '';
+  const cpf = (document.getElementById('ckCpf').value || '').replace(/\D/g,'');
+  if(!cpfValid(cpf)){
+    pulseToast('Digite um CPF válido: ele é obrigatório para o envio do pedido 🐾');
+    const el = document.getElementById('ckCpf'); if(el){ el.focus(); el.scrollIntoView({block:'center', behavior:'smooth'}); }
+    return;
+  }
+  try { const u = getLoggedInUser(); if(u && u.cpf !== cpf){ u.cpf = cpf; setLoggedInUser(u); } } catch(e){}
   const street = document.getElementById('ckStreet').value || '';
   const number = document.getElementById('ckNumber').value || '';
   const neighborhood = document.getElementById('ckNeighborhood').value || '';
@@ -3000,7 +3009,7 @@ function finalizeOrderNow(){
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           order_nsu: orderNsu,
-          customer: {name, phone, email},
+          customer: {name, phone, email, cpf},
           address: { cep: cepCk, street, number, complement, neighborhood, city },
           itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total,
           accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
@@ -3036,7 +3045,7 @@ function finalizeOrderNow(){
     if(selectedPixOrCartao === 'pix' && pixReady()){
       const amount = (appliedCoupon && appliedCoupon.forceTotal != null) ? appliedCoupon.forceTotal : total;
       startPixOrder({ amount, body: {
-        customer: { name, phone, email },
+        customer: { name, phone, email, cpf },
         address: { cep: cepCk, street, number, complement, neighborhood, city },
         itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total: amount,
         accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
@@ -3078,7 +3087,8 @@ function finalizeOrderNow(){
       stockItems: stockItemsOf(lines),
       subtotal: sub,
       coupon: couponInfo,
-      accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
+      accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || '',
+      cpf
     };
     const btn = document.getElementById('finalizeBtn');
     if(btn){ btn.disabled = true; btn.textContent = 'Gerando link de pagamento...'; }
@@ -3315,6 +3325,21 @@ function prefillCheckout(){
   const fill = (id, v) => { const el = document.getElementById(id); if(el && !el.value && v) el.value = v; };
   fill('ckName', user.name); fill('ckPhone', user.phone);
   const em = document.getElementById('ckEmail'); if(em) em.value = user.email;
+  const cp = document.getElementById('ckCpf'); if(cp && !cp.value && user.cpf){ cp.value = user.cpf; maskCpf(cp); }
+}
+// CPF: máscara 000.000.000-00 e conferência dos dígitos verificadores
+function maskCpf(el){
+  const d = el.value.replace(/\D/g,'').slice(0,11);
+  el.value = d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/,'.$1-$2');
+}
+function cpfValid(d){
+  d = String(d || '').replace(/\D/g,'');
+  if(d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for(let t = 9; t < 11; t++){
+    let s = 0; for(let i = 0; i < t; i++) s += Number(d[i]) * (t + 1 - i);
+    if(((s * 10) % 11) % 10 !== Number(d[t])) return false;
+  }
+  return true;
 }
 function updateAccountUI(){
   const user = getLoggedInUser();

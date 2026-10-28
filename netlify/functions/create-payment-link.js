@@ -5,6 +5,16 @@ const { blobStore } = require('../lib/blobs');
 const { cleanStockItems } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 
+const cpfOk = (v) => {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return '';
+  for (let t = 9; t < 11; t++) {
+    let s = 0; for (let i = 0; i < t; i++) s += Number(d[i]) * (t + 1 - i);
+    if (((s * 10) % 11) % 10 !== Number(d[t])) return '';
+  }
+  return d;
+};
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
@@ -24,6 +34,11 @@ exports.handler = async function (event) {
   // orderDetails vem do front-end só pra guardarmos (não é enviado pra InfinitePay)
   const orderDetails = payload.orderDetails || {};
   delete payload.orderDetails;
+
+  const cpf = cpfOk(orderDetails.cpf);
+  if (!cpf) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Informe um CPF válido', needCpf: true }) };
+  }
 
   // Comprar exige conta: o pedido fica ligado ao e-mail de quem está logada
   const accountEmail = await readToken(orderDetails.token, event).catch(() => null);
@@ -51,7 +66,7 @@ exports.handler = async function (event) {
         order_nsu: payload.order_nsu,
         status: 'aguardando_pagamento',
         createdAt: new Date().toISOString(),
-        customer: payload.customer || {},
+        customer: Object.assign({}, payload.customer || {}, { cpf }),
         address: orderDetails.address || null,
         items: payload.items,
         total: orderDetails.total || null,

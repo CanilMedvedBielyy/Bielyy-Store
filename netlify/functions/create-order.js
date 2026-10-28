@@ -7,6 +7,15 @@ const { cleanStockItems } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
+const cpfOk = (v) => {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return '';
+  for (let t = 9; t < 11; t++) {
+    let s = 0; for (let i = 0; i < t; i++) s += Number(d[i]) * (t + 1 - i);
+    if (((s * 10) % 11) % 10 !== Number(d[t])) return '';
+  }
+  return d;
+};
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
 
 exports.handler = async function (event) {
@@ -42,6 +51,10 @@ exports.handler = async function (event) {
   if (!items.length || !clean(customer.name) || !clean(customer.phone) || !clean(address.street)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Pedido incompleto' }) };
   }
+  const cpf = cpfOk(customer.cpf);
+  if (!cpf) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Informe um CPF válido', needCpf: true }) };
+  }
 
   let orderNsu = /^W\d{12,16}$/.test(String(b.order_nsu || '')) ? String(b.order_nsu) : 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);
   const coupon = b.coupon && b.coupon.code ? {
@@ -60,7 +73,7 @@ exports.handler = async function (event) {
     paymentMethod: b.paymentMethod === 'pix' ? 'pix' : 'whatsapp',
     paymentDetail: b.paymentMethod === 'pix' ? 'pix' : undefined,
     accountEmail: clean(accountEmail, 120).toLowerCase(),
-    customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120) },
+    customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120), cpf },
     address: {
       cep: clean(address.cep, 12), street: clean(address.street, 160), number: clean(address.number, 20),
       complement: clean(address.complement, 80), neighborhood: clean(address.neighborhood, 80), city: clean(address.city, 80)
