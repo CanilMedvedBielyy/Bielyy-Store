@@ -208,6 +208,7 @@
     <!-- PRODUTOS E ESTOQUE -->
     <section id="tab-products" class="hide">
       <div id="storeMode"></div>
+      <div id="stockCount"></div>
       <div class="stats" id="pStats"></div>
       <div class="toolbar">
         <input type="search" id="pq" placeholder="Buscar produto, marca ou categoria" oninput="renderProducts()">
@@ -820,6 +821,31 @@ function pAll(){
       photo: o.photo || b.photo, photos: (o.photos || b.photos || []).filter(Boolean), hidden: !!o.hidden, soldOut, soon, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
   });
 }
+const STOCK_COUNT = { date: "28/10/2026", key: "2026-10-28", items: [[2,1],[3,2],[4,1],[7,1],[8,1],[9,1],[10,2],[11,2],[12,1],[13,2],[14,1],[15,2],[17,1],[19,1],[20,1],[21,1],[23,11],[24,2],[25,6],[27,3],[28,6],[30,6],[32,2],[34,1],[35,1],[36,1],[38,1],[39,1],[40,1],[41,2],[42,1],[43,1],[44,1],[45,2],[50,2],[52,2],[63,2],[64,4],[65,4],[66,5],[1010,2,1],[1012,1,1],[1016,1,1],[70,3,1],[71,5,1]] }; // [id, quantidade contada, 1 = acabou de chegar (ativar)]
+function renderStockCount(){
+  const box = document.getElementById('stockCount'); if(!box) return;
+  const done = CAT_DOC && CAT_DOC.settings && CAT_DOC.settings.countApplied === STOCK_COUNT.key;
+  if(done){ box.innerHTML = ''; return; }
+  const all = pAll();
+  const rows = STOCK_COUNT.items.map(([id, n, act]) => {
+    const p = all.find(x => x.id === id); if(!p) return '';
+    const now = p.soon ? 'chegando' : p.stock;
+    const diff = (p.soon || p.stock !== n);
+    return `<tr style="${diff?'background:#FFF8EC':''}"><td style="padding:4px 8px">${esc(p.name)}${act?' <span class="tag" style="background:#E3F5E9;color:#2F7D4A">chegou ✓</span>':''}</td><td style="padding:4px 8px;text-align:right;color:var(--ink-soft)">${now}</td><td style="padding:4px 8px;text-align:right"><b>${n}</b></td></tr>`;
+  }).join('');
+  box.innerHTML = `<div class="card" style="margin-bottom:14px;border:2px solid var(--purple-soft)"><h3 style="margin-bottom:6px">📋 Contagem de estoque de ${STOCK_COUNT.date}</h3>
+    <p class="hint">Os números que você contou. Em amarelo, o que muda em relação ao site. Os produtos LUV que chegaram ficam ativados. Lumare, coletes, escovas e o Bark não mudam.</p>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;color:var(--purple-deep)">Ver os ${STOCK_COUNT.items.length} produtos</summary>
+      <table style="width:100%;font-size:13px;margin-top:8px;border-collapse:collapse"><tr><th style="text-align:left;padding:4px 8px">Produto</th><th style="text-align:right;padding:4px 8px">No site</th><th style="text-align:right;padding:4px 8px">Contado</th></tr>${rows}</table></details>
+    <div class="btnrow" style="margin-top:10px"><button class="btn" id="scBtn" onclick="applyStockCount()">✅ Aplicar contagem no site</button></div></div>`;
+}
+async function applyStockCount(){
+  if(!confirm('Atualizar o estoque de ' + STOCK_COUNT.items.length + ' produtos com a contagem de ' + STOCK_COUNT.date + '?')) return;
+  const btn = document.getElementById('scBtn'); if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
+  const items = STOCK_COUNT.items.map(([id, n, act]) => ({ id, patch: Object.assign({ stock: n }, act ? { soldOut: false } : {}) }));
+  try { await catSave({ op:'batch', items, settings:{ countApplied: STOCK_COUNT.key } }); toast('Estoque atualizado ✓'); renderProducts(); }
+  catch(e){ alert(e.message); if(btn){ btn.disabled = false; btn.textContent = '✅ Aplicar contagem no site'; } }
+}
 function renderStoreMode(){
   const box = document.getElementById('storeMode'); if(!box) return;
   const closed = !!(CAT_DOC && CAT_DOC.settings && CAT_DOC.settings.closed);
@@ -838,6 +864,7 @@ async function setStoreClosed(closed){
 }
 function renderProducts(){
   try { renderStoreMode(); } catch(e){}
+  try { renderStockCount(); } catch(e){}
   if(!CAT_BASE) return;
   const all = pAll();
   const live = all.filter(p=>!p.hidden && !p.preorder);

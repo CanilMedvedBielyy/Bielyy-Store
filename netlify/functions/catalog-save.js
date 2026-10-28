@@ -112,6 +112,24 @@ exports.handler = async function (event) {
       const ph = doc.added[id].photo;
       delete doc.added[id]; delete doc.products[id];
       if (ph) { try { await blobStore('product-photos', event).delete(ph); } catch (e) { /* ignora */ } }
+    } else if (body.op === 'batch') {
+      // várias alterações de uma vez (ex.: contagem de estoque) num salvamento só
+      const items = Array.isArray(body.items) ? body.items.slice(0, 300) : [];
+      if (!items.length) return { statusCode: 400, body: JSON.stringify({ error: 'Nada para salvar' }) };
+      items.forEach(it => {
+        const pid = String((it && it.id) || '').replace(/\D/g, '').slice(0, 9); if (!pid) return;
+        const patch = cleanPatch(it.patch);
+        if (doc.added[pid]) {
+          const a = doc.added[pid]; Object.assign(a, patch);
+          if ('stock' in patch) { delete a.sold; doc.products[pid] = Object.assign(doc.products[pid] || {}, { stock: patch.stock, sold: 0 }); }
+        } else {
+          doc.products[pid] = Object.assign(doc.products[pid] || {}, patch);
+        }
+      });
+      if (body.settings && typeof body.settings === 'object') {
+        doc.settings = Object.assign({}, doc.settings || {});
+        if (body.settings.countApplied) doc.settings.countApplied = String(body.settings.countApplied).slice(0, 20);
+      }
     } else if (body.op === 'settings') {
       // "modo inauguração": loja fechada (produtos aparecem como "Chegando em breve" e ninguém finaliza pedido)
       const st = body.settings || {};

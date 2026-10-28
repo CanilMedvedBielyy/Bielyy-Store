@@ -47,6 +47,10 @@ async function applyOrderStock(order, sign, event) {
     const id = String(l.productId);
     const p = doc.products[id] || (doc.products[id] = {});
     p.sold = Math.max(-999, (Number(p.sold) || 0) + sign * (Number(l.qty) || 1));
+    if (l.v) { // produto com cores: guarda quanto saiu de cada cor
+      p.vsold = p.vsold || {};
+      p.vsold[l.v] = Math.max(-999, (Number(p.vsold[l.v]) || 0) + sign * (Number(l.qty) || 1));
+    }
   });
   await saveDoc(doc, event);
   return true;
@@ -79,7 +83,8 @@ function cleanStockItems(list) {
   if (!Array.isArray(list)) return [];
   return list.slice(0, 80).map(i => ({
     productId: String((i && i.productId) || '').replace(/\D/g, '').slice(0, 9),
-    qty: Math.max(1, Math.min(99, parseInt(i && i.qty, 10) || 1))
+    qty: Math.max(1, Math.min(99, parseInt(i && i.qty, 10) || 1)),
+    v: (i && i.v) ? String(i.v).replace(/[\u0000-\u001f]/g, '').slice(0, 30) : undefined
   })).filter(i => i.productId && Number(i.productId) < 9000);
 }
 
