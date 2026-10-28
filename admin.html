@@ -678,8 +678,14 @@ function buildCustomers(){
       // tenta achar por e-mail em registros que entraram por telefone
       r = [...map.values()].find(x=>x.email && u.email && x.email.toLowerCase()===u.email.toLowerCase());
     }
+    if(!r && digits(u.phone).length>=10){
+      // pedido feito sem conta (ou com outro e-mail) pelo mesmo WhatsApp: junta com a conta
+      const ph = digits(u.phone).slice(-10);
+      r = [...map.values()].find(x=>!x.account && digits(x.phone).slice(-10)===ph);
+    }
+    if(r && u.email && (r.email||'').toLowerCase()!==u.email.toLowerCase()) r.acctEmail = u.email;
     if(!r){ r={ name:u.name, phone:u.phone, email:u.email, addr:null, orders:[], total:0, coupons:new Set(), account:true, created:u.createdAt }; map.set(k||('u:'+u.email), r); }
-    r.account = true; r.created = u.createdAt; r.name = r.name || u.name;
+    r.account = true; r.created = u.createdAt; r.name = r.name || u.name; r.userEmail = u.email;
   });
   return [...map.values()].map(r=>{
     r.orders.sort((a,b)=>new Date(b._date)-new Date(a._date));
@@ -697,12 +703,24 @@ function renderCustomers(){
   document.getElementById('customersList').innerHTML = list.length ? list.map(r=>{
     const a = r.addr ? [ [r.addr.street,r.addr.number].filter(Boolean).join(', '), r.addr.neighborhood, r.addr.city, r.addr.cep?('CEP '+fmtCep(r.addr.cep)):'' ].filter(Boolean).join(' · ') : '';
     return `<div class="c-row"><div class="c-top"><div><div class="c-name">${esc(r.name||'Sem nome')} ${r.account?'<span class="tag">✔ conta no site</span>':''}</div>
-      <div class="c-meta">${r.phone?'📞 '+esc(r.phone)+' ':''}${r.phone?`<a href="${waLink(r.phone)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">WhatsApp</a>`:''}${r.email?'<br>✉ '+esc(r.email):''}${a?'<br>📍 '+esc(a):''}</div></div>
+      <div class="c-meta">${r.phone?'📞 '+esc(r.phone)+' ':''}${r.phone?`<a href="${waLink(r.phone)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">WhatsApp</a>`:''}${r.email?'<br>✉ '+esc(r.email):''}${r.acctEmail?'<br>🔑 conta: '+esc(r.acctEmail):''}${a?'<br>📍 '+esc(a):''}</div></div>
       <div style="text-align:right"><div class="o-total">${fmt(r.total)}</div><div class="c-meta">${r.orders.length} pedido${r.orders.length===1?'':'s'}${r.last?'<br>último: '+dt(r.last):(r.created?'<br>cadastro: '+dt(r.created):'')}</div></div></div>
       ${r.coupons.size?`<div class="tags" style="margin-top:8px">${[...r.coupons].map(c=>`<span class="tag cup">🎟 ${esc(c)}</span>`).join('')}</div>`:''}
+      ${r.userEmail?`<div style="margin-top:8px"><button class="ghost" style="font-size:12px;padding:4px 12px" onclick="fixUserEmail('${esc(r.userEmail)}','${esc(r.acctEmail?(r.email||''):'')}')">✏️ Corrigir e-mail da conta</button></div>`:''}
       ${r.orders.length?`<div class="c-meta" style="margin-top:8px">${r.orders.slice(0,4).map(o=>`<a href="#" onclick="event.preventDefault();openDetail('${esc(o.order_nsu)}')" style="color:var(--purple-deep);font-weight:600">#${esc(o.order_nsu)}</a>`).join(' · ')}${r.orders.length>4?' …':''}</div>`:''}
     </div>`;
   }).join('') : '<div class="empty">Nenhum cliente ainda.</div>';
+}
+
+function fixUserEmail(oldEmail, suggestion){
+  const novo = prompt('E-mail atual da conta: ' + oldEmail + '\n\nDigite o e-mail correto. A cliente passa a entrar com ele, usando a mesma senha:', suggestion || oldEmail);
+  if(novo == null) return;
+  const e = novo.trim().toLowerCase();
+  if(!e || e === oldEmail.toLowerCase()) return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){ alert('Esse e-mail não parece válido.'); return; }
+  api('update-user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ oldEmail, newEmail: e }) })
+    .then(d => { if(d && d.success){ toast('E-mail corrigido ✓'); refresh(); } else alert('Não deu certo: ' + ((d && d.error) || 'tente de novo')); })
+    .catch(() => alert('Sem conexão. Tente de novo.'));
 }
 
 /* ============ CSV ============ */
