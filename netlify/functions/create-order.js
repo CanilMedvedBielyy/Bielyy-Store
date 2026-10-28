@@ -3,7 +3,7 @@
 // O pedido fica no painel admin com status "aguardando_pagamento".
 
 const { blobStore } = require('../lib/blobs');
-const { cleanStockItems } = require('../lib/catalog');
+const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
@@ -30,6 +30,14 @@ exports.handler = async function (event) {
   try { b = JSON.parse(event.body); } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
+
+  // Modo inauguração: com a loja fechada no painel, nenhum pedido é aceito
+  try {
+    const cat = await getDoc(event);
+    if (cat.settings && cat.settings.closed) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'A Bielyy Store abre em breve! Ainda não estamos aceitando pedidos.', closed: true }) };
+    }
+  } catch (e) { /* sem catálogo: segue */ }
 
   // Comprar exige conta: o pedido fica ligado ao e-mail de quem está logada
   const accountEmail = await readToken(b.token, event).catch(() => null);

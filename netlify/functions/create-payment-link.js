@@ -2,7 +2,7 @@
 // Rota automática: /.netlify/functions/create-payment-link
 
 const { blobStore } = require('../lib/blobs');
-const { cleanStockItems } = require('../lib/catalog');
+const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 
 const cpfOk = (v) => {
@@ -34,6 +34,14 @@ exports.handler = async function (event) {
   // orderDetails vem do front-end só pra guardarmos (não é enviado pra InfinitePay)
   const orderDetails = payload.orderDetails || {};
   delete payload.orderDetails;
+
+  // Modo inauguração: com a loja fechada no painel, nenhum pedido é aceito
+  try {
+    const cat = await getDoc(event);
+    if (cat.settings && cat.settings.closed) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'A Bielyy Store abre em breve! Ainda não estamos aceitando pedidos.', closed: true }) };
+    }
+  } catch (e) { /* sem catálogo: segue */ }
 
   const cpf = cpfOk(orderDetails.cpf);
   if (!cpf) {

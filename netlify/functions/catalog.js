@@ -8,7 +8,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 200,
       headers: { 'Cache-Control': 'public, max-age=20', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ products: doc.products, added: doc.added, v: doc.v || 0, updatedAt: doc.updatedAt })
+      body: JSON.stringify({ products: doc.products, added: doc.added, settings: doc.settings || {}, v: doc.v || 0, updatedAt: doc.updatedAt })
     };
   } catch (err) {
     console.error('Erro ao ler catálogo:', err);

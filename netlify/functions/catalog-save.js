@@ -67,7 +67,8 @@ function pickNewest(doc, base) {
   if (!base || typeof base !== 'object') return doc;
   if (!(Number(base.v) > Number(doc.v || 0))) return doc;
   if (typeof base.products !== 'object' || typeof base.added !== 'object' || !base.products || !base.added) return doc;
-  return { products: base.products, added: base.added, v: Number(base.v), updatedAt: base.updatedAt || doc.updatedAt };
+  return { products: base.products, added: base.added, settings: (base.settings && typeof base.settings === 'object') ? base.settings : (doc.settings || {}),
+           v: Number(base.v), updatedAt: base.updatedAt || doc.updatedAt };
 }
 
 exports.handler = async function (event) {
@@ -111,6 +112,10 @@ exports.handler = async function (event) {
       const ph = doc.added[id].photo;
       delete doc.added[id]; delete doc.products[id];
       if (ph) { try { await blobStore('product-photos', event).delete(ph); } catch (e) { /* ignora */ } }
+    } else if (body.op === 'settings') {
+      // "modo inauguração": loja fechada (produtos aparecem como "Chegando em breve" e ninguém finaliza pedido)
+      const st = body.settings || {};
+      doc.settings = Object.assign({}, doc.settings || {}, { closed: !!st.closed });
     } else if (body.op === 'reset') {
       delete doc.products[id];
     } else if (body.op === 'photo') {

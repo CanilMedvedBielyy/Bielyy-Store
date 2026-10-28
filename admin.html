@@ -207,6 +207,7 @@
 
     <!-- PRODUTOS E ESTOQUE -->
     <section id="tab-products" class="hide">
+      <div id="storeMode"></div>
       <div class="stats" id="pStats"></div>
       <div class="toolbar">
         <input type="search" id="pq" placeholder="Buscar produto, marca ou categoria" oninput="renderProducts()">
@@ -819,7 +820,24 @@ function pAll(){
       photo: o.photo || b.photo, photos: (o.photos || b.photos || []).filter(Boolean), hidden: !!o.hidden, soldOut, soon, out, cost: o.cost || null, changed: Object.keys(o).length>0 };
   });
 }
+function renderStoreMode(){
+  const box = document.getElementById('storeMode'); if(!box) return;
+  const closed = !!(CAT_DOC && CAT_DOC.settings && CAT_DOC.settings.closed);
+  box.innerHTML = closed
+    ? `<div class="card" style="border:2px solid #E0A33B;background:#FFF8EC;margin-bottom:14px"><h3 style="margin-bottom:6px">🚧 Loja fechada: inauguração em breve</h3>
+        <p class="hint">O site mostra o aviso "Inauguração em breve" no topo, todos os produtos aparecem como <b>⏳ Chegando em breve</b> e ninguém consegue finalizar pedido. Os estoques e ativações que você fizer aqui ficam guardados para quando abrir.</p>
+        <div class="btnrow" style="margin-top:10px"><button class="btn" onclick="setStoreClosed(false)">🎉 Abrir a loja agora</button></div></div>`
+    : `<div class="card" style="margin-bottom:14px"><h3 style="margin-bottom:6px">🏪 Loja aberta</h3>
+        <p class="hint">Precisa pausar as vendas (ex.: antes da inauguração ou nas férias)? Feche a loja: o site avisa "Inauguração em breve" e os produtos ficam como "Chegando em breve".</p>
+        <div class="btnrow" style="margin-top:10px"><button class="btn line" onclick="setStoreClosed(true)">🚧 Fechar a loja (inauguração em breve)</button></div></div>`;
+}
+async function setStoreClosed(closed){
+  if(!confirm(closed ? 'Fechar a loja? Ninguém vai conseguir finalizar pedidos até você abrir de novo.' : 'Abrir a loja? Os produtos com estoque voltam a ficar à venda.')) return;
+  try { await catSave({ op:'settings', settings:{ closed: !!closed } }); toast(closed ? 'Loja fechada 🚧 (o site atualiza em até 1 minuto)' : 'Loja aberta 🎉 (o site atualiza em até 1 minuto)'); renderProducts(); }
+  catch(e){ alert(e.message); }
+}
 function renderProducts(){
+  try { renderStoreMode(); } catch(e){}
   if(!CAT_BASE) return;
   const all = pAll();
   const live = all.filter(p=>!p.hidden && !p.preorder);
@@ -889,7 +907,7 @@ function pStep(id, d){
 let CAT_QUEUE = Promise.resolve();
 function catSave(body){
   const run = async () => {
-    const base = (CAT_DOC && CAT_DOC.v) ? { v: CAT_DOC.v, products: CAT_DOC.products || {}, added: CAT_DOC.added || {}, updatedAt: CAT_DOC.updatedAt } : null;
+    const base = (CAT_DOC && CAT_DOC.v) ? { v: CAT_DOC.v, products: CAT_DOC.products || {}, added: CAT_DOC.added || {}, settings: CAT_DOC.settings || {}, updatedAt: CAT_DOC.updatedAt } : null;
     let r, d;
     try {
       r = await fetch('/.netlify/functions/catalog-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:PASSWORD, base},body))});

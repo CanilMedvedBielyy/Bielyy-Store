@@ -628,6 +628,9 @@
   .announce .msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; opacity:0; transform:translateY(8px); transition:.45s ease;}
   .announce .msg.on{opacity:1; transform:none;}
   .announce b{font-weight:800;}
+  .launch-bar{background:#FFF4FA; border-bottom:1.5px dashed var(--pink); color:var(--ink); text-align:center; padding:12px 16px; font-size:14px; line-height:1.5;}
+  .launch-bar b.big{font-family:'Baloo 2',cursive; font-size:19px; color:var(--purple-deep); display:block; line-height:1.2; margin-bottom:2px;}
+  .launch-bar a{display:inline-block; margin-top:8px; background:var(--purple-deep); color:#fff; font-weight:700; font-size:13px; padding:7px 16px; border-radius:999px; text-decoration:none;}
   /* cabeçalho */
   header{box-shadow:0 6px 18px -14px rgba(109,66,184,.45);}
   .nav{padding:8px 0; gap:14px;}
@@ -794,6 +797,13 @@
   <div class="msg">💜 <b>Desconto no Pix</b> em todos os produtos</div>
   <div class="msg">💳 <b>Até 4x sem juros</b> · desconto no Pix</div>
   <div class="msg">🔁 Troca fácil em até 7 dias · <b>marcas importadas originais</b></div>
+</div>
+
+<!-- ============ INAUGURAÇÃO EM BREVE (ligado/desligado no painel) ============ -->
+<div class="launch-bar" id="launchBar" style="display:none">
+  <b class="big">✨ Inauguração em breve!</b>
+  Estamos recebendo os últimos produtos e preparando tudo com muito carinho. Já dá para conhecer a loja e criar a sua conta 💜
+  <br><a id="launchWa" href="https://wa.me/5511915971151" target="_blank" rel="noopener">💬 Quero ser avisada da inauguração</a>
 </div>
 
 <!-- ============ HEADER ============ -->
@@ -1387,7 +1397,8 @@ PREORDER_FAMILIES.forEach((f,i)=>{
    As mudanças ficam no servidor e chegam aqui sem precisar de deploy.
 ===================================================== */
 var CAT_OVR = {};               // alterações do painel (inclusive kits ativados/pausados)
-function kitHeld(def){ const o = CAT_OVR[String(def.id)] || {}; return ('soldOut' in o) ? !!o.soldOut : !!def.soon; }
+var STORE_CLOSED = false;
+function kitHeld(def){ if(STORE_CLOSED) return true; const o = CAT_OVR[String(def.id)] || {}; return ('soldOut' in o) ? !!o.soldOut : !!def.soon; }
 var CAT_MASTER = null;           // todos os produtos (inclusive ocultos), na ordem original
 var CAT_DOC_V = -1;
 function catPhotoUrl(k){ return '/.netlify/functions/product-photo?k=' + encodeURIComponent(k); }
@@ -1405,6 +1416,8 @@ function applyCatalog(doc){
   }
   const P = doc.products || {}, A = doc.added || {};
   CAT_OVR = P;
+  STORE_CLOSED = !!(doc.settings && doc.settings.closed);
+  try { updateLaunchBar(); } catch(e){}
   // produtos cadastrados pelo painel
   Object.keys(A).forEach(k => {
     const a = A[k]; const id = Number(a.id || k);
@@ -1428,8 +1441,9 @@ function applyCatalog(doc){
     f.variants = (o.variants || b.variants).map(v => Object.assign({}, v));
     const baseStock = ('stock' in o) ? Number(o.stock) : b.stock;
     f.stock = Math.max(0, (Number(baseStock) || 0) - (Number(o.sold) || 0));
-    const soldOut = ('soldOut' in o) ? !!o.soldOut : !!b.soon; // "aguardando chegada" vale até você ativar no painel
+    let soldOut = ('soldOut' in o) ? !!o.soldOut : !!b.soon; // "aguardando chegada" vale até você ativar no painel
     f.soon = !('soldOut' in o) && !!b.soon;
+    if(STORE_CLOSED && !b.preorder && !o.preorder){ soldOut = true; f.soon = true; } // modo inauguração
     if(!f.preorder){
       if(soldOut || f.stock <= 0) f.variants.forEach(v => v.available = false);
       else if(!o.variants && f.variants.every(v => v.available === false)) f.variants.forEach(v => v.available = true);
@@ -2316,6 +2330,7 @@ function addToCart(familyId, variantIdx, qty){
   const f = familyById(familyId);
   if(f && f.preorder){ openInterest(familyId, variantIdx); return false; }
   const v = f && f.variants[variantIdx];
+  if(STORE_CLOSED && f && !f.preorder){ storeClosedMsg(); return false; }
   if(!v || v.available === false){ pulseToast(f && f.kit ? 'Esse kit está esgotado no momento 🐾' : 'Este produto está esgotado no momento 🐾'); return false; }
   const max = maxQtyFor(familyId, variantIdx);
   const room = max - (cart[k]||0);
@@ -2845,7 +2860,14 @@ function requireAccountForCheckout(tab){
   openAuthModal(tab || 'signup');
   return false;
 }
-function goToCheckout(){ closeCart(); if(!requireAccountForCheckout()) return; showView('checkout'); }
+function updateLaunchBar(){
+  const bar = document.getElementById('launchBar'); if(!bar) return;
+  bar.style.display = STORE_CLOSED ? 'block' : 'none';
+  const a = document.getElementById('launchWa');
+  if(a) a.href = 'https://wa.me/5511915971151?text=' + encodeURIComponent('Oi! Quero ser avisada quando a Bielyy Store inaugurar 💜');
+}
+function storeClosedMsg(){ pulseToast('A Bielyy Store inaugura em breve! 💜 Ainda não estamos aceitando pedidos.'); }
+function goToCheckout(){ closeCart(); if(STORE_CLOSED){ storeClosedMsg(); return; } if(!requireAccountForCheckout()) return; showView('checkout'); }
 function renderCheckout(){
   const lines = cartLines();
   const list = document.getElementById('ckItemsList');
@@ -3003,6 +3025,7 @@ async function finalizeOrder(){
   } catch(e){ /* sem conexão: segue com o que já temos */ }
   finalizeOrder.busy = false;
   if(btn){ btn.disabled = false; btn.textContent = old; }
+  if(STORE_CLOSED){ storeClosedMsg(); showView('home'); return; }
   if(appliedCoupon && appliedCoupon.tiered){
     const r = await checkFirstPurchase();
     const coupon = COUPONS[appliedCoupon.code];
