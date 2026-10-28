@@ -391,6 +391,8 @@
   .ship-sub{font-size:11px; color:var(--ink-soft); line-height:1.35;}
   .ship-tip{color:var(--green); font-weight:600;}
   .ship-free{color:var(--green);}
+  .ship-price{display:flex; flex-direction:column; align-items:flex-end; text-align:right; line-height:1.25; flex:none;}
+  .ship-price small{font-size:10.5px; color:var(--ink-soft); font-weight:600;}
   .ship-local{background:linear-gradient(135deg,#FFF6FA,#F6F0FF);}
   .ship-note{font-size:11px; color:var(--ink-soft); margin-top:8px; line-height:1.5;}
 
@@ -1600,15 +1602,41 @@ const COUPONS = {
   "BIELYY10": { fixed: 10, minSubtotal: 100, firstPurchaseOnly: true, requiresAccount: true, accountFirstOrder: true, label: "R$ 10 OFF na primeira compra (a partir de R$ 100 em produtos)" },
   // Programa cliente fiel: da 2ª compra em diante 5% (VOLTEI5); toda 5ª compra (5ª, 10ª, 15ª...) 10% + frete grátis (BIELYYFIEL)
   "VOLTEI5": { percent: 5, requiresAccount: true, loyalty: "repeat", label: "5% OFF de cliente fiel" },
-  "BIELYYFIEL": { percent: 10, freeShipping: true, requiresAccount: true, loyalty: "fifth", label: "10% OFF + frete grátis · presente de cliente fiel" },
+  "BIELYYFIEL": { percent: 10, freeShipping: true, freeShippingCap: 25, requiresAccount: true, loyalty: "fifth", label: "10% OFF + frete grátis (até R$ 25) · presente de cliente fiel" },
   "BIELYYFRET3": { fixed: 0, freeShipping: true, label: "Frete grátis" },
   "MATEUSADESTRA": { percent: 15, commissionPct: 5, label: "15% OFF — cupom do adestrador Mateus" },
   "1478180803": { fixed: 0, forceTotal: 1, freeShipping: true, label: "Cupom de teste — frete grátis e total R$ 1,00" }
 };
-function computeOrderTotal(sub, discount, shipping){
+/* ---------- Frete sem prejuízo ----------
+   No cartão a InfinitePay cobra a taxa também sobre o frete, então o frete do cartão já leva essa taxa embutida.
+   No Pix não tem taxa: o frete fica igual ao do SuperFrete / motoboy.
+   Cupom de frete grátis pode ter limite (freeShippingCap): acima dele, a cliente paga só a diferença. */
+const CARD_FEE = 0.079; // taxa da InfinitePay no cartão em 4x (a mais alta)
+function payingByCard(){ return !(selectedPaymentMethod === 'infinite' && selectedPixOrCartao === 'pix'); }
+function shipCoverage(){
+  if(!shipping || !appliedCoupon || !appliedCoupon.freeShipping) return 0;
+  const cap = appliedCoupon.freeShippingCap;
+  return cap != null ? Math.min(shipping.price, cap) : shipping.price;
+}
+// Quanto a cliente paga de frete (card = true para o valor no cartão)
+function shipCharge(card){
+  if(!shipping) return 0;
+  const rest = Math.max(0, shipping.price - shipCoverage());
+  if(rest <= 0) return 0;
+  return card ? Math.round(rest / (1 - CARD_FEE) * 100) / 100 : Math.round(rest * 100) / 100;
+}
+function cardShipPrice(p){ return p > 0 ? Math.round(p / (1 - CARD_FEE) * 100) / 100 : 0; }
+// Texto do frete no carrinho / checkout
+function shipText(card){
+  if(!shipping) return null;
+  const v = shipCharge(card), cov = shipCoverage();
+  if(cov > 0 && v <= 0) return 'Grátis 🎉';
+  if(cov > 0) return fmt(v) + ' (cupom cobriu ' + fmt(cov) + ')';
+  return v <= 0 ? 'Grátis' : fmt(v);
+}
+function computeOrderTotal(sub, discount, shipping, card){
   if(appliedCoupon && appliedCoupon.forceTotal != null) return appliedCoupon.forceTotal;
-  const shipCost = (shipping && !(appliedCoupon && appliedCoupon.freeShipping)) ? shipping.price : 0;
-  return Math.max(0, sub - discount) + shipCost;
+  return Math.max(0, sub - discount) + shipCharge(card === undefined ? payingByCard() : card);
 }
 function hasUsedFirstPurchaseCoupon(){
   return localStorage.getItem('bielyy_first_purchase_used') === '1';
@@ -1712,7 +1740,7 @@ function loyaltyProblem(coupon, r){
 }
 function loyaltyCouponFor(paid){
   if(paid === 0) return { code: PROMO10, title: 'R$ 10 OFF na sua 1ª compra', sub: 'A partir de R$ 100 em produtos.' };
-  if((paid + 1) % 5 === 0) return { code: 'BIELYYFIEL', title: `Presente da sua ${paid + 1}ª compra: 10% OFF + frete grátis 🎉`, sub: 'Obrigada por ser cliente fiel!' };
+  if((paid + 1) % 5 === 0) return { code: 'BIELYYFIEL', title: `Presente da sua ${paid + 1}ª compra: 10% OFF + frete grátis 🎉`, sub: 'Obrigada por ser cliente fiel! O frete grátis cobre até R$ 25.' };
   const falta = loyaltyMissing(paid);
   return { code: 'VOLTEI5', title: '5% OFF nesta compra', sub: `${falta > 1 ? 'Faltam ' + falta + ' compras' : 'Falta só 1 compra'} para ganhar <strong>10% OFF + frete grátis</strong>.` };
 }
@@ -2367,8 +2395,8 @@ function renderCart(){
   } else {
     couponRow.style.display = 'none';
   }
-  document.getElementById('cartShippingVal').textContent = (appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis 🎉' : (shipping ? fmt(shipping.price) : 'A calcular');
-  document.getElementById('cartTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping));
+  document.getElementById('cartShippingVal').textContent = shipping ? shipText(true) : 'A calcular';
+  document.getElementById('cartTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping, true));
 }
 function openCart(){
   document.getElementById('cartDrawer').classList.add('show');
@@ -2448,7 +2476,7 @@ function calcFrete(){
       resultBox.innerHTML = SHIP_OPTIONS.map((o,i)=>{
         const icon = o.local ? '🛵' : (o.label==='SEDEX' ? '⚡' : '📦');
         const when = o.local ? `<small class="ship-sub">${o.note || ''}</small>` : `<small class="ship-sub">até ${o.days} dias úteis</small>`;
-        const price = o.local && o.free ? `<strong class="ship-free">Grátis</strong>` : `<strong>${fmt(o.price)}</strong>`;
+        const price = (o.local && o.free) || !(o.price > 0) ? `<strong class="ship-free">Grátis</strong>` : `<span class="ship-price"><strong>${fmt(o.price)}</strong><small>no Pix</small><small>${fmt(cardShipPrice(o.price))} no cartão</small></span>`;
         const tip = o.local && !o.free && o.freeAbove ? `<small class="ship-sub ship-tip">Grátis acima de ${fmt(o.freeAbove)} em produtos</small>` : '';
         return `<div class="ship-option${i===0?' selected':''}${o.local?' ship-local':''}" onclick="selectShippingIdx(${i}, this)">
           <span class="ship-main"><span class="ship-title">${icon} ${o.label}</span>${when}${tip}</span>${price}
@@ -2804,7 +2832,7 @@ function renderCheckout(){
   } else {
     ckCouponRow.style.display = 'none';
   }
-  document.getElementById('ckShipping').textContent = (appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis 🎉' : (shipping ? fmt(shipping.price) : 'A calcular no carrinho');
+  document.getElementById('ckShipping').textContent = shipping ? shipText(payingByCard()) : 'A calcular no carrinho';
   document.getElementById('ckTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping));
 }
 function selectPayment(method){
@@ -2996,7 +3024,8 @@ function finalizeOrderNow(){
   }));
   const freeShip = !!(appliedCoupon && appliedCoupon.freeShipping);
   const couponInfo = (appliedCoupon && (discount > 0 || freeShip)) ? { code: appliedCoupon.code, label: appliedCoupon.tiered ? tieredLabel(appliedCoupon) : (appliedCoupon.label || ''), discount, percent: appliedCoupon.percent || null, commissionPct: appliedCoupon.commissionPct != null ? appliedCoupon.commissionPct : null, first: appliedCoupon.tiered ? !!appliedCoupon.first : undefined } : null;
-  const shipInfo = shipping ? { label: shipping.label, price: freeShip ? 0 : shipping.price, free: freeShip || shipping.price === 0, local: !!shipping.local } : null;
+  const shipPaid = shipCharge(payingByCard());
+  const shipInfo = shipping ? { label: shipping.label, price: shipPaid, free: shipPaid === 0, local: !!shipping.local, cost: shipping.price, couponCovered: shipCoverage() || undefined } : null;
 
   if(selectedPaymentMethod === 'whats'){
     const availableLines = lines.filter(l => !l.family.preorder);
@@ -3037,7 +3066,7 @@ function finalizeOrderNow(){
     if(appliedCoupon && discount > 0){
       msg += `Cupom ${appliedCoupon.code}: -${fmt(discount)}%0A`;
     }
-    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${(appliedCoupon && appliedCoupon.freeShipping) ? 'Grátis' : (shipping?fmt(shipping.price):'a calcular')}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
+    msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping ? encodeURIComponent(shipText(true)) : 'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
     window.open(`https://wa.me/5511915971151?text=${msg}`, '_blank');
     pulseToast(`Pedido nº ${orderNsu} registrado! Acompanhe em “Acompanhar pedido” 📦`);
@@ -3065,8 +3094,8 @@ function finalizeOrderNow(){
       // Cupom de teste: substitui os itens por um único item no valor exato do teste
       payload.items = [{ quantity: 1, price: Math.round(appliedCoupon.forceTotal*100), description: `Pedido Bielyy Store (cupom de teste ${appliedCoupon.code})` }];
     } else {
-      if(shipping && shipping.price > 0 && !(appliedCoupon && appliedCoupon.freeShipping)){
-        payload.items.push({quantity: 1, price: Math.round(shipping.price*100), description: `Frete (${shipping.label})`});
+      if(shipPaid > 0){
+        payload.items.push({quantity: 1, price: Math.round(shipPaid*100), description: `Frete (${shipping.label})`});
       }
       if(appliedCoupon && discount > 0){
         // InfinitePay não tem campo de desconto — reduzimos o preço dos itens de verdade

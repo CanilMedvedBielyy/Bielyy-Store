@@ -564,6 +564,7 @@ function openDetail(id){
         <div><span>Subtotal</span><span>${fmt(o._subtotal)}</span></div>
         ${o._coupon?`<div class="disc"><span>Cupom ${esc(o._coupon.code)}${o._coupon.label?' — '+esc(o._coupon.label):''}</span><span>− ${fmt(o._discount)}</span></div>`:'<div><span>Cupom</span><span>nenhum</span></div>'}
         <div><span>Frete${o._ship&&o._ship.label?' ('+esc(o._ship.label)+')':''}</span><span>${o._ship?(o._ship.free?'Grátis':fmt(o._ship.price)):'—'}</span></div>
+        ${o._ship&&o._ship.cost!=null&&Math.abs(o._ship.cost-(o._ship.price||0))>0.009?`<div style="font-size:11.5px;color:var(--ink-soft)"><span>Custo real do envio${o._ship.couponCovered?' (cupom cobriu '+fmt(o._ship.couponCovered)+')':''}${o._ship.price>o._ship.cost?' · no cartão o frete leva a taxa embutida':''}</span><span>${fmt(o._ship.cost)}</span></div>`:''}
         <div class="tot"><span>Total</span><span>${fmt(o._total)}</span></div>
       </div>
       ${o._info?`<div class="cm">💰 Comissão do cupom ${esc(o._coupon.code)} (${esc(o._info.who)}${o._info.tag?' · '+esc(o._info.tag):''}): <b>${fmt(o._info.pct*Math.max(0,o._subtotal-o._discount))}</b> (${(o._info.pct*100).toFixed(0)}% de ${fmt(Math.max(0,o._subtotal-o._discount))})${o._sale?'':' — só conta depois que o pagamento for confirmado.'}</div>`:''}
