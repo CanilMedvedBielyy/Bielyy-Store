@@ -3,6 +3,7 @@
 
 const { blobStore } = require('../lib/blobs');
 const { cleanStockItems } = require('../lib/catalog');
+const { readToken } = require('../lib/session');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -23,6 +24,12 @@ exports.handler = async function (event) {
   // orderDetails vem do front-end só pra guardarmos (não é enviado pra InfinitePay)
   const orderDetails = payload.orderDetails || {};
   delete payload.orderDetails;
+
+  // Comprar exige conta: o pedido fica ligado ao e-mail de quem está logada
+  const accountEmail = await readToken(orderDetails.token, event).catch(() => null);
+  if (!accountEmail) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Entre na sua conta para finalizar o pedido', needLogin: true }) };
+  }
 
   try {
     const response = await fetch('https://api.checkout.infinitepay.io/links', {
@@ -50,7 +57,7 @@ exports.handler = async function (event) {
         total: orderDetails.total || null,
         shipping: orderDetails.shipping || null,
         paymentMethod: 'infinitepay',
-        accountEmail: String(orderDetails.accountEmail || '').trim().toLowerCase().slice(0, 120),
+        accountEmail: String(accountEmail).trim().toLowerCase().slice(0, 120),
         paymentDetail: orderDetails.paymentDetail || null,
         itemsDetailed: Array.isArray(orderDetails.itemsDetailed) ? orderDetails.itemsDetailed.slice(0, 60) : null,
         subtotal: orderDetails.subtotal != null ? orderDetails.subtotal : null,

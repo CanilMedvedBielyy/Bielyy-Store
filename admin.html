@@ -323,7 +323,34 @@ function copy(text, okMsg){
 function reviewUrl(o){ return location.origin + '/?avaliar=' + encodeURIComponent(o.order_nsu); }
 function reviewMsg(o, c){
   const first = String((c && c.name) || '').trim().split(' ')[0];
-  return `Oi${first ? ', ' + first : ''}! 💜 Aqui é da Bielyy Store. Seu pedido #${o.order_nsu} já chegou? Conta pra gente o que seu pet achou! Leva só 1 minutinho e ajuda muito outros tutores:\n${reviewUrl(o)}`;
+  return `Olá${first ? ', ' + first : ''}! Tudo bem? Aqui é a equipe da *Bielyy Store*.\nSeu pedido #${o.order_nsu} já chegou? Esperamos que seu pet esteja aproveitando! 💜\n\nSua opinião é muito importante para nós e ajuda outros tutores na escolha. Avaliar leva só 1 minuto:\n${reviewUrl(o)}\n\n*Equipe Bielyy Store* 🐾`;
+}
+// Mensagem pronta para a cliente, em nome da loja: agradece, mostra o resumo e o status atual
+function orderWaMsg(o){
+  const c = o._cust || {};
+  const first = String(c.name || '').trim().split(' ')[0];
+  const items = (o._items || []);
+  const list = items.slice(0, 8).map(i => `• ${i.qty}x ${i.name}${i.variant ? ' (' + i.variant + ')' : ''}`).join('\n')
+    + (items.length > 8 ? `\n• + ${items.length - 8} item(ns)` : '');
+  const resumo = `*Pedido #${o.order_nsu}*\n${list}${o._total ? '\nTotal: *' + fmt(o._total) + '*' : ''}`;
+  const car = guessCarrier(o);
+  const status = {
+    aguardando_pagamento: `*Status:* aguardando pagamento\n` + (o._pm === 'whatsapp'
+      ? 'Para darmos andamento, vamos combinar o pagamento? Aceitamos Pix e cartão de crédito.'
+      : (o.paymentUrl && o._pm !== 'pix'
+        ? `Caso ainda não tenha concluído o pagamento, utilize este link: ${o.paymentUrl}`
+        : 'Assim que o pagamento for confirmado, seu pedido seguirá para separação.')),
+    pago: `*Status:* pagamento confirmado ✅\nSeu pedido já está na fila de separação. Avisaremos assim que ele for enviado.`,
+    em_preparacao: `*Status:* em preparação 📦\nSeu pedido está sendo separado e embalado com todo o cuidado. Avisaremos assim que ele for enviado.`,
+    enviado: car === 'motoboy'
+      ? `*Status:* saiu para entrega 🛵\nSeu pedido está a caminho com o nosso entregador.${o.trackingCode ? '\nAcompanhe a entrega: ' + o.trackingCode : ''}`
+      : `*Status:* enviado 🚚\nSeu pedido foi enviado ${({correios:'pelos Correios', loggi:'pela Loggi', jadlog:'pela Jadlog'})[car] || 'pela transportadora'}.${o.trackingCode ? '\nCódigo de rastreio: *' + o.trackingCode + '*' : ''}`,
+    entregue: `*Status:* entregue 🎉\nEsperamos que seu pet aproveite muito! Sua opinião é muito importante para nós. Se puder, avalie os produtos por aqui:\n${reviewUrl(o)}`,
+    cancelado: `*Status:* pedido cancelado\nSe tiver qualquer dúvida sobre o cancelamento, estamos à disposição por aqui.`
+  }[o.status] || `*Status:* ${STATUS_LABEL[o.status] || o.status}`;
+  const oi = `Olá${first ? ', ' + first : ''}! Tudo bem? Aqui é a equipe da *Bielyy Store*.`
+    + (o.status === 'cancelado' ? '' : '\nAgradecemos pela sua compra! 💜');
+  return `${oi}\n\n${resumo}\n\n${status}\n\nAcompanhe seu pedido: ${trackUrl(o.order_nsu)}\nVocê também encontra todos os seus pedidos em *Minha conta*, no site bielyystore.com.br.\n\nQualquer dúvida, estamos à disposição.\n*Equipe Bielyy Store* 🐾`;
 }
 function waLink(phone, text){
   let d = digits(phone); if(d.length<=11) d = '55'+d;
@@ -502,15 +529,7 @@ function openDetail(id){
     `<div class="steps">${FLOW.map((s,i)=>`<div class="step ${i<idx?'done':''} ${i===idx?'now done':''}">${STATUS_LABEL[s].replace(/^\S+ /,'')}</div>`).join('')}</div>`;
   const next = NEXT[o.status];
   const link = trackUrl(o.order_nsu);
-  const msgStatus = {
-    pago:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o pagamento do seu pedido #${o.order_nsu}. Já vamos separar tudo com carinho 💜`,
-    em_preparacao:`Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} está sendo preparado 📦`,
-    enviado: guessCarrier(o)==='motoboy'
-      ? `Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} saiu para entrega com o motoboy 🛵${o.trackingCode?' Acompanhe a corrida: '+o.trackingCode:''}`
-      : `Oi, ${(c.name||'').split(' ')[0]}! Seu pedido #${o.order_nsu} foi enviado pela ${CARRIER_NAME[guessCarrier(o)]||'transportadora'} 🚚${o.trackingCode?' Código de rastreio: '+o.trackingCode:''}`,
-    aguardando_pagamento:`Oi, ${(c.name||'').split(' ')[0]}! Recebemos o seu pedido #${o.order_nsu} (${fmt(o._total)}). Vamos combinar o pagamento? 💜`
-  }[o.status] || `Oi, ${(c.name||'').split(' ')[0]}! Sobre o seu pedido #${o.order_nsu} da Bielyy Store.`;
-  const msgFull = msgStatus + `\n\nAcompanhe seu pedido aqui: ${link}`;
+  const msgFull = orderWaMsg(o);
   document.getElementById('detail').innerHTML = `
     <div class="d-top"><div><h2>Pedido #${esc(o.order_nsu)}</h2>
       <div class="o-sub">${dt(o._date)} · <span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div></div>
@@ -521,13 +540,15 @@ function openDetail(id){
         ${next?`<button class="btn" onclick="setStatus('${next}')">${NEXT_LABEL[o.status]}</button>`:''}
         ${o.status!=='cancelado' && o.status!=='entregue'?`<button class="btn red" onclick="if(confirm('Cancelar este pedido?')) setStatus('cancelado')">Cancelar pedido</button>`:''}
         ${o.status==='cancelado'?`<button class="btn line" onclick="setStatus('aguardando_pagamento')">Reabrir pedido</button>`:''}
-      </div></div>
+      </div>
+      ${c.phone?`<div class="btnrow" style="margin-top:8px"><a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Mandar status no WhatsApp</a></div>
+      <div class="hint" style="margin-top:4px">Abre o WhatsApp da cliente com uma mensagem pronta: agradecimento, resumo do pedido e o status atual.</div>`:''}</div>
 
     <div class="card"><h3>📬 Dados para envio
       <span style="display:flex;gap:6px"><button class="ghost" onclick="copy(addrText(ORDERS.find(x=>x.order_nsu===CUR)),'Endereço copiado ✓')">Copiar</button><button class="ghost" onclick="printLabel()">🖨 Etiqueta</button></span></h3>
       <dl class="kv">
         <dt>Destinatário</dt><dd><b>${esc(c.name||'—')}</b></dd>
-        <dt>Telefone</dt><dd>${esc(c.phone||'—')} ${c.phone?`<a href="${waLink(c.phone)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">· abrir WhatsApp</a>`:''}</dd>
+        <dt>Telefone</dt><dd>${esc(c.phone||'—')} ${c.phone?`<a href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener" style="color:var(--green);font-weight:700">· mandar status no WhatsApp</a>`:''}</dd>
         <dt>E-mail</dt><dd>${esc(c.email||'—')}</dd>
       </dl>
       <div class="addr"><b>${esc(a.l1||'Endereço não informado')}</b><br>${a.l2?esc(a.l2)+'<br>':''}${esc(a.l3)}${a.l4?'<br>'+esc(a.l4):''}</div>
@@ -560,7 +581,7 @@ function openDetail(id){
       <div class="hint" style="margin-top:4px">Correios: código tipo AA123456789BR · Loggi: código da etiqueta · Motoboy/Uber: cole o link de acompanhamento da corrida (opcional).</div>
       <textarea class="field" id="note" placeholder="Observação interna (só você vê)">${esc(o.note||'')}</textarea>
       <div class="btnrow"><button class="btn" onclick="saveExtras()">Salvar</button>
-        <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Avisar cliente no WhatsApp</a></div>
+        <a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Mandar status no WhatsApp</a></div>
       ${(o.status==='enviado'||o.status==='entregue') && c.phone ? `<div class="cm" style="margin-top:12px">⭐ <b>Pedir avaliação</b><br>Mande o link para a cliente avaliar os produtos (só quem comprou consegue avaliar).
         <div class="btnrow" style="margin-top:8px"><a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, reviewMsg(o, c))}" target="_blank" rel="noopener">💬 Pedir avaliação no WhatsApp</a>
         <button class="ghost" onclick="copy(reviewUrl(CUR),'Link copiado ✓')">Copiar link</button></div></div>` : ''}

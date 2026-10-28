@@ -4,6 +4,7 @@
 
 const { blobStore } = require('../lib/blobs');
 const { cleanStockItems } = require('../lib/catalog');
+const { readToken } = require('../lib/session');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
@@ -19,6 +20,12 @@ exports.handler = async function (event) {
   let b;
   try { b = JSON.parse(event.body); } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
+  }
+
+  // Comprar exige conta: o pedido fica ligado ao e-mail de quem está logada
+  const accountEmail = await readToken(b.token, event).catch(() => null);
+  if (!accountEmail) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Entre na sua conta para finalizar o pedido', needLogin: true }) };
   }
 
   const items = (Array.isArray(b.itemsDetailed) ? b.itemsDetailed : []).slice(0, 60).map(it => ({
@@ -52,7 +59,7 @@ exports.handler = async function (event) {
     createdAt: new Date().toISOString(),
     paymentMethod: b.paymentMethod === 'pix' ? 'pix' : 'whatsapp',
     paymentDetail: b.paymentMethod === 'pix' ? 'pix' : undefined,
-    accountEmail: clean(b.accountEmail, 120).toLowerCase(),
+    accountEmail: clean(accountEmail, 120).toLowerCase(),
     customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120) },
     address: {
       cep: clean(address.cep, 12), street: clean(address.street, 160), number: clean(address.number, 20),

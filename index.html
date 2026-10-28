@@ -1094,7 +1094,7 @@
               <div class="form-field"><label>WhatsApp</label><input id="ckPhone" placeholder="(11) 90000-0000"></div>
             </div>
             <div class="form-row">
-              <div class="form-field"><label>E-mail (opcional)</label><input id="ckEmail" type="email" placeholder="seu@email.com"></div>
+              <div class="form-field"><label>E-mail da sua conta</label><input id="ckEmail" type="email" placeholder="seu@email.com" readonly style="background:#F7F3FD; color:var(--ink-soft);"></div>
             </div>
             <div class="form-row">
               <div class="form-field"><label>CEP</label><input id="ckCep" placeholder="00000-000"></div>
@@ -2750,7 +2750,21 @@ function closeProduct(){
 /* =====================================================
    CHECKOUT
 ===================================================== */
-function goToCheckout(){ closeCart(); showView('checkout'); }
+// Para comprar é obrigatório ter conta: assim todo pedido aparece em "Minha conta" com resumo e status
+let AUTH_THEN_CHECKOUT = false;
+function sessionValid(u){
+  try { const p = JSON.parse(atob(u.token.split('.')[0].replace(/-/g,'+').replace(/_/g,'/'))); return !p.x || p.x > Date.now() + 60000; }
+  catch(e){ return true; }
+}
+function requireAccountForCheckout(tab){
+  const u = getLoggedInUser();
+  if(u && sessionValid(u)) return true;
+  if(u){ try { localStorage.removeItem('bielyy_user'); } catch(e){} updateAccountUI(); tab = 'login'; }
+  AUTH_THEN_CHECKOUT = true;
+  openAuthModal(tab || 'signup');
+  return false;
+}
+function goToCheckout(){ closeCart(); if(!requireAccountForCheckout()) return; showView('checkout'); }
 function renderCheckout(){
   const lines = cartLines();
   const list = document.getElementById('ckItemsList');
@@ -2856,14 +2870,22 @@ function showPixPayment(orderNsu, amount, buyerName){
   document.getElementById('pixModal').classList.add('show');
   document.getElementById('overlay').classList.add('show');
 }
+function sessionExpiredAtCheckout(){
+  try { localStorage.removeItem('bielyy_user'); } catch(e){}
+  updateAccountUI();
+  AUTH_THEN_CHECKOUT = true;
+  openAuthModal('login');
+  pulseToast('Sua sessão expirou: entre de novo para finalizar 💜');
+}
 function startPixOrder(o){
   const btn = document.getElementById('finalizeBtn');
   if(btn){ btn.disabled = true; btn.textContent = 'Gerando o Pix...'; }
   const orderNsu = 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);
   fetch('/.netlify/functions/create-order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(Object.assign({ order_nsu: orderNsu, paymentMethod: 'pix' }, o.body)) })
-    .then(r => r.json().then(j => ({ ok: r.ok, j })))
-    .then(({ ok, j }) => {
+    .then(r => r.json().then(j => ({ ok: r.ok, j, st: r.status })))
+    .then(({ ok, j, st }) => {
       if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; }
+      if(st === 401){ sessionExpiredAtCheckout(); return; }
       if(!ok || !j.success){ pulseToast('Não deu para registrar o pedido agora. Tente de novo ou feche pelo WhatsApp 💜'); return; }
       if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
       cart = {}; saveCart(); updateCartCount(); try { renderCart(); renderCheckout(); } catch(e){}
@@ -2889,6 +2911,7 @@ function stockItemsOf(lines){
 }
 async function finalizeOrder(){
   if(finalizeOrder.busy) return;
+  if(!requireAccountForCheckout('login')) return;
   finalizeOrder.busy = true;
   const before = JSON.stringify(cart);
   const btn = document.getElementById('finalizeBtn'); const old = btn ? btn.textContent : '';
@@ -2980,7 +3003,7 @@ function finalizeOrderNow(){
           customer: {name, phone, email},
           address: { cep: cepCk, street, number, complement, neighborhood, city },
           itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total,
-          accountEmail: (getLoggedInUser() || {}).email || ''
+          accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
         })
       }).catch(()=>{});
     } catch(e){}
@@ -3016,7 +3039,7 @@ function finalizeOrderNow(){
         customer: { name, phone, email },
         address: { cep: cepCk, street, number, complement, neighborhood, city },
         itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total: amount,
-        accountEmail: (getLoggedInUser() || {}).email || ''
+        accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
       } });
       return;
     }
@@ -3055,7 +3078,7 @@ function finalizeOrderNow(){
       stockItems: stockItemsOf(lines),
       subtotal: sub,
       coupon: couponInfo,
-      accountEmail: (getLoggedInUser() || {}).email || ''
+      accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
     };
     const btn = document.getElementById('finalizeBtn');
     if(btn){ btn.disabled = true; btn.textContent = 'Gerando link de pagamento...'; }
@@ -3064,8 +3087,9 @@ function finalizeOrderNow(){
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     })
-      .then(r => r.json().then(data => ({ok: r.ok, data})))
-      .then(({ok, data}) => {
+      .then(r => r.json().then(data => ({ok: r.ok, data, st: r.status})))
+      .then(({ok, data, st}) => {
+        if(st === 401){ if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; } sessionExpiredAtCheckout(); return; }
         if(ok && data.url){
           if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
           try {
@@ -3122,6 +3146,7 @@ function openAuthModal(tab){
   if(getLoggedInUser()) renderAccount(); else renderAuthModal(tab || 'login');
 }
 function closeAuthModal(){
+  AUTH_THEN_CHECKOUT = false;
   document.getElementById('authModal').classList.remove('show');
   document.getElementById('overlay').classList.remove('show');
 }
@@ -3134,6 +3159,7 @@ function renderAuthModal(tab){
   body.innerHTML = `
     <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:4px;">${isLogin ? 'Entrar na sua conta 🐾' : 'Criar sua conta 🐾'}</h2>
     <p style="color:var(--ink-soft); font-size:13px; margin-bottom:14px;">${isLogin ? 'Veja seus pedidos, o andamento e o código de rastreio.' : 'Com a conta você acompanha todos os seus pedidos num lugar só — e ganha <b style="color:var(--pink)">R$ 10 OFF na primeira compra</b> com o cupom <b style="color:var(--pink)">BIELYY10</b> 🎁'}</p>
+    ${AUTH_THEN_CHECKOUT ? `<div style="background:#F3ECFF; border:1.5px dashed var(--pink); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.5; color:var(--ink); margin-bottom:14px;">🛍️ <b>Para finalizar a compra, ${isLogin ? 'entre na sua conta' : 'crie sua conta'}.</b> Leva menos de 1 minuto e você acompanha o pedido, o status e o rastreio em <b>Minha conta</b>, além de ganhar cupons de cliente fiel.</div>` : ''}
     <div style="display:flex; gap:8px; margin-bottom:16px;">${tabBtn('login','Entrar')}${tabBtn('signup','Criar conta')}</div>
     ${isLogin ? '' : `<input id="authName" placeholder="Seu nome" autocomplete="name" style="${AUTH_INPUT}">
     <input id="authPhone" type="tel" placeholder="Seu WhatsApp (com DDD)" autocomplete="tel" style="${AUTH_INPUT}">`}
@@ -3173,6 +3199,7 @@ function doAuth(mode){
       if(mode === 'signup' && Object.keys(cart).length && !appliedCoupon){
         const ci = document.getElementById('couponInput'); if(ci){ ci.value = PROMO10; applyCoupon(); }
       }
+      if(AUTH_THEN_CHECKOUT){ closeAuthModal(); showView('checkout'); return; }
       renderAccount();
     })
     .catch(err => {
@@ -3224,8 +3251,8 @@ function renderAccount(){
         const d = o.createdAt ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '';
         const items = (o.items || []).slice(0, 3).map(i => `${escH(i.qty)}x ${escH(i.name)}`).join('<br>') + ((o.items || []).length > 3 ? `<br>+ ${o.items.length - 3} item(ns)` : '');
         return `<div style="border:1.5px solid var(--lavender); border-radius:14px; padding:12px 14px; margin-bottom:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-            <b style="font-size:13.5px;">#${escH(o.order_nsu)}</b>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px 8px; margin-bottom:6px;">
+            <b style="font-size:13.5px; min-width:0; overflow-wrap:anywhere;">#${escH(o.order_nsu)}</b>
             <span style="font-size:11px; font-weight:700; color:${st[1]}; background:${st[2]}; padding:3px 9px; border-radius:999px; white-space:nowrap;">${escH(st[0])}</span>
           </div>
           <div style="font-size:12px; color:var(--ink-soft); margin-bottom:6px;">${d}${o.total != null ? ' · ' + fmt(Number(o.total)) : ''}</div>
@@ -3286,7 +3313,8 @@ function prefillCheckout(){
   const user = getLoggedInUser();
   if(!user) return;
   const fill = (id, v) => { const el = document.getElementById(id); if(el && !el.value && v) el.value = v; };
-  fill('ckName', user.name); fill('ckPhone', user.phone); fill('ckEmail', user.email);
+  fill('ckName', user.name); fill('ckPhone', user.phone);
+  const em = document.getElementById('ckEmail'); if(em) em.value = user.email;
 }
 function updateAccountUI(){
   const user = getLoggedInUser();

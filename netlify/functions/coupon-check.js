@@ -16,8 +16,15 @@ exports.handler = async function (event) {
   try {
     const emails = new Set();
     const e1 = lower(body.email); if (/@/.test(e1)) emails.add(e1.slice(0, 120));
-    if (body.token) { const e2 = await readToken(body.token, event); if (e2) emails.add(e2); }
-    const ph = phoneKey(body.phone);
+    let acctPhone = '';
+    if (body.token) {
+      const e2 = await readToken(body.token, event);
+      if (e2) {
+        emails.add(e2);
+        try { const u = await blobStore('users', event).get(e2, { type: 'json' }); acctPhone = u && u.phone; } catch (e) {}
+      }
+    }
+    const ph = phoneKey(body.phone) || phoneKey(acctPhone);
     if (!emails.size && !ph) return { statusCode: 200, headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ first: true, checked: false }) };
 
     const store = blobStore('orders', event);

@@ -1,11 +1,13 @@
 // Netlify Function: lista os pedidos da cliente que está logada
 // Rota automática: /.netlify/functions/my-orders  (POST { token })
-// Mostra os pedidos feitos com o mesmo e-mail da conta.
+// Mostra os pedidos feitos com o mesmo e-mail da conta e também os pedidos antigos
+// feitos sem conta (só com o WhatsApp) que usaram o mesmo WhatsApp do cadastro.
 
 const { blobStore } = require('../lib/blobs');
 const { readToken } = require('../lib/session');
 
 const lower = (v) => String(v || '').trim().toLowerCase();
+const phoneKey = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : ''; };
 
 function itemsOf(o) {
   if (Array.isArray(o.itemsDetailed) && o.itemsDetailed.length) {
@@ -29,11 +31,15 @@ exports.handler = async function (event) {
       return { statusCode: 401, body: JSON.stringify({ error: 'Sua sessão expirou. Entre de novo.' }) };
     }
 
+    let ph = '';
+    try { const u = await blobStore('users', event).get(email, { type: 'json' }); ph = phoneKey(u && u.phone); } catch (e) {}
+
     const store = blobStore('orders', event);
     const { blobs } = await store.list();
     const all = await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' }).catch(() => null)));
     const mine = all
-      .filter(o => o && (lower(o.accountEmail) === email || lower(o.customer && o.customer.email) === email))
+      .filter(o => o && (lower(o.accountEmail) === email || lower(o.customer && o.customer.email) === email ||
+        (ph && !o.accountEmail && phoneKey(o.customer && o.customer.phone) === ph)))
       .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
       .slice(0, 50)
       .map(o => ({
