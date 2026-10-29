@@ -5,17 +5,19 @@
 //     - stock: estoque definido por você no painel (número absoluto)
 //     - sold:  quanto já vendeu DEPOIS que você definiu esse estoque (o site mostra stock - sold)
 //   added[id]    = produto novo cadastrado pelo painel (mesmo formato dos produtos do site)
+//   kits[id]     = kit montado ou alterado no painel ({ removed: true } = kit do site excluído)
+//   products[id].story = textos da página do produto alterados no painel
 const { blobStore } = require('./blobs');
 
 const KEY = 'overrides';
 
-function emptyDoc() { return { products: {}, added: {}, updatedAt: null, v: 0 }; }
+function emptyDoc() { return { products: {}, added: {}, kits: {}, updatedAt: null, v: 0 }; }
 
 async function getDoc(event) {
   try {
     const d = await blobStore('catalog', event).get(KEY, { type: 'json' });
     if (d && typeof d === 'object') {
-      d.products = d.products || {}; d.added = d.added || {};
+      d.products = d.products || {}; d.added = d.added || {}; d.kits = d.kits || {};
       return d;
     }
   } catch (e) { /* sem catálogo salvo ainda */ }

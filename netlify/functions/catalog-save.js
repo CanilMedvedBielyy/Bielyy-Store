@@ -5,6 +5,9 @@
 //   op 'remove' : { id }              -> apaga um produto cadastrado pelo painel
 //   op 'reset'  : { id }              -> desfaz as alterações de um produto do site (volta ao original)
 //   op 'photo'  : { id, dataUrl }     -> troca/coloca a foto (vale para qualquer produto)
+//   op 'kit'    : { id?, kit }        -> monta um kit novo ou altera um kit (itens, opções, textos)
+//   op 'kit-del': { id }              -> exclui um kit (os kits do site ficam guardados e podem ser restaurados)
+//   op 'kit-reset': { id }            -> desfaz as alterações de um kit do site (ou restaura um kit excluído)
 const crypto = require('crypto');
 const { blobStore } = require('../lib/blobs');
 const { getDoc, saveDoc } = require('../lib/catalog');
@@ -48,7 +51,47 @@ function cleanPatch(p) {
   if ('category' in p && txt(p.category, 60)) o.category = txt(p.category, 60);
   if ('variants' in p) { const v = cleanVariants(p.variants); if (v) o.variants = v; }
   if ('cost' in p) { const c = money(p.cost); o.cost = c; }
+  if ('story' in p) { const st = cleanStory(p.story); if (st) o.story = st; }
   return o;
+}
+
+// lista de textos (aceita lista ou texto com uma linha por item)
+const lines = (v, n, m) => (Array.isArray(v) ? v : String(v == null ? '' : v).split('\n')).map(x => txt(x, m)).filter(Boolean).slice(0, n);
+
+// textos da página do produto: etiquetas, frase, "por que precisa", benefícios, como usar, cuidados
+function cleanStory(s) {
+  if (!s || typeof s !== 'object') return null;
+  return { t: lines(s.t, 5, 40), h: txt(s.h, 240), w: txt(s.w, 2000), b: lines(s.b, 8, 240), u: lines(s.u, 10, 400), c: lines(s.c, 10, 400) };
+}
+
+const KIT_SIZES = ['PP', 'P', 'M', 'G', 'GG'];
+// kit montado no painel: só produtos da loja (id < 9000) e 'PICK' (item que a cliente escolhe)
+function cleanKit(k) {
+  if (!k || typeof k !== 'object') return { error: 'Kit inválido' };
+  const name = txt(k.name, 70);
+  if (!name) return { error: 'Coloque o nome do kit' };
+  const variants = (Array.isArray(k.variants) ? k.variants : []).slice(0, 12).map(v => ({
+    label: txt(v && v.label, 70) || 'Kit completo',
+    items: (Array.isArray(v && v.items) ? v.items : []).slice(0, 12).map(it => {
+      const raw = Array.isArray(it) ? it[0] : null;
+      const id = raw === 'PICK' ? 'PICK' : parseInt(raw, 10);
+      const q = Math.max(1, Math.min(9, parseInt(Array.isArray(it) ? it[1] : 1, 10) || 1));
+      return (id === 'PICK' || (id > 0 && id < 9000)) ? [id, q] : null;
+    }).filter(Boolean)
+  })).filter(v => v.items.length);
+  if (!variants.length) return { error: 'Coloque pelo menos um produto no kit' };
+  const hasPick = variants.some(v => v.items.some(i => i[0] === 'PICK'));
+  const pickIds = (k.pick && Array.isArray(k.pick.ids) ? k.pick.ids : []).map(x => parseInt(x, 10)).filter(x => x > 0 && x < 9000).slice(0, 15);
+  if (hasPick && !pickIds.length) return { error: 'Escolha os produtos do "item à escolha da cliente"' };
+  const kit = {
+    name, emoji: txt(k.emoji, 8) || '🎁',
+    sizes: (Array.isArray(k.sizes) ? k.sizes : []).filter(s => KIT_SIZES.includes(s)),
+    tags: lines(k.tags, 5, 40), hook: txt(k.hook, 240), why: txt(k.why, 2000), how: lines(k.how, 10, 400),
+    variants, pick: hasPick ? { label: txt(k.pick && k.pick.label, 60) || 'Escolha o item', ids: pickIds } : null
+  };
+  if (/^#[0-9a-fA-F]{6}$/.test(String(k.color || ''))) kit.color = k.color;
+  if (txt(k.by, 40)) kit.by = txt(k.by, 40);
+  return { kit };
 }
 
 async function savePhoto(event, id, dataUrl) {
@@ -67,7 +110,7 @@ function pickNewest(doc, base) {
   if (!base || typeof base !== 'object') return doc;
   if (!(Number(base.v) > Number(doc.v || 0))) return doc;
   if (typeof base.products !== 'object' || typeof base.added !== 'object' || !base.products || !base.added) return doc;
-  return { products: base.products, added: base.added, settings: (base.settings && typeof base.settings === 'object') ? base.settings : (doc.settings || {}),
+  return { products: base.products, added: base.added, kits: (base.kits && typeof base.kits === 'object') ? base.kits : (doc.kits || {}), settings: (base.settings && typeof base.settings === 'object') ? base.settings : (doc.settings || {}),
            v: Number(base.v), updatedAt: base.updatedAt || doc.updatedAt };
 }
 
@@ -134,6 +177,25 @@ exports.handler = async function (event) {
       // "modo inauguração": loja fechada (produtos aparecem como "Chegando em breve" e ninguém finaliza pedido)
       const st = body.settings || {};
       doc.settings = Object.assign({}, doc.settings || {}, { closed: !!st.closed });
+    } else if (body.op === 'kit') {
+      const r = cleanKit(body.kit);
+      if (r.error) return { statusCode: 400, body: JSON.stringify({ error: r.error }) };
+      doc.kits = doc.kits || {};
+      let kid = Number(id) >= 9000 ? Number(id) : 0;
+      if (!kid) { kid = 9100; while (doc.kits[String(kid)]) kid++; } // kits novos começam no 9100
+      doc.kits[String(kid)] = r.kit;
+      await saveDoc(doc, event);
+      return { statusCode: 200, body: JSON.stringify({ success: true, id: kid, doc }) };
+    } else if (body.op === 'kit-del') {
+      if (!(Number(id) >= 9000)) return { statusCode: 400, body: JSON.stringify({ error: 'Kit inválido' }) };
+      doc.kits = doc.kits || {};
+      if (Number(id) >= 9100) delete doc.kits[id];  // kit montado no painel: apaga de vez
+      else doc.kits[id] = { removed: true };        // kit do site: fica escondido (dá para restaurar)
+      delete doc.products[id];
+    } else if (body.op === 'kit-reset') {
+      if (!(Number(id) >= 9000)) return { statusCode: 400, body: JSON.stringify({ error: 'Kit inválido' }) };
+      doc.kits = doc.kits || {};
+      delete doc.kits[id];
     } else if (body.op === 'reset') {
       delete doc.products[id];
     } else if (body.op === 'photo') {

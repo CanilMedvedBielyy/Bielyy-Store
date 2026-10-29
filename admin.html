@@ -92,6 +92,11 @@
   .pe-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px 12px;} .pe-grid label{font-size:12.5px; font-weight:700; color:var(--ink);} .pe-full{grid-column:1/-1;}
   .pe-var{display:grid; grid-template-columns:1.4fr 1fr 1fr auto auto; gap:6px; align-items:center; margin-top:6px;}
   .pe-var input[type=text],.pe-var input[type=number]{padding:8px 9px; border-radius:9px; border:1.5px solid var(--line); width:100%;}
+  .ke-var{border:1.5px solid var(--line); border-radius:14px; padding:10px; margin-top:10px; background:#FCFAFF;}
+  .ke-item{display:grid; grid-template-columns:1fr 58px 32px; gap:6px; margin-top:6px; align-items:center;}
+  .ke-item select{min-width:0;} .ke-item input{padding:8px 9px; border-radius:9px; border:1.5px solid var(--line); width:100%;}
+  .ke-thumbs{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 4px;} .ke-thumbs img,.ke-thumbs .p-ph{width:46px; height:46px; border-radius:10px; object-fit:cover; font-size:16px;}
+  .ke-sum{margin-top:8px; font-size:13px;} .ke-sizes{display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; font-size:13.5px;} .ke-sizes label{display:flex; gap:5px; align-items:center; font-weight:600;}
   .pe-photo{display:flex; gap:12px; align-items:center;} .pe-photo img,.pe-photo .p-ph{width:90px; height:90px; border-radius:14px; object-fit:cover;}
   @media (max-width:640px){ .p-row{grid-template-columns:48px 1fr;} .p-row img,.p-ph{width:48px;height:48px;} .p-act{grid-column:1/-1; justify-content:flex-start;} .pe-grid{grid-template-columns:1fr;} .pe-var{grid-template-columns:1fr 1fr 1fr; } }
   /* detalhe do pedido */
@@ -774,6 +779,8 @@ function pxTest(){
 let CAT_BASE = null;     // catálogo original do site (lido do index.html)
 let CAT_IMG = {};
 let CAT_KITS = [];
+let CAT_KITDEFS = [];   // kits originais do site (lidos do index.html)
+let CAT_STORY = {};     // textos originais da página de cada produto
 let CAT_DOC = { products:{}, added:{} };
 let P_DIRTY = {};        // estoque digitado e ainda não salvo
 const PIX_DIV = 0.65*0.85, CARD_DIV = (1-0.05-0.0828-0.30)*0.85; // mesma fórmula da precificação (30% de margem já com cupom e taxa)
@@ -791,6 +798,10 @@ async function loadProducts(force){
       while((km = kre.exec(html))) CAT_KITS.push({ id: Number(km[1]), name: km[2] + ' ' + km[3] + (km[4] ? ' by ' + km[4] : ''), soon: /soon: true/.test(km[5]) });
       { const kre2 = /\n  \{ id: (90\d\d), emoji: '([^']*)', name: '([^']*)'/g; let k2; while((k2 = kre2.exec(html))) if(!CAT_KITS.find(k=>k.id===Number(k2[1]))) CAT_KITS.push({ id: Number(k2[1]), name: k2[2] + ' ' + k2[3], soon: false }); }
       CAT_IMG = grab('PRODUCT_IMAGES') || {};
+      CAT_STORY = grab('PRODUCT_STORY') || {};
+      // kits do site completos (itens, opções e textos), para montar e alterar no painel
+      try { const a = html.indexOf('const KIT_DEFS = ['), b = html.indexOf('const KIT_MAX_PER_KIT', a);
+        CAT_KITDEFS = (a >= 0 && b > a) ? (new Function(html.slice(a, b) + '\nreturn KIT_DEFS;'))() : []; } catch(e){ CAT_KITDEFS = []; }
       CAT_BASE = [...pf.map(f=>Object.assign(f,{preorder:false})), ...pre.map(f=>Object.assign(f,{preorder:true}))];
     } catch(e){ box.innerHTML = '<div class="empty">Não consegui ler o catálogo do site.</div>'; return; }
   }
@@ -800,7 +811,7 @@ async function loadProducts(force){
     const fresh = await fetch('/.netlify/functions/catalog?nc='+Date.now(), {cache:'no-store'}).then(r=>r.json());
     if(fresh && (!CAT_DOC || !(Number(CAT_DOC.v) > Number(fresh.v||0)))) CAT_DOC = fresh;
   } catch(e){}
-  CAT_DOC.products = CAT_DOC.products || {}; CAT_DOC.added = CAT_DOC.added || {};
+  CAT_DOC.products = CAT_DOC.products || {}; CAT_DOC.added = CAT_DOC.added || {}; CAT_DOC.kits = CAT_DOC.kits || {};
   renderProducts();
 }
 function pAll(){
@@ -891,14 +902,7 @@ function renderProducts(){
   });
   const fmtR = v => v ? 'R$ '+Number(v).toFixed(2).replace('.',',') : '—';
   const kitsBox = document.getElementById('kitsList');
-  if(kitsBox){
-    kitsBox.innerHTML = CAT_KITS.length ? '<div class="p-sub" style="margin:4px 0 8px;font-weight:700">🎁 Kits</div>' + CAT_KITS.map(k => {
-      const o = CAT_DOC.products[String(k.id)] || {}; const held = ('soldOut' in o) ? !!o.soldOut : k.soon;
-      return `<div class="p-row"><div class="p-ph">🎁</div><div><div class="p-name">${esc(k.name)} ${held ? (k.soon && !('soldOut' in o) ? '<span class="p-badge b-pre">⏳ Aguardando</span>' : '<span class="p-badge b-out">Pausado</span>') : '<span class="p-badge b-low" style="background:#E3F6EC;color:#2E8C68">À venda</span>'}</div>
-        <div class="p-sub">O kit só vende quando todos os produtos dele têm estoque.</div></div>
-        <div class="p-act">${held ? `<button class="btn" style="width:auto;height:auto;border-radius:999px;font-size:12px;padding:7px 12px" onclick="kitToggle(${k.id}, false)">✅ Ativar kit</button>` : `<button class="ghost" onclick="kitToggle(${k.id}, true)">⏸ Pausar kit</button>`}</div></div>`;
-    }).join('') : '';
-  }
+  if(kitsBox) kitsBox.innerHTML = renderKitsList();
   document.getElementById('productsList').innerHTML = list.length ? list.map(p => {
     const v0 = p.variants[0] || {};
     const img = pPhoto(p.photo);
@@ -934,14 +938,14 @@ function pStep(id, d){
 let CAT_QUEUE = Promise.resolve();
 function catSave(body){
   const run = async () => {
-    const base = (CAT_DOC && CAT_DOC.v) ? { v: CAT_DOC.v, products: CAT_DOC.products || {}, added: CAT_DOC.added || {}, settings: CAT_DOC.settings || {}, updatedAt: CAT_DOC.updatedAt } : null;
+    const base = (CAT_DOC && CAT_DOC.v) ? { v: CAT_DOC.v, products: CAT_DOC.products || {}, added: CAT_DOC.added || {}, kits: CAT_DOC.kits || {}, settings: CAT_DOC.settings || {}, updatedAt: CAT_DOC.updatedAt } : null;
     let r, d;
     try {
       r = await fetch('/.netlify/functions/catalog-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:PASSWORD, base},body))});
       d = await r.json().catch(()=>({}));
     } catch(e){ throw new Error('Sem conexão com o site. Confira a internet e tente de novo.'); }
     if(!r.ok || !d.success) throw new Error(d.error || ('Erro ao salvar (código ' + r.status + ')'));
-    CAT_DOC = d.doc; CAT_DOC.products = CAT_DOC.products||{}; CAT_DOC.added = CAT_DOC.added||{};
+    CAT_DOC = d.doc; CAT_DOC.products = CAT_DOC.products||{}; CAT_DOC.added = CAT_DOC.added||{}; CAT_DOC.kits = CAT_DOC.kits||{};
     return d;
   };
   const p = CAT_QUEUE.then(run, run);
@@ -976,6 +980,193 @@ function pShrink(file){
     img.src = url;
   });
 }
+
+/* ============ kits: montar e alterar ============ */
+const KIT_DISC = 0.08; // mesmo desconto do site: soma dos produtos com 8% de desconto
+function kPrice(v){ return v > 50 ? Math.floor(v) - 0.10 : Math.round(v*100)/100; } // termina em ,90
+const kFmt = v => 'R$ ' + Number(v||0).toFixed(2).replace('.',',');
+const KIT_COLORS = [['#F3ECFF','Lilás'],['#FFE4EF','Rosa'],['#E3EDFF','Azul'],['#E8F1FF','Azul-claro'],['#FFF4D6','Amarelo'],['#FFF1D6','Laranja-claro'],['#FFE9DC','Pêssego'],['#E6F7F4','Verde-água'],['#EDE7FF','Roxo-claro'],['#F1EEF8','Cinza-lilás']];
+// todos os kits: os do site (com as alterações do painel) + os montados no painel
+function kAll(){
+  const O = (CAT_DOC && CAT_DOC.kits) || {}, out = [];
+  const src = CAT_KITDEFS.length ? CAT_KITDEFS : CAT_KITS.map(k => ({ id:k.id, name:k.name, soon:k.soon, variants:[] }));
+  src.forEach(k => {
+    const o = O[String(k.id)];
+    if(o && o.removed){ out.push(Object.assign({}, k, { base:true, removed:true, changed:true })); return; }
+    out.push(Object.assign({}, k, (o && o.name) ? o : {}, { id:k.id, soon:k.soon, base:true, changed: !!(o && o.name) }));
+  });
+  Object.keys(O).forEach(id => { const o = O[id]; if(!o || o.removed || !o.name || src.some(k => String(k.id) === id)) return; out.push(Object.assign({}, o, { id:Number(id), base:false, changed:true })); });
+  return out;
+}
+// preço e estoque de uma opção do kit (pickId = produto escolhido no "item à escolha")
+function kVarInfo(items, pickId, all){
+  let pix = 0, card = 0, cap = Infinity; const miss = [], comps = [];
+  items.forEach(([id, q]) => {
+    const pid = id === 'PICK' ? pickId : id; q = Number(q) || 1;
+    const p = all.find(x => x.id === Number(pid));
+    if(!p){ miss.push('produto apagado'); cap = 0; return; }
+    comps.push({ p, q });
+    const v0 = p.variants[0] || {};
+    pix += (Number(v0.pix) || Number(v0.cartao) || 0) * q; card += (Number(v0.cartao) || 0) * q;
+    const c = (p.hidden || p.preorder || p.out || v0.available === false) ? 0 : Math.floor(p.stock / q);
+    if(c <= 0) miss.push(p.name + (p.soon ? ' (aguardando chegada)' : p.hidden ? ' (oculto)' : p.preorder ? ' (sob encomenda)' : ' (sem estoque)'));
+    cap = Math.min(cap, c);
+  });
+  return { pix: kPrice(pix*(1-KIT_DISC)), cartao: kPrice(card*(1-KIT_DISC)), fullPix: Math.round(pix*100)/100, cap: cap === Infinity ? 0 : cap, miss, comps };
+}
+function kSummary(k, all){
+  const vs = (k.variants || []).flatMap(v => (v.items.some(it => it[0] === 'PICK') && k.pick ? k.pick.ids : [null]).map(pid => kVarInfo(v.items, pid, all)));
+  if(!vs.length) return { from: 0, cap: 0, photo: null };
+  const first = vs[0].comps.find(c => c.p.photo);
+  return { from: Math.min(...vs.map(x => x.pix)), cap: Math.max(...vs.map(x => x.cap)), photo: first ? first.p.photo : null };
+}
+function renderKitsList(){
+  const all = pAll(), kits = kAll();
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 8px"><b class="p-sub" style="font-weight:700">🎁 Kits (${kits.filter(k=>!k.removed).length})</b>
+    <button class="btn" style="font-size:12px;padding:7px 12px" onclick="openKitEditor(null)">➕ Montar novo kit</button></div>`;
+  return head + kits.map(k => {
+    if(k.removed) return `<div class="p-row" style="opacity:.6"><div class="p-ph">🗑</div><div><div class="p-name">${esc(k.emoji||'')} ${esc(k.name)} <span class="p-badge b-hid">Excluído</span></div><div class="p-sub">Não aparece no site.</div></div>
+      <div class="p-act"><button class="ghost" onclick="kitReset(${k.id}, true)">↺ Restaurar</button></div></div>`;
+    const o = CAT_DOC.products[String(k.id)] || {}; const held = ('soldOut' in o) ? !!o.soldOut : !!k.soon;
+    const sm = kSummary(k, all); const img = pPhoto(sm.photo);
+    const st = held ? (k.soon && !('soldOut' in o) ? '<span class="p-badge b-pre">⏳ Aguardando</span>' : '<span class="p-badge b-out">Pausado</span>')
+      : (sm.cap > 0 ? '<span class="p-badge b-low" style="background:#E3F6EC;color:#2E8C68">À venda</span>' : '<span class="p-badge b-out">Falta estoque</span>');
+    return `<div class="p-row">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="p-ph">🎁</div>'}
+      <div><div class="p-name">${esc(k.emoji||'')} ${esc(k.name)}${k.by ? ' by '+esc(k.by) : ''} ${st}${!k.base ? '<span class="p-badge b-new">Novo</span>' : ''}</div>
+        <div class="p-sub">${(k.variants||[]).length} ${(k.variants||[]).length === 1 ? 'opção' : 'opções'} · a partir de ${kFmt(sm.from)} no Pix${sm.cap > 0 ? ' · dá para vender ' + sm.cap : ''}</div></div>
+      <div class="p-act"><button class="ghost" onclick="openKitEditor(${k.id})">✏️ Editar</button>
+        ${held ? `<button class="btn" style="width:auto;height:auto;border-radius:999px;font-size:12px;padding:7px 12px" onclick="kitToggle(${k.id}, false)">✅ Ativar</button>` : `<button class="ghost" onclick="kitToggle(${k.id}, true)">⏸ Pausar</button>`}</div></div>`;
+  }).join('');
+}
+let KE = null, KE_ALL = [], KE_OPTS = [];
+function keOptions(sel, noPick){
+  const cur = String(sel);
+  const opt = p => `<option value="${p.id}" ${String(p.id) === cur ? 'selected' : ''}>${esc(p.name)}${p.hidden ? ' (oculto)' : p.preorder ? ' (encomenda)' : p.soon ? ' (chegando)' : p.out ? ' (sem estoque)' : ' · ' + p.stock + ' em estoque'}</option>`;
+  return `<option value="0">Escolha um produto…</option>` + (noPick ? '' : `<option value="PICK" ${cur === 'PICK' ? 'selected' : ''}>⭐ Item à escolha da cliente</option>`)
+    + KE_OPTS.filter(p => !p.preorder || String(p.id) === cur).map(opt).join('');
+}
+function openKitEditor(id){
+  CUR = null;
+  const k = id == null ? null : kAll().find(x => x.id === id);
+  const how = k ? (Array.isArray(k.how) ? k.how : (k.how ? [k.how] : [])) : [];
+  KE = { id: k ? k.id : null, base: !!(k && k.base), changed: !!(k && k.changed),
+    d: JSON.parse(JSON.stringify(k ? { name:k.name||'', emoji:k.emoji||'🎁', by:k.by||'', color:k.color||'#F3ECFF', sizes:k.sizes||[], tags:k.tags||[], hook:k.hook||'', why:k.why||'', how, variants:k.variants||[], pick:k.pick||null }
+      : { name:'', emoji:'🎁', by:'', color:'#F3ECFF', sizes:[], tags:[], hook:'', why:'', how:[], variants:[{ label:'Kit completo', items:[[0,1]] }], pick:null })) };
+  KE_ALL = pAll(); KE_OPTS = KE_ALL.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+  const d = KE.d;
+  document.getElementById('detail').innerHTML = `
+    <div class="d-top"><h2>${k ? '✏️ ' + esc(d.name) : '🎁 Montar novo kit'}</h2><button class="x" onclick="closeDetail()">✕</button></div>
+    <div class="card"><h3>🧺 Produtos do kit</h3>
+      <p class="hint">Cada opção é um tamanho ou uma versão do kit (ex.: <b>M · até 15 kg</b> e <b>G · de 15 a 30 kg</b>). As fotos, o preço e o estoque vêm direto dos produtos da loja: o preço é a soma dos produtos com 8% de desconto, terminando em ,90, e o kit só vende quando todos os produtos têm estoque.</p>
+      <div id="keVars"></div>
+      <button class="ghost" style="margin-top:10px" onclick="keAddVar()">+ Adicionar opção (outro tamanho)</button></div>
+    <div class="card"><h3>⭐ Item à escolha da cliente <span class="hint" style="font-weight:400">(opcional)</span></h3><div id="kePick"></div></div>
+    <div class="card"><h3>📝 Nome e textos</h3><div class="pe-grid">
+      <div class="pe-full"><label>Nome do kit</label><input class="field" id="keName" value="${esc(d.name)}" placeholder="Ex.: Kit Boas-Vindas Filhote"></div>
+      <div><label>Emoji</label><input class="field" id="keEmoji" value="${esc(d.emoji)}" maxlength="8"></div>
+      <div><label>Cor do fundo</label><select class="field" id="keColor">${KIT_COLORS.map(([c, n]) => `<option value="${c}" ${c === d.color ? 'selected' : ''}>${n}</option>`).join('')}${KIT_COLORS.some(([c]) => c === d.color) ? '' : `<option value="${esc(d.color)}" selected>Atual</option>`}</select></div>
+      <div class="pe-full"><label>Portes (aparecem no filtro de porte da loja)</label><div class="ke-sizes">${['PP','P','M','G','GG'].map(z => `<label><input type="checkbox" class="keSize" value="${z}" ${d.sizes.includes(z) ? 'checked' : ''}> ${z}</label>`).join('')}</div></div>
+      <div class="pe-full"><label>Recomendado por (opcional, ex.: nome do adestrador)</label><input class="field" id="keBy" value="${esc(d.by)}"></div>
+      <div class="pe-full"><label>Etiquetas (separe por vírgula)</label><input class="field" id="keTags" value="${esc(d.tags.join(', '))}" placeholder="Ex.: Filhote, Primeiros dentes, Presente"></div>
+      <div class="pe-full"><label>Frase de destaque (aparece no card do kit)</label><input class="field" id="keHook" value="${esc(d.hook)}"></div>
+      <div class="pe-full"><label>💜 Por que seu cão precisa</label><textarea class="field" id="keWhy" rows="5">${esc(d.why)}</textarea></div>
+      <div class="pe-full"><label>✨ Como usar (um passo por linha)</label><textarea class="field" id="keHow" rows="5">${esc(d.how.join('\n'))}</textarea></div>
+    </div><p class="hint" style="margin-top:6px">No site, o kit também mostra "🎁 Petisco de brinde na compra do kit" automaticamente.</p></div>
+    <div class="card"><div class="btnrow"><button class="btn" id="keSaveBtn" onclick="keSave()">💾 Salvar e publicar</button>
+      ${KE.base && KE.changed ? `<button class="ghost" onclick="kitReset(${KE.id})">↺ Voltar ao original</button>` : ''}
+      ${KE.id != null ? `<button class="btn red" onclick="kitDelete(${KE.id})">🗑 Excluir kit</button>` : ''}</div></div>`;
+  keVarsRender(); kePickRender();
+  document.getElementById('ov').classList.add('show');
+}
+function keVarsRender(){
+  const V = KE.d.variants;
+  document.getElementById('keVars').innerHTML = V.map((v, i) => `<div class="ke-var">
+    <label style="font-size:12.5px;font-weight:700">Opção ${i+1}: nome que a cliente vê</label>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><input class="field" style="margin:0" value="${esc(v.label)}" placeholder="Ex.: M · até 15 kg" oninput="KE.d.variants[${i}].label=this.value">
+      ${V.length > 1 ? `<button class="x" style="width:32px;height:32px;font-size:13px;flex:none" title="Tirar esta opção" onclick="if(confirm('Tirar a opção ${i+1} do kit?')){ KE.d.variants.splice(${i},1); keVarsRender(); }">✕</button>` : ''}</div>
+    <div class="ke-item hint" style="font-weight:700;margin-top:8px"><span>Produto</span><span>Qtd.</span><span></span></div>
+    ${v.items.map((it, j) => `<div class="ke-item"><select class="field" style="margin:0" onchange="keSetItem(${i},${j},this.value)">${keOptions(it[0])}</select>
+      <input type="number" min="1" max="9" value="${Number(it[1])||1}" oninput="KE.d.variants[${i}].items[${j}][1]=Math.max(1,Math.min(9,parseInt(this.value)||1)); keSum(${i})">
+      <button class="x" style="width:32px;height:32px;font-size:13px" title="Tirar" onclick="KE.d.variants[${i}].items.splice(${j},1); keVarsRender()">✕</button></div>`).join('')}
+    <button class="ghost" style="margin-top:8px" onclick="KE.d.variants[${i}].items.push([0,1]); keVarsRender()">+ Produto</button>
+    <div class="ke-sum" id="keSum${i}"></div></div>`).join('');
+  V.forEach((v, i) => keSum(i));
+}
+function keAddVar(){
+  const last = KE.d.variants[KE.d.variants.length - 1];
+  KE.d.variants.push({ label: '', items: last ? last.items.map(it => [it[0], it[1]]) : [[0,1]] }); // começa copiando a opção anterior
+  keVarsRender();
+}
+function keSetItem(i, j, val){
+  KE.d.variants[i].items[j][0] = val === 'PICK' ? 'PICK' : Number(val);
+  if(val === 'PICK' && !KE.d.pick){ KE.d.pick = { label: 'Escolha o item', ids: [] }; kePickRender(); }
+  keSum(i);
+}
+function keSum(i){
+  const el = document.getElementById('keSum' + i); if(!el) return;
+  const items = KE.d.variants[i].items.filter(it => it[0] && it[0] !== '0');
+  if(!items.length){ el.innerHTML = '<span class="hint">Escolha os produtos desta opção.</span>'; return; }
+  const usesPick = items.some(it => it[0] === 'PICK');
+  const picks = usesPick ? ((KE.d.pick && KE.d.pick.ids) || []) : [null];
+  if(!picks.length){ el.innerHTML = '<span class="hint">Escolha, logo abaixo, os produtos que a cliente pode escolher.</span>'; return; }
+  const infos = picks.map(pid => kVarInfo(items, pid, KE_ALL));
+  const lo = Math.min(...infos.map(x => x.pix)), hi = Math.max(...infos.map(x => x.pix)), card = Math.min(...infos.map(x => x.cartao)), full = Math.min(...infos.map(x => x.fullPix));
+  const cap = Math.max(...infos.map(x => x.cap));
+  const thumbs = infos[0].comps.map(c => { const u = pPhoto(c.p.photo); return u ? `<img src="${esc(u)}" alt="" title="${esc(c.p.name)}">` : '<div class="p-ph">🐾</div>'; }).join('');
+  const miss = [...new Set(infos.flatMap(x => x.miss))];
+  el.innerHTML = `<div class="ke-thumbs">${thumbs}</div>
+    <div><b>Pix ${kFmt(lo)}${hi > lo ? ' a ' + kFmt(hi) : ''}</b> · Cartão ${hi > lo ? 'a partir de ' : ''}${kFmt(card)} <span class="hint">(separados: ${kFmt(full)} no Pix)</span></div>
+    <div class="hint" style="margin-top:2px">${cap > 0 ? `✅ Com o estoque de hoje, dá para vender ${cap} kit${cap > 1 ? 's' : ''} desta opção` : `⏳ Fica indisponível no site até chegar: ${esc(miss.slice(0, 3).join(', '))}`}</div>`;
+}
+function kePickRender(){
+  const box = document.getElementById('kePick'); if(!box) return;
+  if(!KE.d.pick){ box.innerHTML = `<p class="hint">Quer que a cliente escolha um dos itens (ex.: o modelo do lambedor)? Numa opção, escolha <b>⭐ Item à escolha da cliente</b> no lugar de um produto e depois diga aqui quais produtos ela pode escolher.</p>`; return; }
+  const used = KE.d.variants.some(v => v.items.some(it => it[0] === 'PICK'));
+  box.innerHTML = `<label style="font-size:12.5px;font-weight:700">Pergunta para a cliente</label><input class="field" value="${esc(KE.d.pick.label)}" oninput="KE.d.pick.label=this.value" placeholder="Ex.: Escolha o seu LickiMat">
+    <label style="font-size:12.5px;font-weight:700;display:block;margin-top:10px">Produtos que ela pode escolher</label>
+    ${KE.d.pick.ids.map((id, j) => { const p = KE_ALL.find(x => x.id === id); return `<div class="ke-item"><span style="font-size:13.5px">${p ? esc(p.name) : 'Produto apagado'}</span><span></span>
+      <button class="x" style="width:32px;height:32px;font-size:13px" onclick="KE.d.pick.ids.splice(${j},1); kePickRender(); KE.d.variants.forEach((v,i)=>keSum(i))">✕</button></div>`; }).join('')}
+    <select class="field" onchange="if(this.value!=='0'){ KE.d.pick.ids.push(Number(this.value)); kePickRender(); KE.d.variants.forEach((v,i)=>keSum(i)); }">${keOptions(0, true).replace('Escolha um produto…', '+ Adicionar produto à escolha')}</select>
+    ${used ? '' : '<p class="hint" style="margin-top:6px">Nenhuma opção usa o item à escolha: ele não aparece no site.</p>'}`;
+}
+async function keSave(){
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const d = KE.d;
+  const kit = { name: val('keName').trim(), emoji: val('keEmoji').trim() || '🎁', by: val('keBy').trim(), color: val('keColor'),
+    sizes: [...document.querySelectorAll('.keSize:checked')].map(x => x.value),
+    tags: val('keTags').split(',').map(x => x.trim()).filter(Boolean), hook: val('keHook').trim(), why: val('keWhy').trim(),
+    how: val('keHow').split('\n').map(x => x.trim()).filter(Boolean) };
+  if(!kit.name){ alert('Coloque o nome do kit.'); return; }
+  kit.variants = d.variants.map(v => ({ label: (v.label || '').trim() || 'Kit completo', items: v.items.filter(it => it[0] && it[0] !== '0') })).filter(v => v.items.length);
+  if(!kit.variants.length){ alert('Coloque pelo menos um produto no kit.'); return; }
+  const usesPick = kit.variants.some(v => v.items.some(it => it[0] === 'PICK'));
+  if(usesPick && !(d.pick && d.pick.ids.length)){ alert('Escolha os produtos do "Item à escolha da cliente".'); return; }
+  kit.pick = usesPick ? { label: (d.pick.label || '').trim() || 'Escolha o item', ids: d.pick.ids } : null;
+  if(kit.variants.length > 1 && new Set(kit.variants.map(v => v.label.toLowerCase())).size < kit.variants.length){ alert('Duas opções estão com o mesmo nome. Dê um nome diferente para cada uma (ex.: M · até 15 kg e G · de 15 a 30 kg).'); return; }
+  const btn = document.getElementById('keSaveBtn'); btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    await catSave({ op:'kit', id: KE.id, kit });
+    toast(KE.id == null ? 'Kit criado ✓ aparece no site em até 1 minuto' : 'Kit salvo ✓ o site atualiza em até 1 minuto');
+    closeDetail(); renderProducts();
+  } catch(e){ alert(e.message); btn.disabled = false; btn.textContent = '💾 Salvar e publicar'; }
+}
+async function kitDelete(id){
+  if(!confirm(id >= 9100 ? 'Excluir este kit de vez?' : 'Excluir este kit do site? (Dá para restaurar depois na lista de kits.)')) return;
+  try { await catSave({ op:'kit-del', id }); toast('Kit excluído'); closeDetail(); renderProducts(); } catch(e){ alert(e.message); }
+}
+async function kitReset(id, restore){
+  if(!confirm(restore ? 'Restaurar este kit no site, do jeito original?' : 'Desfazer as alterações deste kit e voltar ao original do site?')) return;
+  try { await catSave({ op:'kit-reset', id }); toast(restore ? 'Kit restaurado ✓' : 'Kit voltou ao original'); closeDetail(); renderProducts(); } catch(e){ alert(e.message); }
+}
+
+/* ============ produtos: editor ============ */
+// textos da página do produto (com as alterações do painel)
+function pStory(id){
+  const k = String(id), P = CAT_DOC.products[k] || {}, A = CAT_DOC.added[k] || {};
+  const s = P.story || A.story || CAT_STORY[k] || {};
+  const arr = v => Array.isArray(v) ? v : (v ? [v] : []);
+  return { h: s.h || '', t: arr(s.t), w: s.w || '', b: arr(s.b), u: arr(s.u), c: arr(s.c) };
+}
 let PE = null; // produto sendo editado
 function openProductEditor(id){
   CUR = null;
@@ -985,6 +1176,7 @@ function openProductEditor(id){
   PE = p ? { id:p.id, added:p.added, photoData:null, extra:[null,null], extraDel:[false,false], variants:p.variants.map(v=>Object.assign({},v)) } : { id:null, added:true, photoData:null, extra:[null,null], extraDel:[false,false], variants:[{label:'Único', pix:'', cartao:'', available:true}] };
   const img = p ? pPhoto(p.photo) : '';
   const ex = p ? (p.photos || []) : [];
+  const ST = p ? pStory(p.id) : { h:'', t:[], w:'', b:[], u:[], c:[] };
   const exSlot = i => `<div class="pe-photo" style="margin-top:8px"><span id="pePrev${i}">${ex[i-1] && pPhoto(ex[i-1]) ? `<img src="${esc(pPhoto(ex[i-1]))}" alt="">` : '<div class="p-ph">＋</div>'}</span>
         <label class="ghost" style="cursor:pointer">${ex[i-1]?'Trocar':'Adicionar'} foto ${i+1}<input type="file" accept="image/*" hidden onchange="pePickExtra(this,${i})"></label>
         ${ex[i-1] ? `<button class="ghost" onclick="peDelExtra(${i})">🗑 Remover</button>` : ''}</div>`;
@@ -999,11 +1191,21 @@ function openProductEditor(id){
       <div class="pe-full"><label>Nome do produto</label><input class="field" id="peName" value="${esc(p?p.name:'')}" placeholder="Ex.: Kong Classic Large"></div>
       <div><label>Marca</label><input class="field" id="peBrand" list="peBrands" value="${esc(p?p.brand:'')}"><datalist id="peBrands">${brands.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></div>
       <div><label>Categoria</label><input class="field" id="peCat" list="peCats" value="${esc(p?p.category:'')}"><datalist id="peCats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
-      <div class="pe-full"><label>Descrição</label><textarea class="field" id="peDesc" rows="3" placeholder="O que é, para qual porte, diferenciais...">${esc(p?p.desc:'')}</textarea></div>
+      <div class="pe-full"><label>Descrição curta (aparece no card da vitrine)</label><textarea class="field" id="peDesc" rows="3" placeholder="O que é, para qual porte, diferenciais...">${esc(p?p.desc:'')}</textarea></div>
       <div><label>Tipo de venda</label><select class="field" id="peType" onchange="document.getElementById('peStockWrap').classList.toggle('hide', this.value==='encomenda')">
         <option value="estoque" ${p&&p.preorder?'':'selected'}>Pronta entrega (estoque)</option><option value="encomenda" ${p&&p.preorder?'selected':''}>Sob encomenda (WhatsApp)</option></select></div>
       <div id="peStockWrap" class="${p&&p.preorder?'hide':''}"><label>Estoque (unidades)</label><input class="field" id="peStock" type="number" min="0" value="${p?p.stock:1}"></div>
     </div></div>
+    <div class="card"><h3>📖 Página do produto</h3>
+      <p class="hint">Os textos que aparecem quando a cliente abre o produto. Nas listas, escreva um item por linha. Deixe em branco o que não quiser mostrar.</p>
+      <div class="pe-grid">
+      <div class="pe-full"><label>Frase de destaque</label><input class="field" id="stH" value="${esc(ST.h)}"></div>
+      <div class="pe-full"><label>Etiquetas (separe por vírgula)</label><input class="field" id="stT" value="${esc(ST.t.join(', '))}" placeholder="Ex.: Com apito, Flutua, Porte médio"></div>
+      <div class="pe-full"><label>💜 Por que seu cão precisa</label><textarea class="field" id="stW" rows="5">${esc(ST.w)}</textarea></div>
+      <div class="pe-full"><label>🌿 Benefícios (um por linha)</label><textarea class="field" id="stB" rows="4">${esc(ST.b.join('\n'))}</textarea></div>
+      <div class="pe-full"><label>✨ Como usar (um passo por linha)</label><textarea class="field" id="stU" rows="4">${esc(ST.u.join('\n'))}</textarea></div>
+      <div class="pe-full"><label>🛡️ Cuidados (um por linha)</label><textarea class="field" id="stC" rows="4">${esc(ST.c.join('\n'))}</textarea></div>
+      </div></div>
     <div class="card"><h3>💰 Preço</h3>
       <div class="pe-grid"><div><label>Custo do produto (opcional)</label><input class="field" id="peCost" type="number" step="0.01" min="0" value="${p&&p.cost?p.cost:''}" placeholder="Ex.: 72,00"></div>
         <div style="display:flex;align-items:flex-end"><button class="ghost" onclick="peCalc()">🧮 Calcular preço pelo custo</button></div></div>
@@ -1060,6 +1262,11 @@ async function peSave(){
   const patch = { name: val('peName').trim(), brand: val('peBrand').trim(), category: val('peCat').trim(), desc: val('peDesc').trim(), preorder, variants };
   const cost = parseFloat(String(val('peCost')).replace(',','.')); if(cost>0) patch.cost = cost;
   if(!preorder) patch.stock = Math.max(0, parseInt(val('peStock'))||0);
+  const lns = id => val(id).split('\n').map(x => x.trim()).filter(Boolean);
+  const story = { t: val('stT').split(',').map(x => x.trim()).filter(Boolean), h: val('stH').trim(), w: val('stW').trim(), b: lns('stB'), u: lns('stU'), c: lns('stC') };
+  const storyOld = PE.id == null ? { t:[], h:'', w:'', b:[], u:[], c:[] } : pStory(PE.id);
+  const sKey = o => JSON.stringify([o.t, o.h, o.w, o.b, o.u, o.c]);
+  if(sKey(story) !== sKey(storyOld)) patch.story = story;
   const hid = document.getElementById('peHidden'), so = document.getElementById('peSoldOut');
   if(hid) patch.hidden = hid.checked; if(so) patch.soldOut = so.checked;
   const btn = document.getElementById('peSaveBtn'); btn.disabled = true; btn.textContent = 'Salvando...';

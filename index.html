@@ -1404,6 +1404,8 @@ PREORDER_FAMILIES.forEach((f,i)=>{
 ===================================================== */
 var CAT_OVR = {};               // alterações do painel (inclusive kits ativados/pausados)
 var STORE_CLOSED = false;
+var KIT_OVR = {};               // kits montados/alterados no painel
+var STORY_OVR = {};             // textos da página do produto alterados no painel
 function kitHeld(def){ if(STORE_CLOSED) return true; const o = CAT_OVR[String(def.id)] || {}; return ('soldOut' in o) ? !!o.soldOut : !!def.soon; }
 var CAT_MASTER = null;           // todos os produtos (inclusive ocultos), na ordem original
 var CAT_DOC_V = -1;
@@ -1423,6 +1425,10 @@ function applyCatalog(doc){
   const P = doc.products || {}, A = doc.added || {};
   CAT_OVR = P;
   STORE_CLOSED = !!(doc.settings && doc.settings.closed);
+  KIT_OVR = (doc.kits && typeof doc.kits === 'object') ? doc.kits : {};
+  STORY_OVR = {};
+  Object.keys(A).forEach(k => { if(A[k] && A[k].story) STORY_OVR[k] = A[k].story; });
+  Object.keys(P).forEach(k => { if(P[k] && P[k].story) STORY_OVR[k] = P[k].story; });
   try { updateLaunchBar(); } catch(e){}
   // produtos cadastrados pelo painel
   Object.keys(A).forEach(k => {
@@ -1483,12 +1489,13 @@ function catRefreshCategories(){
 }
 function catRefreshKits(){
   if(typeof KIT_FAMILIES === 'undefined') return;
+  catRebuildKits();
   KIT_FAMILIES.forEach(k => {
     k.variants.forEach(v => {
       const full = v.comps.reduce((a,c) => ({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix || c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
       v.fullCartao = Math.round(full.cartao*100)/100; v.fullPix = Math.round(full.pix*100)/100;
       v.cartao = kitPrice(full.cartao*(1-KIT_DISCOUNT)); v.pix = kitPrice(full.pix*(1-KIT_DISCOUNT));
-      const cap = v.comps.length ? Math.min(...v.comps.map(c => (c.f._hidden || c.f.preorder || c.f.variants[0].available === false) ? 0 : Math.floor((c.f.stock||0)/c.qty))) : 0;
+      const cap = (v.comps.length && v.comps.length >= (v.items || []).length) ? Math.min(...v.comps.map(c => (c.f._hidden || c.f.preorder || c.f.variants[0].available === false) ? 0 : Math.floor((c.f.stock||0)/c.qty))) : 0;
       const held = kitHeld(k.def);
       v.cap = held ? 0 : Math.min(cap, KIT_MAX_PER_KIT); v.available = v.cap > 0;
     });
@@ -1512,7 +1519,7 @@ function catClampCart(){
 }
 function catRerender(){
   const safe = fn => { try { fn(); } catch(e){ console.warn(e); } };
-  safe(catRefreshKits); safe(catRefreshCategories);
+  safe(catApplyStories); safe(catRefreshKits); safe(catRefreshCategories);
   safe(renderCatTiles); safe(renderFeatured); safe(renderFilters); safe(renderShop); safe(renderFiltersPre); safe(renderPreorder);
   safe(catClampCart); safe(dropPreorderFromCart);
   if(typeof modalFamilyId !== 'undefined' && modalFamilyId && document.getElementById('productModal').classList.contains('show') && familyById(modalFamilyId)) safe(renderModalBody);
@@ -1896,13 +1903,13 @@ const PRODUCT_STORY = {"2":{"t":["Buscar","Flutua","Porte grande"],"h":"A bolinh
 ===================================================== */
 const KIT_DISCOUNT = 0.08;
 const KIT_DEFS = [
-  { id: 9001, emoji: '🐶', name: 'Kit Boas-Vindas Filhote', color: '#FFE4EF', sizes: ['P','M','G'],
+  { id: 9001, emoji: '🐶', name: 'Kit Boas-Vindas Filhote', color: '#FFE4EF', sizes: ['M','G'],
     tags: ['Filhote','Primeiros dentes','Presente'],
     hook: 'Tudo que o filhote precisa para chegar em casa feliz.',
-    why: 'Um mordedor para a fase dos dentinhos (Benebone Puppy no kit M e Kong Puppy G no kit G), a Kong Rewards Ball, que solta ração enquanto rola e ensina o filhote a brincar sozinho, bolinhas Kong SqueakAir com apito no tamanho certo, para gastar energia, e o casco recheado LUV, um petisco natural para os primeiros treinos. Escolha pelo peso que o seu filhote vai ter quando adulto. E ainda vem com um petisco de brinde 🎁',
-    how: [ 'Use pedacinhos do casco recheado como recompensa nos primeiros treinos.', 'Coloque parte da ração na Rewards Ball e deixe o filhote rolar para comer.', 'Deixe o mordedor à disposição na troca de dentes. No kit G, recheie o Kong Puppy com ração umedecida e congele.', 'Nas primeiras vezes, ofereça todos os brinquedos com você por perto.' ],
-    variants: [ { label: 'M · filhote que vai ter até 15 kg', items: [[19,1],[36,1],[17,1],[25,1]] },
-                { label: 'G · filhote que vai ter de 15 a 30 kg', items: [[77,1],[36,1],[12,1],[25,1]] } ] },
+    why: 'O Kong Puppy, feito com uma borracha mais macia para os dentes de leite, para rechear com o patê natural LUV e congelar: alivia a gengiva na troca de dentes e ensina o filhote a ficar calmo sozinho. A Kong Rewards Ball solta ração enquanto rola e ensina o filhote a brincar sozinho, as bolinhas Kong SqueakAir têm apito e vêm no tamanho certo para gastar energia, e o focinho suíno LUV é um mastigável natural para roer com calma. Escolha pelo peso que o seu filhote vai ter quando adulto. E ainda vem com um petisco de brinde 🎁',
+    how: [ 'Recheie o Kong Puppy com o patê (ou com ração umedecida misturada com um pouco de patê) e deixe no congelador por algumas horas.', 'Ofereça o Kong congelado na troca de dentes ou quando ele precisar ficar sozinho: o gelado alivia a gengiva e acalma.', 'Coloque parte da ração na Rewards Ball e deixe o filhote rolar para comer.', 'Use as bolinhas SqueakAir para brincar de buscar, em sessões curtas.', 'Ofereça o focinho suíno inteiro para ele roer, sempre com você por perto, e recolha quando ficar pequeno.', 'Nas primeiras vezes, ofereça os brinquedos com você por perto e lave o Kong depois de cada uso.' ],
+    variants: [ { label: 'M · filhote que vai ter até 15 kg', items: [[76,1],[36,1],[17,1],[23,1],[66,1]] },
+                { label: 'G · filhote que vai ter de 15 a 30 kg', items: [[77,1],[36,1],[12,1],[23,1],[66,1]] } ] },
   { id: 9002, emoji: '🏖️', name: 'Kit Praia & Piscina', color: '#E3EDFF', sizes: ['P','G'],
     tags: ['Verão','Segurança na água','Buscar bola'],
     hook: 'Colete salva-vidas + bolas que flutuam: diversão com segurança na água.',
@@ -2000,24 +2007,74 @@ function kitExpand(k){
   }));
   return out;
 }
-const KIT_FAMILIES = KIT_DEFS.map(k => {
+// kits do site + kits montados/alterados no painel (KIT_OVR)
+function kitDefsEffective(){
+  const out = [];
+  KIT_DEFS.forEach(k => {
+    const o = KIT_OVR[String(k.id)];
+    if(o && o.removed) return;
+    out.push(o && o.name ? Object.assign({}, k, o, { id: k.id, soon: k.soon }) : k);
+  });
+  Object.keys(KIT_OVR).forEach(id => {
+    const o = KIT_OVR[id];
+    if(!o || o.removed || !o.name || KIT_DEFS.some(k => String(k.id) === id)) return;
+    out.push(Object.assign({ color: '#F3ECFF', emoji: '🎁', sizes: [], tags: [] }, o, { id: Number(id) }));
+  });
+  return out.filter(k => (k.variants || []).length);
+}
+function buildKitFamily(k){
   const variants = kitExpand(k).map(v => {
     const comps = v.items.map(([id,qty]) => ({ f: catFind(id), qty })).filter(c=>c.f);
     const full = comps.reduce((a,c)=>({ cartao: a.cartao + c.f.variants[0].cartao*c.qty, pix: a.pix + (c.f.variants[0].pix||c.f.variants[0].cartao)*c.qty }), {cartao:0, pix:0});
     const cap = comps.length ? Math.min(...comps.map(c => ((c.f._hidden || c.f.preorder || c.f.variants[0].available===false) ? 0 : Math.floor((c.f.stock||0)/c.qty)))) : 0;
-    const capKit = kitHeld(k) ? 0 : Math.min(cap, KIT_MAX_PER_KIT);
+    const capKit = (kitHeld(k) || comps.length < v.items.length) ? 0 : Math.min(cap, KIT_MAX_PER_KIT); // item apagado da loja: kit indisponível
     return { label: v.label, size: v.size, pickId: v.pickId, pickName: v.pickName, items: v.items, comps, fullCartao: Math.round(full.cartao*100)/100, fullPix: Math.round(full.pix*100)/100,
       cartao: kitPrice(full.cartao*(1-KIT_DISCOUNT)), pix: kitPrice(full.pix*(1-KIT_DISCOUNT)), available: capKit > 0, cap: capKit };
   });
   return { id: k.id, kit: true, by: k.by || '', brand: 'Kit Bielyy', category: 'Kits Bielyy', name: k.name + (k.by ? ' by ' + k.by : ''), emoji: k.emoji,
-    desc: k.hook, photo: (variants[0].comps.find(c=>c.f.photo)||{f:{}}).f.photo, color: k.color, iconColor: '#8B5FD1', icon: 'heart',
+    desc: k.hook, photo: ((variants[0]||{comps:[]}).comps.find(c=>c.f.photo)||{f:{}}).f.photo, color: k.color, iconColor: '#8B5FD1', icon: 'heart',
     stock: Math.max(0, ...variants.map(v=>v.cap)), sizes: k.sizes, variants, def: k,
     soon: kitHeld(k) || variants.every(v => !v.available && v.comps.some(c => c.f.soon)) };
-});
+}
+const KIT_FAMILIES = kitDefsEffective().map(buildKitFamily).filter(k => k.variants.length);
+var KIT_SIG = JSON.stringify(KIT_OVR);
+function catRebuildKits(){
+  const sig = JSON.stringify(KIT_OVR);
+  if(sig === KIT_SIG) return;
+  KIT_SIG = sig;
+  const fresh = kitDefsEffective().map(buildKitFamily).filter(k => k.variants.length);
+  KIT_FAMILIES.forEach(k => { delete PRODUCT_STORY[String(k.id)]; });
+  const rest = PRODUCT_FAMILIES.filter(f => !f.kit);
+  KIT_FAMILIES.splice(0, KIT_FAMILIES.length, ...fresh);
+  fresh.forEach(kitStory);
+  PRODUCT_FAMILIES.splice(0, PRODUCT_FAMILIES.length, ...fresh, ...rest);
+}
 CATEGORIES.unshift('Kits Bielyy');
 { const gi = CATEGORIES.indexOf('Para Gatos'); if(gi > 1){ CATEGORIES.splice(gi,1); CATEGORIES.splice(1,0,'Para Gatos'); } }
-KIT_FAMILIES.forEach(k => { PRODUCT_STORY[String(k.id)] = { t: k.def.tags, h: k.def.hook, w: k.def.why, u: k.def.how, p: [] }; });
-if(PRODUCT_STORY['9003']) PRODUCT_STORY['9003'].s = 'g';
+function kitStory(k){
+  const d = k.def, how = Array.isArray(d.how) ? (d.how.length ? d.how : undefined) : (d.how || undefined);
+  PRODUCT_STORY[String(k.id)] = { t: d.tags || [], h: d.hook || '', w: d.why || '', u: how, p: [] };
+  if(k.id === 9003) PRODUCT_STORY['9003'].s = 'g';
+}
+KIT_FAMILIES.forEach(kitStory);
+// textos de produtos alterados no painel (o original fica guardado em STORY_BASE)
+var STORY_BASE = {};
+function catApplyStories(){
+  if(typeof PRODUCT_STORY === 'undefined') return;
+  const list = v => (Array.isArray(v) && v.length) ? v : undefined;
+  Object.keys(STORY_BASE).forEach(id => {
+    if(STORY_OVR[id]) return;
+    if(STORY_BASE[id]) PRODUCT_STORY[id] = STORY_BASE[id]; else delete PRODUCT_STORY[id];
+    delete STORY_BASE[id];
+  });
+  Object.keys(STORY_OVR).forEach(id => {
+    if(Number(id) >= 9000) return;
+    if(!(id in STORY_BASE)) STORY_BASE[id] = PRODUCT_STORY[id] || null;
+    const b = STORY_BASE[id] || {}, o = STORY_OVR[id] || {};
+    PRODUCT_STORY[id] = Object.assign({}, b, { t: o.t || [], h: o.h || '', w: o.w || '', b: list(o.b), u: list(o.u), c: list(o.c) });
+  });
+}
+catApplyStories();
 PRODUCT_FAMILIES.unshift(...KIT_FAMILIES);
 function kitItemsText(v, sep){ return (v.comps||[]).map(c => (c.qty>1? c.qty+'x ':'') + c.f.name).join(sep || ' + '); }
 function orderItemName(fam, v){ return fam.kit ? `${fam.name} (${v.label}): ${kitItemsText(v)}` : fam.name; }
