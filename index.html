@@ -344,6 +344,110 @@
   .promo-card p{font-size:13.5px; opacity:.92; max-width:520px;}
   .promo-card a{background:#fff; color:var(--purple-deep); font-weight:700; font-size:14px; padding:13px 22px; border-radius:999px; text-decoration:none; white-space:nowrap;}
   @media (max-width:600px){ .promo-card{padding:20px; border-radius:22px;} .promo-card a{width:100%; text-align:center;} }
+
+  /* ---------- página Sobre (nova) ---------- */
+  .ab-hero{background:radial-gradient(1200px 500px at 85% -10%,rgba(255,127,174,.28),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(139,95,209,.25),transparent 60%),linear-gradient(180deg,var(--lavender),var(--cream)); padding:56px 0 64px; overflow:hidden;}
+  .ab-hero-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center;}
+  .ab-kicker{color:var(--pink); font-weight:700; font-size:13px; letter-spacing:2px; text-transform:uppercase; display:block; margin-bottom:8px;}
+  .ab-hero h1{font-family:'Baloo 2'; font-size:clamp(32px,4.6vw,54px); line-height:1.05; color:var(--purple-deep);}
+  .ab-hero h1 em{font-style:normal; background:linear-gradient(135deg,var(--pink),var(--purple)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .ab-hero .lead{color:var(--ink-soft); font-size:16px; line-height:1.75; margin:16px 0 22px; max-width:560px;}
+  .ab-chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;}
+  .ab-chip{background:#fff; border:1.5px solid var(--lavender); border-radius:999px; padding:8px 14px; font-size:13px; font-weight:600; color:var(--purple-deep); box-shadow:var(--shadow-sm);}
+  .ab-ctas{display:flex; gap:10px; flex-wrap:wrap;}
+  .ab-logo{position:relative; display:flex; align-items:center; justify-content:center; min-height:360px;}
+  .ab-logo .blob{position:absolute; width:340px; height:340px; border-radius:42% 58% 63% 37% / 41% 44% 56% 59%; background:linear-gradient(150deg,var(--purple),var(--pink)); animation:abMorph 12s ease-in-out infinite; opacity:.9;}
+  .ab-logo .ring{position:relative; width:260px; height:260px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 24px 50px -18px rgba(109,66,184,.55); animation:abFloat 6s ease-in-out infinite;}
+  .ab-logo .ring img{width:90%; height:90%; border-radius:50%; object-fit:cover;}
+  .ab-logo .paw{position:absolute; font-size:26px; animation:abFloat 5s ease-in-out infinite; filter:drop-shadow(0 6px 10px rgba(109,66,184,.25));}
+  .ab-logo .paw.p1{top:8%; left:12%;} .ab-logo .paw.p2{bottom:10%; right:8%; animation-delay:-2s;} .ab-logo .paw.p3{top:16%; right:14%; animation-delay:-3.5s; font-size:20px;}
+  @keyframes abFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes abMorph{0%,100%{border-radius:42% 58% 63% 37% / 41% 44% 56% 59%}50%{border-radius:58% 42% 37% 63% / 55% 61% 39% 45%}}
+  .ab-sec{padding:64px 0;}
+  .ab-sec.alt{background:linear-gradient(180deg,var(--cream),var(--lavender));}
+  .ab-head{text-align:center; max-width:640px; margin:0 auto 34px;}
+  .ab-head h2{font-family:'Baloo 2'; font-size:clamp(26px,3.4vw,38px); color:var(--purple-deep); line-height:1.15;}
+  .ab-head p{color:var(--ink-soft); margin-top:8px; line-height:1.7;}
+  .ab-story{display:grid; grid-template-columns:1.2fr .8fr; gap:22px; align-items:stretch;}
+  .ab-card{background:#fff; border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow);}
+  .ab-card p{color:var(--ink-soft); line-height:1.8; font-size:15.5px;} .ab-card p+p{margin-top:12px;}
+  .ab-name{border:none; text-align:left; cursor:pointer; background:linear-gradient(150deg,var(--purple-deep),var(--purple)); color:#fff; border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow); display:flex; flex-direction:column; justify-content:space-between; gap:16px; font:inherit; transition:transform .2s;}
+  .ab-name:hover{transform:translateY(-3px);}
+  .ab-name .q{font-family:'Baloo 2'; font-size:26px; font-weight:700; line-height:1.15;}
+  .ab-name .tap{font-size:12.5px; opacity:.85; font-weight:600;}
+  .ab-name .ans{display:none; font-size:15px; line-height:1.7;}
+  .ab-name.open .ans{display:block;} .ab-name.open .tap{display:none;}
+  .ab-pets{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+  .ab-pet{perspective:900px; height:230px; cursor:pointer; background:none; border:none; padding:0; font:inherit; text-align:center;}
+  .ab-pet .in{position:relative; width:100%; height:100%; transition:transform .6s cubic-bezier(.2,.7,.2,1); transform-style:preserve-3d;}
+  .ab-pet.flip .in{transform:rotateY(180deg);}
+  .ab-pet .f,.ab-pet .b{position:absolute; inset:0; border-radius:var(--radius-lg); backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; box-shadow:var(--shadow);}
+  .ab-pet .f{background:#fff;}
+  .ab-pet .b{background:linear-gradient(150deg,var(--pink),var(--purple)); color:#fff; transform:rotateY(180deg);}
+  .ab-pet .av{width:96px; height:96px; border-radius:50%; background:linear-gradient(150deg,var(--lavender),var(--pink-soft)); display:flex; align-items:center; justify-content:center; font-family:'Baloo 2'; font-size:40px; font-weight:800; color:var(--purple-deep); margin-bottom:12px; overflow:hidden; border:4px solid #fff; box-shadow:var(--shadow-sm);}
+  .ab-pet .av img{width:100%; height:100%; object-fit:cover;}
+  .ab-pet b{font-family:'Baloo 2'; font-size:21px; color:var(--purple-deep);} .ab-pet .b b{color:#fff;}
+  .ab-pet small{font-size:12px; color:var(--ink-soft); font-weight:600;} .ab-pet .b small{color:#fff; opacity:.9;}
+  .ab-pet .role{font-size:14.5px; line-height:1.5; margin-top:8px; font-weight:600;}
+  .ab-steps{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; counter-reset:abstep;}
+  .ab-step{background:#fff; border:2px solid transparent; border-radius:var(--radius-md); padding:20px; text-align:left; cursor:pointer; box-shadow:var(--shadow-sm); transition:.2s; font:inherit; color:var(--ink);}
+  .ab-step .n{width:38px; height:38px; border-radius:50%; background:var(--lavender); color:var(--purple-deep); display:flex; align-items:center; justify-content:center; font-size:19px; margin-bottom:10px;}
+  .ab-step h3{font-family:'Baloo 2'; font-size:18px; color:var(--purple-deep); line-height:1.2;}
+  .ab-step p{font-size:13.5px; color:var(--ink-soft); line-height:1.6; margin-top:6px;}
+  .ab-step.on{border-color:var(--purple-soft); transform:translateY(-4px); box-shadow:var(--shadow);}
+  .ab-step.on .n{background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff;}
+  .ab-quiz{background:#fff; border-radius:32px; padding:30px; box-shadow:var(--shadow); max-width:860px; margin:0 auto;}
+  .ab-opts{display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+  .ab-opt{background:var(--cream); border:2px solid var(--lavender); border-radius:999px; padding:11px 18px; font:inherit; font-size:14px; font-weight:600; color:var(--purple-deep); cursor:pointer; transition:.15s;}
+  .ab-opt:hover{border-color:var(--purple-soft);} .ab-opt.on{background:var(--purple-deep); border-color:var(--purple-deep); color:#fff;}
+  .ab-res{margin-top:22px; display:none; grid-template-columns:auto 1fr; gap:18px; align-items:center; background:linear-gradient(135deg,#FFF3F8,var(--lavender)); border-radius:var(--radius-lg); padding:20px; animation:abPop .35s ease;}
+  .ab-res.show{display:grid;}
+  .ab-res .thumbs{display:grid; grid-template-columns:repeat(2,64px); gap:6px;}
+  .ab-res .thumbs img,.ab-res .thumbs span{width:64px; height:64px; border-radius:14px; object-fit:cover; background:#fff; display:flex; align-items:center; justify-content:center; font-size:26px;}
+  .ab-res h3{font-family:'Baloo 2'; font-size:22px; color:var(--purple-deep); line-height:1.15;}
+  .ab-res p{color:var(--ink-soft); font-size:14px; line-height:1.6; margin:4px 0 10px;}
+  .ab-res .price{font-weight:700; color:var(--green); font-size:14.5px; margin-bottom:10px;}
+  @keyframes abPop{from{opacity:0; transform:translateY(8px) scale(.98)}to{opacity:1; transform:none}}
+  .ab-brands{overflow:hidden; -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent); mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);}
+  .ab-track{display:flex; gap:12px; width:max-content; animation:abScroll 38s linear infinite;}
+  .ab-brands:hover .ab-track{animation-play-state:paused;}
+  .ab-brand{flex:none; background:#fff; border:1.5px solid var(--lavender); border-radius:18px; padding:14px 20px; font-family:'Baloo 2'; font-size:18px; font-weight:700; color:var(--purple-deep); cursor:pointer; box-shadow:var(--shadow-sm); white-space:nowrap;}
+  .ab-brand small{display:block; font-family:Poppins,sans-serif; font-size:11px; font-weight:600; color:var(--ink-soft);}
+  @keyframes abScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .ab-insta{display:grid; grid-template-columns:1.2fr .8fr; gap:24px; align-items:center; background:linear-gradient(135deg,#7A4BD0,#C058C9 55%,#FF7FAE); color:#fff; border-radius:36px; padding:38px; box-shadow:var(--shadow); position:relative; overflow:hidden;}
+  .ab-insta h2{font-family:'Baloo 2'; font-size:clamp(26px,3.2vw,36px); line-height:1.1;}
+  .ab-insta p{opacity:.92; line-height:1.7; margin:10px 0 18px;}
+  .ab-insta .btns{display:flex; gap:10px; flex-wrap:wrap;}
+  .ab-insta .btns a{background:#fff; color:var(--purple-deep); font-weight:700; padding:12px 20px; border-radius:999px; font-size:14px; box-shadow:0 8px 20px -10px rgba(0,0,0,.35);}
+  .ab-insta .btns a.wa{background:rgba(255,255,255,.18); color:#fff; border:1.5px solid rgba(255,255,255,.6);}
+  .ab-phone{justify-self:center; width:190px; aspect-ratio:9/16; border-radius:30px; background:#fff; border:7px solid #2B1E44; box-shadow:0 24px 40px -18px rgba(0,0,0,.5); display:flex; flex-direction:column; align-items:center; padding:18px 12px; gap:8px; color:var(--ink); transform:rotate(4deg);}
+  .ab-phone img{width:64px; height:64px; border-radius:50%; border:3px solid var(--pink);}
+  .ab-phone b{font-size:13px; color:var(--purple-deep);}
+  .ab-phone .g{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; width:100%; margin-top:6px;}
+  .ab-phone .g i{aspect-ratio:1; border-radius:4px; background:linear-gradient(135deg,var(--lavender),var(--pink-soft));}
+  .ab-phone .g i:nth-child(3n+2){background:linear-gradient(135deg,var(--pink-soft),var(--purple-soft));}
+  .ab-teaser{padding:10px 0 40px;}
+  .ab-teaser-card{display:flex; align-items:center; gap:18px; background:#fff; border-radius:var(--radius-lg); padding:18px 22px; box-shadow:var(--shadow); cursor:pointer; border:2px solid var(--lavender);}
+  .ab-teaser-card img{width:64px; height:64px; border-radius:50%; flex:none; border:3px solid var(--lavender);}
+  .ab-teaser-card b{font-family:'Baloo 2'; font-size:20px; color:var(--purple-deep); display:block; line-height:1.2;}
+  .ab-teaser-card span{color:var(--ink-soft); font-size:13.5px;}
+  .ab-teaser-card .go{margin-left:auto; flex:none; background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff; font-weight:700; border-radius:999px; padding:10px 16px; font-size:13px;}
+  .rv{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
+  .rv.in{opacity:1; transform:none;}
+  @media (prefers-reduced-motion: reduce){ .ab-track,.ab-logo .blob,.ab-logo .ring,.ab-logo .paw{animation:none;} .rv{opacity:1; transform:none; transition:none;} .ab-pet .in{transition:none;} }
+  @media (max-width:920px){
+    .ab-hero{padding:32px 0 44px;}
+    .ab-hero-grid,.ab-story,.ab-insta{grid-template-columns:1fr;}
+    .ab-logo{min-height:260px; order:-1;} .ab-logo .blob{width:240px; height:240px;} .ab-logo .ring{width:190px; height:190px;}
+    .ab-pets{grid-template-columns:repeat(2,1fr); gap:12px;} .ab-pet{height:210px;} .ab-pet .av{width:78px; height:78px; font-size:32px;}
+    .ab-steps{grid-template-columns:1fr 1fr;}
+    .ab-sec{padding:44px 0;}
+    .ab-quiz{padding:22px 16px; border-radius:26px;}
+    .ab-res{grid-template-columns:1fr; text-align:center;} .ab-res .thumbs{justify-content:center; grid-template-columns:repeat(4,56px);} .ab-res .thumbs img,.ab-res .thumbs span{width:56px; height:56px;}
+    .ab-insta{padding:28px 22px; border-radius:28px;} .ab-phone{display:none;}
+    .ab-teaser-card{flex-wrap:wrap;} .ab-teaser-card .go{margin-left:0;}
+  }
+  @media (max-width:420px){ .ab-steps{grid-template-columns:1fr;} .ab-opt{padding:10px 14px; font-size:13.5px;} }
   /* ---------- footer ---------- */
   footer{background:var(--purple-deep); color:#fff; padding:56px 0 24px;}
   .footer-grid{display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:36px;}
@@ -988,6 +1092,15 @@
       </div>
     </div>
   </section>
+  <section class="ab-teaser">
+    <div class="wrap">
+      <div class="ab-teaser-card" onclick="showView('about')" role="link" tabindex="0">
+        <img src="site-asset-0.jpg" alt="">
+        <div><b>Conheça a Bielyy 💜</b><span>Nossa história, os fiscais de quatro patas e um quiz para achar o kit ideal.</span></div>
+        <span class="go">Conhecer →</span>
+      </div>
+    </div>
+  </section>
   <section class="promo-strip">
     <div class="wrap">
       <div class="promo-card">
@@ -1073,21 +1186,98 @@
 
 <!-- ============ ABOUT VIEW ============ -->
 <main id="view-about" style="display:none;">
-  <section class="section about-section" id="about">
-    <div class="wrap about-grid">
-      <div class="about-photo">
-        <div class="ring">
-          <img src="site-asset-0.jpg" alt="Bielyy Store" style="width:88%;height:88%;object-fit:cover;border-radius:50%;">
+  <section class="ab-hero" id="about">
+    <div class="wrap ab-hero-grid">
+      <div class="rv">
+        <span class="ab-kicker">Nossa história</span>
+        <h1>Uma boutique pet feita por quem também é <em>apaixonada por pet</em></h1>
+        <p class="lead">A Bielyy Store nasceu em São Paulo do desejo de trazer pro Brasil marcas premium que fazem a diferença no dia a dia de cães e gatos: brinquedos que realmente resistem, petiscos naturais de verdade e acessórios com aquele toque chique.</p>
+        <div class="ab-chips">
+          <span class="ab-chip">🐾 Curadoria a dedo</span>
+          <span class="ab-chip">🌎 Marcas premium importadas</span>
+          <span class="ab-chip">🛵 Entrega hoje em SP</span>
+          <span class="ab-chip">📦 Envio para todo o Brasil</span>
+        </div>
+        <div class="ab-ctas">
+          <button class="btn btn-primary" onclick="showView('shop')">Conhecer a loja</button>
+          <a class="btn btn-ghost" href="https://instagram.com/bielyy_store" target="_blank" rel="noopener">📷 @bielyy_store</a>
         </div>
       </div>
-      <div class="about-copy">
-        <span class="kicker">Nossa história</span>
-        <h2>Uma boutique pet feita por quem também é apaixonada por pet</h2>
-        <p>A Bielyy Store nasceu em São Paulo do desejo de trazer pro Brasil marcas premium que fazem a diferença no dia a dia de cães e gatos — brinquedos que realmente resistem, petiscos naturais de verdade e acessórios com aquele toque chique.</p>
-        <p>Cada produto é escolhido a dedo, testado com muito carinho (e a ajuda de fiscais de qualidade de quatro patas) antes de chegar até você. Sem enrolação, sem preço abusivo — só marcas fortes e atendimento de gente que entende de pet.</p>
-        <div class="social-row">
-          <a class="social-pill" href="https://instagram.com/bielyy_store" target="_blank" rel="noopener">📷 @bielyy_store</a>
+      <div class="ab-logo rv">
+        <div class="blob"></div>
+        <div class="ring"><img src="site-asset-0.jpg" alt="Bielyy Store"></div>
+        <span class="paw p1">🐾</span><span class="paw p2">💜</span><span class="paw p3">🦴</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="ab-sec">
+    <div class="wrap ab-story">
+      <div class="ab-card rv">
+        <span class="ab-kicker">Como tudo começou</span>
+        <p>Cada produto é escolhido a dedo e testado com muito carinho, com a ajuda dos nossos fiscais de qualidade de quatro patas, antes de chegar até você.</p>
+        <p>Sem enrolação e sem preço abusivo: só marcas fortes e atendimento de gente que entende de pet, do primeiro brinquedo do filhote ao petisco do cão idoso.</p>
+      </div>
+      <button class="ab-name rv" onclick="this.classList.toggle('open')" aria-expanded="false">
+        <span class="q">Por que “Bielyy”? 🤍</span>
+        <span class="tap">Toque para descobrir →</span>
+        <span class="ans">Bielyy vem do russo e quer dizer “branco”. É uma homenagem aos nossos Samoiedas, os ursinhos brancos que inspiram a loja e aparecem no nosso logo.</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="ab-sec alt">
+    <div class="wrap">
+      <div class="ab-head rv"><span class="ab-kicker">A equipe de quatro patas</span><h2>Os fiscais de qualidade</h2><p>Antes de entrar na loja, os brinquedos passam por eles. Toque em cada um para conhecer.</p></div>
+      <div class="ab-pets" id="abPets"></div>
+    </div>
+  </section>
+
+  <section class="ab-sec">
+    <div class="wrap">
+      <div class="ab-head rv"><span class="ab-kicker">Do nosso jeito</span><h2>Como um produto chega até você</h2></div>
+      <div class="ab-steps" id="abSteps">
+        <button class="ab-step rv on" onclick="abStep(this)"><div class="n">🔎</div><h3>Curadoria</h3><p>Só entram marcas reconhecidas lá fora, como KONG, Benebone e LickiMat, sempre originais.</p></button>
+        <button class="ab-step rv" onclick="abStep(this)"><div class="n">🐶</div><h3>Testado em casa</h3><p>Os fiscais de quatro patas brincam, mordem e aprovam (ou não) antes de o produto ir para a loja.</p></button>
+        <button class="ab-step rv" onclick="abStep(this)"><div class="n">🎁</div><h3>Kits por fase</h3><p>Montamos kits para cada fase e jeito do seu pet, com desconto e petisco de brinde.</p></button>
+        <button class="ab-step rv" onclick="abStep(this)"><div class="n">🛵</div><h3>Rapidinho na sua casa</h3><p>Em São Paulo, pedidos pagos até as 15h podem chegar no mesmo dia. Para o resto do Brasil, enviamos por PAC ou SEDEX.</p></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="ab-sec alt">
+    <div class="wrap">
+      <div class="ab-head rv"><span class="ab-kicker">Quiz rapidinho</span><h2>Qual kit combina com o seu pet?</h2><p>Escolha o que mais parece com ele.</p></div>
+      <div class="ab-quiz rv">
+        <div class="ab-opts" id="abOpts"></div>
+        <div class="ab-res" id="abRes"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ab-sec">
+    <div class="wrap">
+      <div class="ab-head rv"><span class="ab-kicker">Marcas que a gente ama</span><h2>Toque numa marca para ver os produtos</h2></div>
+    </div>
+    <div class="ab-brands rv"><div class="ab-track" id="abBrands"></div></div>
+  </section>
+
+  <section class="ab-sec" style="padding-top:10px;">
+    <div class="wrap">
+      <div class="ab-insta rv">
+        <div>
+          <span class="ab-kicker" style="color:#FFE4EF;">Vem com a gente</span>
+          <h2>Bastidores, novidades e os fiscais em ação</h2>
+          <p>No Instagram você vê os lançamentos primeiro, as dicas de brincadeira e os bastidores da loja. No grupo do WhatsApp chegam as promoções.</p>
+          <div class="btns">
+            <a href="https://instagram.com/bielyy_store" target="_blank" rel="noopener">📷 Seguir @bielyy_store</a>
+            <a class="wa" href="https://chat.whatsapp.com/Cwb8IBJGLqpHEw97d4Bw0N?mode=gi_t" target="_blank" rel="noopener">💬 Grupo de promoções</a>
+          </div>
         </div>
+        <a class="ab-phone" href="https://instagram.com/bielyy_store" target="_blank" rel="noopener" aria-label="Abrir o Instagram da Bielyy">
+          <img src="site-asset-0.jpg" alt=""><b>@bielyy_store</b><small style="font-size:11px;color:var(--ink-soft)">Pet Boutique 💜</small>
+          <div class="g"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </a>
       </div>
     </div>
   </section>
@@ -2334,7 +2524,81 @@ function showView(view){
   if(view==='shop') renderShop();
   if(view==='preorder'){ renderFiltersPre(); renderPreorder(); }
   if(view==='checkout'){ renderCheckout(); prefillCheckout(); }
+  if(view==='about'){ try { renderAbout(); } catch(e){ console.warn(e); } }
   updateTabBar(view);
+}
+
+/* =====================================================
+   PÁGINA SOBRE: fiscais de quatro patas, passos, quiz e marcas
+===================================================== */
+// Os fiscais: para colocar a foto, troque photo:null pelo nome do arquivo (ex.: photo:'aslan.jpg')
+const ABOUT_PETS = [
+  { name:'Aslan',  role:'Chefe da fiscalização de mordedores', photo:null },
+  { name:'Morana', role:'Especialista em pelúcias e apitos', photo:null },
+  { name:'Nika',   role:'Provadora oficial de petiscos', photo:null },
+  { name:'Alaska', role:'Inspetora de bolinhas e cabos de guerra', photo:null }
+];
+// Quiz: cada resposta aponta para um kit (se o kit não existir mais, leva para a loja)
+const ABOUT_QUIZ = [
+  { label:'🍼 É filhote', kit:9001 },
+  { label:'💥 Destrói tudo', kit:9005 },
+  { label:'😰 Fica ansioso ou com medo', kit:9006 },
+  { label:'⚡ Tem energia de sobra', kit:9011 },
+  { label:'🏖️ Ama água', kit:9002 },
+  { label:'🤍 Já é idoso', kit:9012 },
+  { label:'🐱 É um gato', kit:9003 }
+];
+function abEsc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderAbout(){
+  const pets = document.getElementById('abPets');
+  if(pets && !pets.dataset.done){
+    pets.innerHTML = ABOUT_PETS.map(p => `<button class="ab-pet rv" onclick="this.classList.toggle('flip')" aria-label="${abEsc(p.name)}">
+      <div class="in">
+        <div class="f"><div class="av">${p.photo ? `<img src="${abEsc(p.photo)}" alt="${abEsc(p.name)}" loading="lazy">` : abEsc(p.name[0])}</div><b>${abEsc(p.name)}</b><small>Samoieda · toque 🐾</small></div>
+        <div class="b"><b>${abEsc(p.name)}</b><div class="role">${abEsc(p.role)}</div><small style="margin-top:10px">Fiscal de qualidade Bielyy</small></div>
+      </div></button>`).join('');
+    pets.dataset.done = '1';
+  }
+  const opts = document.getElementById('abOpts');
+  if(opts && !opts.dataset.done){
+    opts.innerHTML = ABOUT_QUIZ.map((q, i) => `<button class="ab-opt" onclick="abQuiz(${i}, this)">${abEsc(q.label)}</button>`).join('');
+    opts.dataset.done = '1';
+  }
+  const tr = document.getElementById('abBrands');
+  if(tr){
+    const count = {};
+    [...PRODUCT_FAMILIES, ...PREORDER_FAMILIES].forEach(f => { if(!f.kit && f.brand) count[f.brand] = (count[f.brand] || 0) + 1; });
+    const top = Object.keys(count).sort((a, b) => count[b] - count[a]).slice(0, 14);
+    const chip = b => `<button class="ab-brand" onclick="goToBrandProducts(${abEsc(JSON.stringify(b))})">${abEsc(b)}<small>${count[b]} ${count[b] === 1 ? 'produto' : 'produtos'}</small></button>`;
+    tr.innerHTML = top.map(chip).join('') + top.map(chip).join(''); // duas vezes: a faixa gira sem emenda
+  }
+  abReveal();
+}
+function abStep(el){ document.querySelectorAll('#abSteps .ab-step').forEach(x => x.classList.toggle('on', x === el)); }
+function abQuiz(i, btn){
+  document.querySelectorAll('#abOpts .ab-opt').forEach(x => x.classList.toggle('on', x === btn));
+  const q = ABOUT_QUIZ[i], box = document.getElementById('abRes'); if(!q || !box) return;
+  const f = (typeof familyById === 'function') ? familyById(q.kit) : null;
+  if(!f){
+    box.innerHTML = `<div class="thumbs"><span>🐾</span></div><div><h3>Temos muita coisa para ele!</h3><p>Dê uma olhada na loja e, se quiser ajuda, chama a gente no WhatsApp.</p><button class="btn btn-primary" onclick="showView('shop')">Ver a loja</button></div>`;
+  } else {
+    const st = (typeof storyOf === 'function' && storyOf(f)) || {};
+    const v = f.variants.find(x => x.available !== false) || f.variants[0] || {};
+    const comps = (v.comps || []).filter(c => c.f.photo && PRODUCT_IMAGES[c.f.photo]).slice(0, 4);
+    const thumbs = comps.length ? comps.map(c => `<img src="${PRODUCT_IMAGES[c.f.photo]}" alt="">`).join('') : `<span>${abEsc(f.emoji || '🎁')}</span>`;
+    const ok = f.variants.some(x => x.available !== false);
+    const from = Math.min(...f.variants.map(x => x.pix || x.cartao || 0).filter(Boolean));
+    box.innerHTML = `<div class="thumbs">${thumbs}</div><div><h3>${abEsc(f.emoji || '')} ${abEsc(f.name)}</h3><p>${abEsc(st.h || f.desc || '')}</p>
+      <div class="price">${ok && from ? 'A partir de ' + fmt(from) + ' no Pix' : '⏳ Chegando em breve'}</div>
+      <button class="btn btn-primary" onclick="openProduct(${f.id})">Ver o kit</button></div>`;
+  }
+  box.classList.remove('show'); void box.offsetWidth; box.classList.add('show');
+}
+function abReveal(){
+  const els = document.querySelectorAll('#view-about .rv:not(.in)');
+  if(!('IntersectionObserver' in window)){ els.forEach(e => e.classList.add('in')); return; }
+  if(!abReveal.io) abReveal.io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); abReveal.io.unobserve(e.target); } }), { threshold: .12 });
+  els.forEach(e => abReveal.io.observe(e));
 }
 function updateTabBar(view){
   const bn = {home:'bnHome', shop:'bnShop', preorder:'bnPre'};
@@ -3461,6 +3725,7 @@ function acctMenuHTML(){
       + item('📦','#F3ECFF','Meus pedidos','Status e código de rastreio','openAuthModal()')
       + item('🔍','#E3EDFF','Acompanhar pelo número','Para pedidos sem conta',"location.href='/pedido.html'")
       + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151?text='+encodeURIComponent('Oi! Preciso de ajuda com um pedido.'),'_blank')")
+      + item('💜','#FFE4EF','Sobre a Bielyy','Nossa história',"showView('about')")
       + `<div class="am-sep"></div>`
       + item('🚪','#FFF1EA','Sair da conta','', 'logoutUser()', 'am-out');
   }
@@ -3469,7 +3734,8 @@ function acctMenuHTML(){
     + item('👤','#F3ECFF','Entrar','Já tenho conta',"openAuthModal('login')")
     + `<div class="am-sep"></div>`
     + item('📦','#E3EDFF','Acompanhar pedido','Pelo número do pedido',"location.href='/pedido.html'")
-    + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151','_blank')");
+    + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151','_blank')")
+    + item('💜','#FFE4EF','Sobre a Bielyy','Nossa história',"showView('about')");
 }
 function toggleAcctMenu(){
   const m = document.getElementById('acctMenu');
