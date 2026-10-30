@@ -428,6 +428,19 @@
   .ab-phone .g{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; width:100%; margin-top:6px;}
   .ab-phone .g i{aspect-ratio:1; border-radius:4px; background:linear-gradient(135deg,var(--lavender),var(--pink-soft));}
   .ab-phone .g i:nth-child(3n+2){background:linear-gradient(135deg,var(--pink-soft),var(--purple-soft));}
+  .ab-gal{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  .ab-shot{background:#fff; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow);}
+  .ab-shot .img{position:relative; aspect-ratio:1; overflow:hidden; cursor:zoom-in;}
+  .ab-shot .img img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .5s ease;}
+  .ab-shot:hover .img img{transform:scale(1.04);}
+  .ab-shot .tag{position:absolute; left:14px; top:14px; background:rgba(255,255,255,.92); color:var(--purple-deep); font-weight:700; font-size:12.5px; padding:6px 12px; border-radius:999px; box-shadow:var(--shadow-sm);}
+  .ab-shot .cap{padding:16px 18px 18px;}
+  .ab-shot .cap b{font-family:'Baloo 2'; font-size:19px; color:var(--purple-deep); display:block; line-height:1.2;}
+  .ab-shot .cap small{display:block; color:var(--ink-soft); font-size:12.5px; margin:4px 0 10px;}
+  .ab-toys{display:flex; flex-wrap:wrap; gap:8px;}
+  .ab-toy{display:flex; align-items:center; gap:7px; background:var(--cream); border:1.5px solid var(--lavender); border-radius:999px; padding:4px 12px 4px 4px; font:inherit; font-size:12.5px; font-weight:600; color:var(--purple-deep); cursor:pointer; transition:.15s;}
+  .ab-toy:hover{border-color:var(--purple-soft); background:#fff;}
+  .ab-toy img{width:30px; height:30px; border-radius:50%; object-fit:cover; background:#fff;}
   .ab-teaser{padding:10px 0 40px;}
   .ab-teaser-card{display:flex; align-items:center; gap:18px; background:#fff; border-radius:var(--radius-lg); padding:18px 22px; box-shadow:var(--shadow); cursor:pointer; border:2px solid var(--lavender);}
   .ab-teaser-card img{width:64px; height:64px; border-radius:50%; flex:none; border:3px solid var(--lavender);}
@@ -444,6 +457,8 @@
     .ab-logo{min-height:260px; order:-1;} .ab-logo .blob{width:240px; height:240px;} .ab-logo .ring{width:190px; height:190px;}
     .ab-pets{grid-template-columns:repeat(2,1fr); gap:12px;} .ab-pet{height:250px;} .ab-pet .av{width:96px; height:96px; font-size:32px;} .ab-pet:last-child:nth-child(odd){grid-column:1/-1; width:calc(50% - 6px); justify-self:center;}
     .ab-steps{grid-template-columns:1fr 1fr;}
+    .ab-gal{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:14px; margin:0 -28px; padding:4px 28px 18px; -webkit-overflow-scrolling:touch;}
+    .ab-gal .ab-shot{flex:0 0 78%; scroll-snap-align:center;}
     .ab-sec{padding:44px 0;}
     .ab-quiz{padding:22px 16px; border-radius:26px;}
     .ab-res{grid-template-columns:1fr; text-align:center;} .ab-res .thumbs{justify-content:center; grid-template-columns:repeat(4,56px);} .ab-res .thumbs img,.ab-res .thumbs span{width:56px; height:56px;}
@@ -1238,6 +1253,13 @@
 
   <section class="ab-sec">
     <div class="wrap">
+      <div class="ab-head rv"><span class="ab-kicker">Álbum de família</span><h2>Quando elas eram filhotes 🍼</h2><p>Hoje já cresceram, mas a gente não resiste a essas fotos. Toque nos brinquedos para ver na loja.</p></div>
+      <div class="ab-gal" id="abGal"></div>
+    </div>
+  </section>
+
+  <section class="ab-sec alt">
+    <div class="wrap">
       <div class="ab-head rv"><span class="ab-kicker">Do nosso jeito</span><h2>Como um produto chega até você</h2></div>
       <div class="ab-steps" id="abSteps">
         <button class="ab-step rv on" onclick="abStep(this)"><div class="n">🔎</div><h3>Curadoria</h3><p>Só entram marcas reconhecidas lá fora, como KONG, Benebone e LickiMat, sempre originais.</p></button>
@@ -1248,7 +1270,7 @@
     </div>
   </section>
 
-  <section class="ab-sec alt">
+  <section class="ab-sec">
     <div class="wrap">
       <div class="ab-head rv"><span class="ab-kicker">Quiz rapidinho</span><h2>Qual kit combina com o seu pet?</h2><p>Escolha o que mais parece com ele.</p></div>
       <div class="ab-quiz rv">
@@ -2542,6 +2564,12 @@ const ABOUT_PETS = [
   { name:'Alaska', trait:'A comilona', role:'Não divide a comida e ainda rouba a das filhas. Nenhum petisco entra na loja sem passar por ela.', photo:'pet-alaska.jpg' },
   { name:'Aslan',  trait:'O mimadinho', role:'O Aslinho, filhinho da mamãe, quer tudo só para ele: brinquedo bom tem que ser exclusivo.', photo:'pet-aslan.jpg' }
 ];
+// Álbum: fotos de quando eram filhotes + os brinquedos da loja que combinam com cada uma
+const ABOUT_ALBUM = [
+  { photo:'filhote-1.jpg', tag:'🌿 Primeiro passeio', title:'Pura fofura no tronco', sub:'Os primeiros brinquedos do filhote', toys:[76,19,17] },
+  { photo:'filhote-2.jpg', tag:'🐾 Exploradora', title:'Energia desde pequenininha', sub:'Para gastar a energia do jeito certo', toys:[3,12] },
+  { photo:'filhote-3.jpg', tag:'😴 Hora da soneca', title:'De barriguinha para cima', sub:'Pelúcias para abraçar na soneca', toys:[13,7] }
+];
 // Quiz: cada resposta aponta para um kit (se o kit não existir mais, leva para a loja)
 const ABOUT_QUIZ = [
   { label:'🍼 É filhote', kit:9001 },
@@ -2563,6 +2591,17 @@ function renderAbout(){
       </div></button>`).join('');
     pets.dataset.done = '1';
   }
+  const gal = document.getElementById('abGal');
+  if(gal){
+    gal.innerHTML = ABOUT_ALBUM.map((a, i) => {
+      const toys = a.toys.map(id => familyById(id)).filter(Boolean).map(f => {
+        const img = f.photo && PRODUCT_IMAGES[f.photo] ? `<img src="${PRODUCT_IMAGES[f.photo]}" alt="">` : '<span style="width:30px;text-align:center">🐾</span>';
+        return `<button class="ab-toy" onclick="openProduct(${f.id})">${img}${abEsc(f.name.replace(/ \((AST\d)\)$/, ''))}</button>`;
+      }).join('');
+      return `<div class="ab-shot rv"><div class="img" onclick="abAlbumZoom(${i})"><img src="${abEsc(a.photo)}" alt="${abEsc(a.title)}" loading="lazy"><span class="tag">${abEsc(a.tag)}</span></div>
+        <div class="cap"><b>${abEsc(a.title)}</b><small>${abEsc(a.sub)}</small><div class="ab-toys">${toys}</div></div></div>`;
+    }).join('');
+  }
   const opts = document.getElementById('abOpts');
   if(opts && !opts.dataset.done){
     opts.innerHTML = ABOUT_QUIZ.map((q, i) => `<button class="ab-opt" onclick="abQuiz(${i}, this)">${abEsc(q.label)}</button>`).join('');
@@ -2577,6 +2616,10 @@ function renderAbout(){
     tr.innerHTML = top.map(chip).join('') + top.map(chip).join(''); // duas vezes: a faixa gira sem emenda
   }
   abReveal();
+}
+function abAlbumZoom(i){
+  if(typeof openGallery !== 'function') return;
+  openGallery(ABOUT_ALBUM.map(a => ({ src: a.photo, name: a.title, sub: a.tag })), i);
 }
 function abStep(el){ document.querySelectorAll('#abSteps .ab-step').forEach(x => x.classList.toggle('on', x === el)); }
 function abQuiz(i, btn){
