@@ -1015,6 +1015,13 @@ function kVarInfo(items, pickId, all){
   return { pix: kPrice(pix*(1-KIT_DISC)), cartao: kPrice(card*(1-KIT_DISC)), fullPix: Math.round(pix*100)/100, cap: cap === Infinity ? 0 : cap, miss, comps };
 }
 function kSummary(k, all){
+  if(k.picks && k.picks.length){ // kit com várias escolhas: calcula com a 1ª opção de cada escolha obrigatória
+    const first = k.picks.map(pk => pk.optional ? null : pk.ids[0]);
+    const v = (k.variants || [])[0]; if(!v) return { from: 0, cap: 0, photo: null };
+    const items = v.items.map(([id, q]) => { const m = /^PICK(\d+)$/.exec(String(id)); return m ? (first[+m[1]] != null ? [first[+m[1]], q] : null) : [id, q]; }).filter(Boolean);
+    const x = kVarInfo(items, null, all); const ph = x.comps.find(c => c.p.photo);
+    return { from: x.pix, cap: x.cap, photo: ph ? ph.p.photo : null };
+  }
   const vs = (k.variants || []).flatMap(v => (v.items.some(it => it[0] === 'PICK') && k.pick ? k.pick.ids : [null]).map(pid => kVarInfo(v.items, pid, all)));
   if(!vs.length) return { from: 0, cap: 0, photo: null };
   const first = vs[0].comps.find(c => c.p.photo);
@@ -1048,6 +1055,7 @@ function keOptions(sel, noPick){
 function openKitEditor(id){
   CUR = null;
   const k = id == null ? null : kAll().find(x => x.id === id);
+  if(k && k.picks){ alert('Este kit é montado pela cliente (ela escolhe o produto, a escova e um adicional), então os produtos dele não são editados por aqui. Para mudar, fale com o Claude. Você ainda pode pausar ou ativar o kit pela lista.'); return; }
   const how = k ? (Array.isArray(k.how) ? k.how : (k.how ? [k.how] : [])) : [];
   KE = { id: k ? k.id : null, base: !!(k && k.base), changed: !!(k && k.changed),
     d: JSON.parse(JSON.stringify(k ? { name:k.name||'', emoji:k.emoji||'🎁', by:k.by||'', color:k.color||'#F3ECFF', sizes:k.sizes||[], tags:k.tags||[], hook:k.hook||'', why:k.why||'', how, variants:k.variants||[], pick:k.pick||null }
