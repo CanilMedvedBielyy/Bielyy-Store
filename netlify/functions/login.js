@@ -32,6 +32,9 @@ exports.handler = async function (event) {
     const user = await store.get(email, { type: 'json' });
 
     const wrong = { statusCode: 401, body: JSON.stringify({ error: 'E-mail ou senha incorretos' }) };
+    if (user && user.migrated && !user.passwordHash) {
+      return { statusCode: 401, body: JSON.stringify({ error: 'Atualizamos o site da Bielyy Store 💜 Para entrar, clique em "Criar conta" e use o mesmo e-mail e telefone: você cria uma senha nova e seus pedidos continuam aqui.' }) };
+    }
     if (!user || !user.salt || !user.passwordHash) return wrong;
 
     const a = Buffer.from(hashPassword(password, user.salt), 'hex');

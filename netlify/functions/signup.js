@@ -40,14 +40,23 @@ exports.handler = async function (event) {
   try {
     const store = blobStore('users', event);
     const existing = await store.get(email, { type: 'json' });
-    if (existing) {
+    // Conta trazida na mudança de hospedagem (sem senha): a cliente cria uma senha nova
+    // confirmando o mesmo telefone da conta.
+    const digits = (v) => String(v || '').replace(/\D/g, '').slice(-8);
+    const claim = existing && existing.migrated && !existing.passwordHash;
+    if (claim && (!digits(existing.phone) || digits(existing.phone) !== digits(phone))) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'Já existe uma conta com esse e-mail. Para criar sua senha nova, use o mesmo telefone da conta ou fale com a gente no WhatsApp.' }) };
+    }
+    if (existing && !claim) {
       return { statusCode: 409, body: JSON.stringify({ error: 'Já existe uma conta com esse e-mail. Clique em "Entrar".' }) };
     }
 
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = hashPassword(password, salt);
 
-    await store.setJSON(email, { name, email, phone, salt, passwordHash, createdAt: new Date().toISOString() });
+    await store.setJSON(email, claim
+      ? Object.assign({}, existing, { name: name || existing.name, salt, passwordHash, migrated: false, passwordSetAt: new Date().toISOString() })
+      : { name, email, phone, salt, passwordHash, createdAt: new Date().toISOString() });
 
     const token = await createToken(email, event);
     return { statusCode: 200, body: JSON.stringify({ success: true, token, user: { name, email, phone } }) };

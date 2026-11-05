@@ -1,0 +1,33 @@
+// Configuração da Bielyy Store na Cloudflare (Workers).
+// O nome abaixo precisa ser igual ao nome do projeto no painel da Cloudflare.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bielyy-store",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // As funções do site usam "@netlify/blobs"; aqui ele é trocado pelo banco D1 da Cloudflare
+  "alias": { "@netlify/blobs": "./cloudflare/netlify-blobs-shim.js" },
+
+  // Antes de publicar, separa os arquivos públicos na pasta "public"
+  "build": { "command": "node cloudflare/build.mjs" },
+
+  // Páginas, fotos e scripts: servidos direto, sem passar pelo worker
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/.netlify/functions/*", "/sitemap.xml", "/migrar", "/migrar/"]
+  },
+
+  // Banco de dados (pedidos, clientes, avaliações, estoque do painel...).
+  // A Cloudflare cria sozinha na primeira publicação.
+  "d1_databases": [{ "binding": "DB", "database_name": "bielyy-store" }],
+
+  // As senhas e chaves (ADMIN_PASSWORD, SUPERFRETE_TOKEN...) ficam no painel da Cloudflare, nunca aqui
+  "keep_vars": true,
+  "workers_dev": true,
+  "observability": { "enabled": true }
+}
