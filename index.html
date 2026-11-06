@@ -217,6 +217,18 @@
     font-size:13.5px; color:var(--ink); transition:.18s;
   }
   .chip.active, .chip:hover{background:var(--purple-deep); border-color:var(--purple-deep); color:#fff;}
+  /* Opções dos kits (escolha de produto/tamanho): visual mais leve */
+  .opt-step{margin-bottom:16px;}
+  .opt-lab{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--ink); margin:0 0 9px;}
+  .opt-lab .n{flex:none; width:19px; height:19px; border-radius:50%; background:var(--lavender); color:var(--purple-deep); font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center;}
+  .opt-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .opt{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:10px; background:#fff; border:1px solid #E6DEF5; font-size:12.5px; font-weight:500; color:var(--ink); line-height:1.25; cursor:pointer; transition:border-color .15s, background .15s, color .15s;}
+  .opt:hover{border-color:#C7B3EE; background:#FCFAFF;}
+  .opt.on{border-color:var(--purple-deep); background:#F5F0FF; color:var(--purple-deep); font-weight:600; box-shadow:inset 0 0 0 1px var(--purple-deep);}
+  .opt.on::before{content:'✓'; font-size:11px; font-weight:800;}
+  .opt .px{font-size:11px; font-weight:500; color:#8C80A6;}
+  .opt.on .px{color:var(--purple-deep); opacity:.8;}
+  .opt:disabled{opacity:.45; cursor:not-allowed; background:#F6F5F8; border-color:#E5E3EA; color:#9A96A3;}
   .search-row{display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; align-items:center;}
   .search-input{
     flex:1; min-width:220px; padding:13px 20px; border-radius:999px; border:2px solid var(--lavender);
@@ -906,6 +918,12 @@
   .kit-collage.n4 img:nth-child(1){top:3px; left:3px;} .kit-collage.n4 img:nth-child(2){top:3px; right:3px;}
   .kit-collage.n4 img:nth-child(3){bottom:3px; left:3px;} .kit-collage.n4 img:nth-child(4){bottom:3px; right:3px;}
   /* kits com foto larga (ex.: colete): a 1ª foto ocupa toda a largura em cima, os outros itens embaixo */
+  .kit-collage.landbot img{left:auto; right:auto; top:auto; bottom:auto;}
+  .kit-collage.landbot.n2 img:nth-child(1){top:3px; left:3px; width:calc(100% - 6px); height:calc(50% - 4.5px);}
+  .kit-collage.landbot.n2 img:nth-child(2){bottom:3px; left:3px; width:calc(100% - 6px); height:calc(50% - 4.5px); background:#fff;}
+  .kit-collage.landbot.n3 img:nth-child(1){top:3px; left:3px; width:calc(50% - 4.5px); height:calc(50% - 4.5px);}
+  .kit-collage.landbot.n3 img:nth-child(2){top:3px; right:3px; width:calc(50% - 4.5px); height:calc(50% - 4.5px);}
+  .kit-collage.landbot.n3 img:nth-child(3){bottom:3px; left:3px; width:calc(100% - 6px); height:calc(50% - 4.5px); background:#fff;}
   .kit-collage.wide img:nth-child(1){top:3px; left:3px; right:auto; bottom:auto; width:calc(100% - 6px); height:calc(64% - 4.5px); object-position:center 35%;}
   .kit-collage.wide img:nth-child(n+2){top:auto; bottom:3px; height:calc(36% - 4.5px); object-fit:contain; background:#fff;}
   .kit-collage.wide.n2 img:nth-child(2){left:3px; right:auto; width:calc(100% - 6px);}
@@ -2416,13 +2434,50 @@ PRODUCT_FAMILIES.unshift(...KIT_FAMILIES);
 function kitItemsText(v, sep){ return (v.comps||[]).map(c => (c.qty>1? c.qty+'x ':'') + c.f.name).join(sep || ' + '); }
 function orderItemName(fam, v){ return fam.kit ? `${fam.name} (${v.label}): ${kitItemsText(v)}` : fam.name; }
 // vi = opção escolhida (na página do kit); sem vi = vitrine (usa a foto de capa do kit, se tiver)
+// Na montagem do kit: arruma as fotos conforme o formato de cada uma.
+// - Foto deitada (ex.: pacote de lenços) com 2 ou 3 fotos: ela vai inteira embaixo, ocupando a largura toda,
+//   e as outras ficam em cima (lado a lado quando são duas).
+// - Sem foto deitada, com 3 fotos: o espaço alto da esquerda fica com a foto mais "em pé".
+// - Se mesmo assim o formato não combinar com o espaço, mostra a foto inteira em vez de cortar.
+function kitFitOne(img){
+  const w = img.clientWidth, h = img.clientHeight, nw = img.naturalWidth, nh = img.naturalHeight;
+  if(!w || !h || !nw || !nh) return;
+  const r = (nw / nh) / (w / h);
+  // foto de lenço embaixo: sempre inteira, só diminui para caber
+  if(img.dataset.land) { img.style.objectFit = 'contain'; return; }
+  img.style.objectFit = (r > 1.45 || r < 0.69) ? 'contain' : '';
+}
+function kitFit(img){
+  try {
+    const box = img.parentNode;
+    if(box && !box.dataset.arr && (box.classList.contains('n2') || box.classList.contains('n3')) && !box.classList.contains('wide')){
+      const imgs = [...box.querySelectorAll('img')];
+      if(!imgs.every(i => i.complete && i.naturalWidth)) return; // espera todas carregarem
+      box.dataset.arr = '1';
+      const ar = i => i.naturalWidth / i.naturalHeight;
+      const swap = (x, y) => { const t = x.src; x.src = y.src; y.src = t; const l = x.dataset.land; if(y.dataset.land) x.dataset.land = y.dataset.land; else delete x.dataset.land; if(l) y.dataset.land = l; else delete y.dataset.land; };
+      const land = imgs.find(i => i.dataset.land) || imgs.reduce((p, q) => ar(q) > ar(p) ? q : p);
+      if(land.dataset.land || ar(land) > 1.2){
+        box.classList.add('landbot');
+        const last = imgs[imgs.length - 1];
+        if(land !== last) swap(land, last);
+      } else if(box.classList.contains('n3')){
+        const tall = imgs.reduce((p, q) => ar(q) < ar(p) ? q : p);
+        if(tall !== imgs[0] && ar(imgs[0]) > ar(tall) * 1.15) swap(imgs[0], tall);
+      }
+      setTimeout(() => imgs.forEach(kitFitOne), 60);
+      return;
+    }
+    kitFitOne(img);
+  } catch(e){}
+}
 function kitCollage(f, vi){
   if(vi == null && f.def && f.def.cover && PRODUCT_IMAGES[f.def.cover])
     return `<div class="kit-collage n1"><img src="${PRODUCT_IMAGES[f.def.cover]}" alt="" loading="lazy"${f.def.coverFit?` style="object-fit:${f.def.coverFit}; background:${f.def.coverBg||'#fff'}"`:''}><span class="kit-badge">${f.emoji} KIT</span></div>`;
   const vv = (vi != null && f.variants[vi]) || f.variants.find(v=>v.available!==false) || f.variants[0];
   const comps = vv.comps.filter(c=>c.f.photo && PRODUCT_IMAGES[c.f.photo]).slice(0,4);
   const wide = f.def && f.def.wideFirst && comps.length > 1 && comps.length < 4 ? ' wide' : '';
-  return `<div class="kit-collage n${comps.length}${wide}">${comps.map(c=>`<img src="${PRODUCT_IMAGES[c.f.photo]}" alt="" loading="lazy">`).join('')}<span class="kit-badge">${f.emoji} KIT</span></div>`;
+  return `<div class="kit-collage n${comps.length}${wide}">${comps.map(c=>`<img src="${PRODUCT_IMAGES[c.f.photo]}" alt="" loading="lazy"${/len[çc]o/i.test(c.f.name||'')?' data-land="1"':''} onload="kitFit(this)">`).join('')}<span class="kit-badge">${f.emoji} KIT</span></div>`;
 }
 
 /* ---------- Tabela de medidas dos coletes salva-vidas (Outward Hound, igual para todos os modelos) ---------- */
@@ -3356,10 +3411,10 @@ function kitMultiFind(f, cur, i, opt){
 }
 function kitMultiPickHTML(f){
   const cur = f.variants[modalVariantIdx] || f.variants[0];
-  const lab = t => `<label style="font-size:12.5px; font-weight:700; color:var(--purple-deep); display:block; margin:0 0 8px;">${t}</label>`;
-  const chip = (label, active, ok, onclick) => `<button class="chip" style="padding:8px 14px; font-size:12.5px; ${active ? 'background:var(--purple-deep);border-color:var(--purple-deep);color:#fff;' : ''}${ok ? '' : 'opacity:0.45; cursor:not-allowed; background:#f2f2f2; border-color:#ddd; color:#999;'}" ${ok ? `onclick="${onclick}"` : 'disabled'}>${label}</button>`;
+  const lab = t => { const m = String(t).match(/^(\d+)\.\s*(.*)$/); return `<div class="opt-lab">${m ? `<span class="n">${m[1]}</span>${m[2]}` : t}</div>`; };
+  const chip = (label, active, ok, onclick) => `<button class="opt${active ? ' on' : ''}" ${ok ? `onclick="${onclick}"` : 'disabled'}>${label}</button>`;
   const sizes = [...new Set(f.variants.map(v => v.size))];
-  const sizeRow = sizes.length < 2 ? '' : `<div style="margin-bottom:14px;">${lab('1. Escolha o tamanho:')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${sizes.map(sz =>
+  const sizeRow = sizes.length < 2 ? '' : `<div class="opt-step">${lab('1. Escolha o tamanho:')}<div class="opt-row">${sizes.map(sz =>
     chip(abSafe(sz), sz === cur.size, f.variants.some(v => v.size === sz && v.available !== false), `kitMultiSize(${JSON.stringify(sz).replace(/"/g,'&quot;')})`)).join('')}</div></div>`;
   const n0 = sizes.length < 2 ? 1 : 2;
   return sizeRow + f.def.picks.map((pk, i) => {
@@ -3368,10 +3423,10 @@ function kitMultiPickHTML(f){
     const row = opts.map(opt => {
       const k = kitMultiFind(f, cur, i, opt), v = f.variants[k];
       const name = opt == null ? (pk.none || 'Não') : kitShortName(f.def, catFind(opt));
-      const extra = (opt != null && pk.optional && v) ? ` <span style="font-size:10.5px;opacity:.75">+${fmt(Math.max(0, v.pix - (f.variants[kitMultiFind(f, cur, i, null)] || cur).pix))}</span>` : '';
+      const extra = (opt != null && pk.optional && v) ? ` <span class="px">+${fmt(Math.max(0, v.pix - (f.variants[kitMultiFind(f, cur, i, null)] || cur).pix))}</span>` : '';
       return chip(name + extra, cur.sel[i] === opt, k >= 0 && v.available !== false, `kitMultiPick(${i}, ${opt == null ? 'null' : opt})`);
     }).join('');
-    return `<div style="margin-bottom:14px;">${lab((i + n0) + '. ' + pk.label + (/[?:]$/.test(pk.label) ? '' : ':'))}<div style="display:flex; gap:8px; flex-wrap:wrap;">${row}</div></div>`;
+    return `<div class="opt-step">${lab((i + n0) + '. ' + pk.label + (/[?:]$/.test(pk.label) ? '' : ':'))}<div class="opt-row">${row}</div></div>`;
   }).join('');
 }
 function abSafe(t){ return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -3396,13 +3451,13 @@ function kitPickHTML(f){
   if(f.def.picks) return kitMultiPickHTML(f);
   const cur = f.variants[modalVariantIdx] || f.variants[0];
   const sizes = [...new Set(f.variants.map(v => v.size))];
-  const chip = (label, active, ok, onclick) => `<button class="chip" style="padding:8px 14px; font-size:12.5px; ${active ? 'background:var(--purple-deep);border-color:var(--purple-deep);color:#fff;' : ''}${ok ? '' : 'opacity:0.45; text-decoration:line-through; cursor:not-allowed; background:#f2f2f2; border-color:#ddd; color:#999;'}" ${ok ? `onclick="${onclick}"` : 'disabled'}>${label}${ok ? '' : ' <span style="font-size:9.5px;">(indisponível)</span>'}</button>`;
-  const lab = t => `<label style="font-size:12.5px; font-weight:700; color:var(--purple-deep); display:block; margin:0 0 8px;">${t}</label>`;
+  const chip = (label, active, ok, onclick) => `<button class="opt${active ? ' on' : ''}" ${ok ? `onclick="${onclick}"` : 'disabled'}>${label}${ok ? '' : ' <span class="px">(indisponível)</span>'}</button>`;
+  const lab = t => { const m = String(t).match(/^(\d+)\.\s*(.*)$/); return `<div class="opt-lab">${m ? `<span class="n">${m[1]}</span>${m[2]}` : t}</div>`; };
   const sizeRow = sizes.map(sz => chip(sz, sz === cur.size, f.variants.some(v => v.size === sz && v.available !== false), `kitPick('size', ${JSON.stringify(sz).replace(/"/g,'&quot;')})`)).join('');
-  const pickRow = f.variants.filter(v => v.size === cur.size).map(v => chip(v.pickName + ` <span style="font-size:10.5px;opacity:.75">${fmt(v.pix)} Pix</span>`, v === cur, v.available !== false, `kitPick('pick', ${v.pickId})`)).join('');
-  if(sizes.length < 2) return `<div style="margin-bottom:16px;">${lab(f.def.pick.label + ':')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${pickRow}</div></div>`; // só um tamanho: pergunta só o item
-  return `<div style="margin-bottom:14px;">${lab('1. Escolha o tamanho:')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${sizeRow}</div></div>
-    <div style="margin-bottom:16px;">${lab('2. ' + f.def.pick.label + ':')}<div style="display:flex; gap:8px; flex-wrap:wrap;">${pickRow}</div></div>`;
+  const pickRow = f.variants.filter(v => v.size === cur.size).map(v => chip(v.pickName + ` <span class="px">${fmt(v.pix)} Pix</span>`, v === cur, v.available !== false, `kitPick('pick', ${v.pickId})`)).join('');
+  if(sizes.length < 2) return `<div class="opt-step">${lab(f.def.pick.label + ':')}<div class="opt-row">${pickRow}</div></div>`; // só um tamanho: pergunta só o item
+  return `<div class="opt-step">${lab('1. Escolha o tamanho:')}<div class="opt-row">${sizeRow}</div></div>
+    <div class="opt-step">${lab('2. ' + f.def.pick.label + ':')}<div class="opt-row">${pickRow}</div></div>`;
 }
 function kitPick(kind, val){
   const f = familyById(modalFamilyId); if(!f) return;
