@@ -16,6 +16,22 @@ const cpfOk = (v) => {
   }
   return d;
 };
+// Ficha da Bielyy BOX (assinatura): respostas do questionário do pet, para a curadoria
+const cleanBox = (x) => {
+  if (!x || typeof x !== 'object') return undefined;
+  const linhas = (Array.isArray(x.linhas) ? x.linhas : []).slice(0, 40)
+    .filter(p => Array.isArray(p) && p.length >= 2)
+    .map(p => [clean(p[0], 60), clean(p[1], 600)])
+    .filter(p => p[0] && p[1]);
+  if (!linhas.length) return undefined;
+  return {
+    pet: clean(x.pet, 40),
+    especie: x.especie === 'gato' ? 'gato' : 'cao',
+    plano: clean(x.plano, 80),
+    envios: Math.max(1, Math.min(12, parseInt(x.envios, 10) || 1)),
+    linhas
+  };
+};
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
 
 exports.handler = async function (event) {
@@ -93,7 +109,8 @@ exports.handler = async function (event) {
     shipping: b.shipping ? { label: clean(b.shipping.label, 60), price: num(b.shipping.price), free: !!b.shipping.free, local: !!b.shipping.local } : null,
     total: num(b.total),
     stockItems: cleanStockItems(b.stockItems),
-    trackStock: true
+    trackStock: true,
+    box: cleanBox(b.box)
   };
 
   try {

@@ -395,6 +395,18 @@ function addrLines(o){
   return { l1, l2:a.neighborhood||'', l3:a.city||'', l4:a.cep ? ('CEP '+fmtCep(a.cep)) : '' };
 }
 function fmtCpf(v){ const d = String(v||'').replace(/\D/g,''); return d.length===11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : String(v||''); }
+// Ficha da Bielyy BOX (assinatura): o que a cliente contou sobre o pet, para montar as caixas
+function boxCard(o){
+  const b = o.box; if(!b || !Array.isArray(b.linhas) || !b.linhas.length) return '';
+  return `<div class="card" style="border:2px solid #E9DDFB"><h3>🎀 Ficha Bielyy BOX
+      <span style="display:flex;gap:6px"><button class="ghost" onclick="copy(boxText(ORDERS.find(x=>x.order_nsu===CUR)),'Ficha copiada ✓')">Copiar ficha</button></span></h3>
+    <div class="hint" style="margin:-4px 0 10px">${esc(b.plano||'')}${b.envios>1?' · uma caixa por mês, todas já pagas neste pedido':''}</div>
+    <dl class="kv">${b.linhas.map(p=>`<dt>${esc(p[0])}</dt><dd>${esc(p[1])}</dd>`).join('')}</dl></div>`;
+}
+function boxText(o){
+  const b = o && o.box; if(!b) return '';
+  return `Bielyy BOX · pedido #${o.order_nsu}\n${b.plano||''}\n` + b.linhas.map(p=>`${p[0]}: ${p[1]}`).join('\n');
+}
 function addrText(o){
   const x=addrLines(o);
   return [o._cust.name, o._cust.cpf ? 'CPF: ' + fmtCpf(o._cust.cpf) : '', x.l1, x.l2, x.l3, x.l4].filter(Boolean).join('\n');
@@ -507,7 +519,7 @@ function filtered(){
     if(cf==='none' && o._coupon) return false;
     if(cf!=='all' && cf!=='none' && (!o._coupon || o._coupon.code!==cf)) return false;
     if(!q) return true;
-    const hay = [o.order_nsu, o._cust.name, o._cust.email, o._cust.phone, o._addr.city, o._coupon&&o._coupon.code, itemsText(o)].join(' ').toLowerCase();
+    const hay = [o.order_nsu, o.box ? 'box ' + (o.box.pet||'') : '', o._cust.name, o._cust.email, o._cust.phone, o._addr.city, o._coupon&&o._coupon.code, itemsText(o)].join(' ').toLowerCase();
     return hay.includes(q) || (qd.length>=4 && digits(o._cust.phone).includes(qd));
   });
 }
@@ -522,7 +534,7 @@ function renderOrders(){
         <div class="o-sub">#${esc(o.order_nsu)} · ${dt(o._date)} · ${o._pm==='whatsapp'?'WhatsApp':'InfinitePay'}</div></div>
       <div class="o-right"><div class="o-total">${fmt(o._total)}</div><span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div>
       <div class="o-items">${n} ${n===1?'item':'itens'}: ${esc(itemsText(o))}</div>
-      <div class="tags">${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
+      <div class="tags">${o.box?`<span class="tag" style="background:#F3ECFF;color:#6D42B8">🎀 BOX · ${esc(o.box.pet||'pet')}</span>`:''}${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
     </div>`;
   }).join('');
 }
@@ -576,6 +588,8 @@ function openDetail(id){
       </div>
       ${o._info?`<div class="cm">💰 Comissão do cupom ${esc(o._coupon.code)} (${esc(o._info.who)}${o._info.tag?' · '+esc(o._info.tag):''}): <b>${fmt(o._info.pct*Math.max(0,o._subtotal-o._discount))}</b> (${(o._info.pct*100).toFixed(0)}% de ${fmt(Math.max(0,o._subtotal-o._discount))})${o._sale?'':' — só conta depois que o pagamento for confirmado.'}</div>`:''}
     </div>
+
+    ${boxCard(o)}
 
     <div class="card"><h3>💳 Pagamento</h3>
       <dl class="kv"><dt>Forma</dt><dd>${payLabel(o)}</dd>

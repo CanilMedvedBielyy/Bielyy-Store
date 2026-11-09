@@ -15,6 +15,24 @@ const cpfOk = (v) => {
   return d;
 };
 
+const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
+// Ficha da Bielyy BOX (assinatura): respostas do questionário do pet, para a curadoria
+const cleanBox = (x) => {
+  if (!x || typeof x !== 'object') return undefined;
+  const linhas = (Array.isArray(x.linhas) ? x.linhas : []).slice(0, 40)
+    .filter(p => Array.isArray(p) && p.length >= 2)
+    .map(p => [clean(p[0], 60), clean(p[1], 600)])
+    .filter(p => p[0] && p[1]);
+  if (!linhas.length) return undefined;
+  return {
+    pet: clean(x.pet, 40),
+    especie: x.especie === 'gato' ? 'gato' : 'cao',
+    plano: clean(x.plano, 80),
+    envios: Math.max(1, Math.min(12, parseInt(x.envios, 10) || 1)),
+    linhas
+  };
+};
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
@@ -87,7 +105,8 @@ exports.handler = async function (event) {
         coupon: orderDetails.coupon || null,
         paymentUrl: data.url || null,
         stockItems: cleanStockItems(orderDetails.stockItems),
-        trackStock: true
+        trackStock: true,
+        box: cleanBox(orderDetails.box)
       };
       await store.setJSON(payload.order_nsu, order);
     } catch (blobErr) {
