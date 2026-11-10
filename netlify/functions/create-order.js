@@ -33,6 +33,8 @@ const cleanBox = (x) => {
     linhas
   };
 };
+// foto do item (caminho do próprio site, ex.: fam25.jpg) para os e-mails de pedido
+const imgPath = (v) => { const t = String(v || '').trim().slice(0, 200); return /^\/?[A-Za-z0-9_\-.]+(\/[A-Za-z0-9_\-.]+)*(\?[A-Za-z0-9_\-.=&%]*)?$/.test(t) && !t.includes('..') ? t : ''; };
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; };
 
 exports.handler = async function (event) {
@@ -68,7 +70,8 @@ exports.handler = async function (event) {
     qty: Math.max(1, Math.min(99, parseInt(it.qty, 10) || 1)),
     unitPrice: num(it.unitPrice),
     preorder: !!it.preorder,
-    productId: clean(it.productId, 20)
+    productId: clean(it.productId, 20),
+    img: imgPath(it.img)
   })).filter(it => it.name);
 
   const customer = b.customer || {};

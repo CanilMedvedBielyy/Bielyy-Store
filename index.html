@@ -2546,6 +2546,17 @@ function catApplyStories(){
 catApplyStories();
 PRODUCT_FAMILIES.unshift(...KIT_FAMILIES);
 function kitItemsText(v, sep){ return (v.comps||[]).map(c => (c.qty>1? c.qty+'x ':'') + c.f.name).join(sep || ' + '); }
+// Foto do item para os e-mails de pedido: capa do kit (ou a foto do 1º produto do kit) ou a foto do produto
+function emailImgOf(l){
+  try {
+    const f = l.family; let k = null;
+    if(f.kit){
+      if(f.def && f.def.cover && PRODUCT_IMAGES[f.def.cover]) k = f.def.cover;
+      else { const c = ((l.variant && l.variant.comps) || []).find(c => c.f && c.f.photo && PRODUCT_IMAGES[c.f.photo]); if(c) k = c.f.photo; }
+    } else if(f.photo && PRODUCT_IMAGES[f.photo]) k = f.photo;
+    return k ? String(PRODUCT_IMAGES[k]) : '';
+  } catch(e){ return ''; }
+}
 function orderItemName(fam, v){ if(isBox(fam)) return 'Bielyy BOX — ' + (BOX.nome || 'ficha do pet'); return fam.kit ? `${fam.name} (${v.label}): ${kitItemsText(v)}` : fam.name; }
 // vi = opção escolhida (na página do kit); sem vi = vitrine (usa a foto de capa do kit, se tiver)
 // Na montagem do kit: arruma as fotos conforme o formato de cada uma.
@@ -4277,7 +4288,8 @@ function finalizeOrderNow(){
     qty: l.qty,
     unitPrice: checkoutPrice(l.variant),
     preorder: !!l.family.preorder,
-    productId: l.family.id
+    productId: l.family.id,
+    img: emailImgOf(l)
   }));
   const freeShip = !!(appliedCoupon && appliedCoupon.freeShipping);
   const couponInfo = (appliedCoupon && (discount > 0 || freeShip || appliedCoupon.commissionPct != null)) ? { code: appliedCoupon.code, label: appliedCoupon.tiered ? tieredLabel(appliedCoupon) : (appliedCoupon.label || ''), discount, percent: appliedCoupon.percent || null, commissionPct: appliedCoupon.commissionPct != null ? appliedCoupon.commissionPct : null, first: appliedCoupon.tiered ? !!appliedCoupon.first : undefined } : null;

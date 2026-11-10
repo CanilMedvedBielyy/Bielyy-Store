@@ -41,17 +41,35 @@ async function sendEmail({ to, subject, html, text }) {
 }
 
 // ---------- montagem do e-mail do pedido ----------
+const imgPath = (v) => { const t = String(v || '').trim().slice(0, 200); return /^\/?[A-Za-z0-9_\-.]+(\/[A-Za-z0-9_\-.]+)*(\?[A-Za-z0-9_\-.=&%]*)?$/.test(t) && !t.includes('..') ? t : ''; };
+const absUrl = (p) => p ? SITE_URL() + '/' + p.replace(/^\/+/, '') : '';
+const cut = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n - 1).trim() + '…' : t; };
+
+// Separa "Kit X (opção): itens" em título curto + linha de detalhe
+function splitName(name, variant) {
+  const m = String(name || '').match(/^(.*?) \(([^)]*)\)(?::\s*[\s\S]*)?$/);
+  if (m) return { title: m[1], sub: m[2] };
+  return { title: String(name || ''), sub: variant || '' };
+}
+
 function itemsOf(o) {
   if (Array.isArray(o.itemsDetailed) && o.itemsDetailed.length) {
-    return o.itemsDetailed.map(i => ({
-      name: (i.name || '') + (i.variant ? ` (${i.variant})` : ''),
-      qty: Number(i.qty) || 1,
-      total: Number(i.unitPrice) ? Number(i.unitPrice) * (Number(i.qty) || 1) : null
-    }));
+    return o.itemsDetailed.map(i => {
+      const n = splitName(i.name, i.variant);
+      return {
+        title: n.title, sub: n.sub,
+        qty: Number(i.qty) || 1,
+        total: Number(i.unitPrice) ? Number(i.unitPrice) * (Number(i.qty) || 1) : null,
+        img: absUrl(imgPath(i.img))
+      };
+    });
   }
   return (o.items || [])
     .filter(i => !/^Frete \(/.test(i.description || ''))
-    .map(i => ({ name: i.description || '', qty: Number(i.quantity) || 1, total: Number(i.price) ? Number(i.price) * (Number(i.quantity) || 1) / 100 : null }));
+    .map(i => {
+      const n = splitName(i.description, '');
+      return { title: n.title, sub: n.sub, qty: Number(i.quantity) || 1, total: Number(i.price) ? Number(i.price) * (Number(i.quantity) || 1) / 100 : null, img: '' };
+    });
 }
 
 function carrierOf(o) {
@@ -132,40 +150,102 @@ function content(o, kind, extra) {
   }
 }
 
+const STEPS = [['recebido', 'Pedido'], ['pago', 'Pagamento'], ['em_preparacao', 'Preparo'], ['enviado', 'Envio'], ['entregue', 'Entregue']];
+const ICON = { recebido: '🛍️', pago: '✅', em_preparacao: '📦', enviado: '🚚', entregue: '🎉', cancelado: '💜' };
+const C = { roxo: '#6D42B8', rosa: '#C24E7A', tinta: '#3A2E52', suave: '#6B6680', lilas: '#F3ECFF', borda: '#E9E0F7', fundo: '#F6F1FF' };
+
+function stepsHtml(kind) {
+  const at = STEPS.findIndex(s => s[0] === kind);
+  if (at < 0) return '';
+  const cells = STEPS.map(([k, label], i) => {
+    const done = i <= at;
+    return `<td align="center" style="width:20%;padding:0 2px;vertical-align:top">
+      <div style="width:26px;height:26px;line-height:26px;border-radius:13px;margin:0 auto;font-size:13px;font-weight:bold;color:${done ? '#ffffff' : C.suave};background:${done ? C.roxo : C.borda}">${done ? '✓' : i + 1}</div>
+      <div style="font-size:11px;margin-top:5px;color:${i === at ? C.roxo : C.suave};font-weight:${i === at ? 'bold' : 'normal'}">${label}</div></td>`;
+  }).join('');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 4px"><tr>${cells}</tr></table>`;
+}
+
 function buildOrderEmail(o, kind, extra) {
   const c = content(o, kind, extra);
   if (!c) return null;
   const first = String((o.customer && o.customer.name) || '').trim().split(' ')[0];
   const track = SITE_URL() + '/pedido.html?pedido=' + encodeURIComponent(o.order_nsu);
+  const logo = SITE_URL() + '/site-asset-0.jpg';
   const items = itemsOf(o);
-  const shown = items.slice(0, 12);
+  const shown = items.slice(0, 10);
   const totalNum = Number(o.total);
   const shipping = o.shipping && (o.shipping.label || o.shipping.price != null) ? o.shipping : null;
+  const font = "font-family:'Helvetica Neue',Helvetica,Arial,sans-serif";
 
-  const rowsHtml = shown.map(i => `<tr><td style="padding:6px 0;border-bottom:1px solid #EEE7FA">${i.qty}× ${esc(i.name)}</td><td style="padding:6px 0;border-bottom:1px solid #EEE7FA;text-align:right;white-space:nowrap">${i.total != null ? esc(money(i.total)) : ''}</td></tr>`).join('')
-    + (items.length > shown.length ? `<tr><td colspan="2" style="padding:6px 0;color:#6B6680">+ ${items.length - shown.length} item(ns)</td></tr>` : '')
-    + (shipping ? `<tr><td style="padding:6px 0;color:#6B6680">Frete${shipping.label ? ' · ' + esc(shipping.label) : ''}</td><td style="padding:6px 0;text-align:right;color:#6B6680;white-space:nowrap">${shipping.free ? 'grátis' : (Number(shipping.price) ? esc(money(shipping.price)) : '')}</td></tr>` : '')
-    + (o.coupon && o.coupon.code ? `<tr><td style="padding:6px 0;color:#6B6680">Cupom ${esc(o.coupon.code)}</td><td style="padding:6px 0;text-align:right;color:#6B6680;white-space:nowrap">${Number(o.coupon.discount) ? '− ' + esc(money(o.coupon.discount)) : ''}</td></tr>` : '')
-    + (Number.isFinite(totalNum) && totalNum > 0 ? `<tr><td style="padding:10px 0 0;font-weight:bold">Total</td><td style="padding:10px 0 0;text-align:right;font-weight:bold;white-space:nowrap">${esc(money(totalNum))}</td></tr>` : '');
+  const btn = (b, secondary) => `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:22px auto 0"><tr><td align="center" bgcolor="${secondary ? '#ffffff' : C.roxo}" style="border-radius:999px;${secondary ? `border:2px solid ${C.roxo};` : ''}">
+    <a href="${esc(b.url)}" style="display:inline-block;padding:13px 28px;${font};font-size:15px;font-weight:bold;color:${secondary ? C.roxo : '#ffffff'};text-decoration:none;border-radius:999px">${esc(b.label)}</a></td></tr></table>`
+    + (b.note ? `<p style="margin:8px 0 0;text-align:center;font-size:12px;color:${C.suave}">${esc(b.note)}</p>` : '');
 
-  const btn = (b) => `<p style="margin:22px 0 6px"><a href="${esc(b.url)}" style="background:#6D42B8;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:bold;display:inline-block">${esc(b.label)}</a></p>${b.note ? `<p style="font-size:12.5px;color:#6B6680;margin:4px 0 0">${esc(b.note)}</p>` : ''}`;
-  const trackingHtml = c.tracking
-    ? `<div style="background:#F3ECFF;border-radius:12px;padding:12px 14px;margin:16px 0">${esc(c.tracking.label)}:<br>${c.tracking.link
-        ? `<a href="${esc(c.tracking.code)}" style="color:#6D42B8;font-weight:bold;word-break:break-all">${esc(c.tracking.code)}</a>`
-        : `<b style="font-size:17px;letter-spacing:1px">${esc(c.tracking.code)}</b>`}</div>`
-    : '';
+  const trackingHtml = c.tracking ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td align="center" style="background:${C.lilas};border:2px dashed #C9B4EE;border-radius:14px;padding:16px">
+      <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.suave}">${esc(c.tracking.label)}</div>
+      ${c.tracking.link
+        ? `<a href="${esc(c.tracking.code)}" style="display:inline-block;margin-top:6px;font-size:15px;font-weight:bold;color:${C.roxo};word-break:break-all">Abrir acompanhamento da entrega →</a>`
+        : `<div style="margin-top:6px;font-size:22px;font-weight:bold;letter-spacing:2px;color:${C.roxo}">${esc(c.tracking.code)}</div>`}
+    </td></tr></table>` : '';
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#3A2E52;line-height:1.5">
-  <p style="margin:0 0 4px;font-size:12px;letter-spacing:1px;color:#C24E7A;font-weight:bold">BIELYY STORE · PEDIDO #${esc(o.order_nsu)}</p>
-  <h2 style="color:#6D42B8;margin:0 0 14px">${esc(c.title)}</h2>
-  <p style="margin:0 0 10px">Oi${first ? ', ' + esc(first) : ''}!${c.noThanks ? '' : ' Obrigada por comprar na Bielyy Store.'}</p>
-  ${c.lines.map(l => `<p style="margin:0 0 10px">${esc(l)}</p>`).join('')}
-  ${trackingHtml}
-  ${c.button ? btn(c.button) : ''}
-  <table style="width:100%;border-collapse:collapse;font-size:14px;margin:20px 0 8px">${rowsHtml}</table>
-  <p style="margin:22px 0 6px"><a href="${esc(track)}" style="color:#6D42B8;font-weight:bold">📦 Acompanhar meu pedido →</a></p>
-  <p style="font-size:13px;color:#6B6680;margin:18px 0 0">Você também vê todos os seus pedidos em <b>Minha conta</b>, no site bielyystore.com.br. Dúvidas? É só responder este e-mail ou chamar no <a href="${WHATSAPP}" style="color:#6D42B8">WhatsApp</a>.</p>
-  <p style="font-size:13px;color:#6B6680;margin:10px 0 0">Com carinho, equipe Bielyy Store 🐾</p></div>`;
+  const itemRows = shown.map(i => `<tr>
+      <td width="64" style="padding:10px 12px 10px 0;vertical-align:middle">${i.img
+        ? `<img src="${esc(i.img)}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;background:${C.lilas};border:1px solid ${C.borda}">`
+        : `<div style="width:56px;height:56px;line-height:56px;border-radius:12px;background:${C.lilas};text-align:center;font-size:24px">🐾</div>`}</td>
+      <td style="padding:10px 0;vertical-align:middle;font-size:14px;color:${C.tinta}">
+        <div style="font-weight:bold;line-height:1.3">${esc(cut(i.title, 70))}</div>
+        ${i.sub ? `<div style="font-size:12px;color:${C.suave};line-height:1.35;margin-top:3px">${esc(cut(i.sub, 90))}</div>` : ''}
+        <div style="font-size:12px;color:${C.suave};margin-top:3px">Qtd: ${i.qty}</div></td>
+      <td align="right" style="padding:10px 0 10px 10px;vertical-align:middle;font-size:14px;font-weight:bold;color:${C.tinta};white-space:nowrap">${i.total != null ? esc(money(i.total)) : ''}</td>
+    </tr>`).join(`<tr><td colspan="3" style="border-top:1px solid ${C.borda};font-size:0;line-height:0">&nbsp;</td></tr>`)
+    + (items.length > shown.length ? `<tr><td colspan="3" style="padding:8px 0;font-size:13px;color:${C.suave}">+ ${items.length - shown.length} item(ns)</td></tr>` : '');
+
+  const line = (label, value, strong) => `<tr><td style="padding:4px 0;font-size:${strong ? 16 : 13}px;color:${strong ? C.tinta : C.suave};${strong ? 'font-weight:bold;' : ''}">${label}</td><td align="right" style="padding:4px 0;font-size:${strong ? 18 : 13}px;color:${strong ? C.roxo : C.suave};white-space:nowrap;${strong ? 'font-weight:bold;' : ''}">${value}</td></tr>`;
+  const totals = (shipping ? line('Frete' + (shipping.label ? ' · ' + esc(shipping.label) : ''), shipping.free ? 'grátis 💜' : (Number(shipping.price) ? esc(money(shipping.price)) : '—')) : '')
+    + (o.coupon && o.coupon.code && Number(o.coupon.discount) ? line('Cupom ' + esc(o.coupon.code), '− ' + esc(money(o.coupon.discount))) : '')
+    + (Number.isFinite(totalNum) && totalNum > 0 ? line('Total', esc(money(totalNum)), true) : '');
+
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(c.subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.fundo}">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(c.lines[0] || '')}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.fundo}" style="background:${C.fundo}"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;${font};color:${C.tinta}">
+
+  <tr><td align="center" style="padding:0 0 14px">
+    <img src="${esc(logo)}" width="76" height="76" alt="Bielyy Store" style="display:block;width:76px;height:76px;border-radius:38px;border:3px solid #ffffff">
+  </td></tr>
+
+  <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:22px;padding:30px 26px 28px;border:1px solid ${C.borda}">
+    <div style="text-align:center">
+      <div style="width:64px;height:64px;line-height:64px;border-radius:32px;background:${C.lilas};margin:0 auto;font-size:30px">${ICON[kind] || '🐾'}</div>
+      <div style="margin-top:14px;font-size:12px;letter-spacing:1.5px;color:${C.rosa};font-weight:bold">PEDIDO #${esc(o.order_nsu)}</div>
+      <h1 style="margin:6px 0 12px;font-size:24px;line-height:1.25;color:${C.roxo}">${esc(String(c.title).replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]+$/u, ''))}</h1>
+      <p style="margin:0 0 6px;font-size:15px;line-height:1.55">Oi${first ? ', <b>' + esc(first) + '</b>' : ''}!${c.noThanks ? '' : ' Obrigada por comprar na Bielyy Store.'}</p>
+      ${c.lines.map(l => `<p style="margin:0 0 6px;font-size:15px;line-height:1.55;color:${C.tinta}">${esc(l)}</p>`).join('')}
+    </div>
+    ${kind === 'cancelado' ? '' : stepsHtml(kind)}
+    ${trackingHtml}
+    ${c.button ? btn(c.button) : btn({ label: '📦 Acompanhar meu pedido', url: track })}
+  </td></tr>
+
+  <tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+
+  <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:22px;padding:22px 24px;border:1px solid ${C.borda}">
+    <div style="font-size:16px;font-weight:bold;color:${C.tinta};margin-bottom:6px">Seu pedido</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${itemRows}</table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-top:2px solid ${C.borda};padding-top:8px">${totals}</table>
+    ${c.button ? btn({ label: '📦 Acompanhar meu pedido', url: track }, true) : ''}
+  </td></tr>
+
+  <tr><td align="center" style="padding:22px 16px 6px;font-size:13px;line-height:1.6;color:${C.suave}">
+    Dúvidas? É só responder este e-mail ou chamar no <a href="${WHATSAPP}" style="color:${C.roxo};font-weight:bold">WhatsApp</a>.<br>
+    Você também acompanha tudo em <b>Minha conta</b> no site.<br><br>
+    Com carinho, equipe <b style="color:${C.roxo}">Bielyy Store</b> 🐾<br>
+    <a href="${SITE_URL()}" style="color:${C.suave}">bielyystore.com.br</a>
+  </td></tr>
+
+</table></td></tr></table></body></html>`;
 
   const text = [
     `Oi${first ? ', ' + first : ''}!`,
@@ -175,7 +255,7 @@ function buildOrderEmail(o, kind, extra) {
     c.button ? `${c.button.label}: ${c.button.url}` : '',
     '',
     `Pedido #${o.order_nsu}`,
-    ...shown.map(i => `${i.qty}x ${i.name}${i.total != null ? ' — ' + money(i.total) : ''}`),
+    ...shown.map(i => `${i.qty}x ${i.title}${i.sub ? ' (' + cut(i.sub, 90) + ')' : ''}${i.total != null ? ' — ' + money(i.total) : ''}`),
     Number.isFinite(totalNum) && totalNum > 0 ? `Total: ${money(totalNum)}` : '',
     '',
     `Acompanhe seu pedido: ${track}`,
