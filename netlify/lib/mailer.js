@@ -120,12 +120,79 @@ function content(o, kind, extra) {
         noThanks: true
       };
     default:
+      return returnContent(o, kind, extra);
+  }
+}
+
+// ---------- trocas e devoluções ----------
+const { REASONS } = require('./returns');
+function returnContent(o, kind, extra) {
+  const rr = (extra && extra.rr) || o.returnRequest;
+  if (!rr || !/^troca_/.test(kind)) return null;
+  const troca = rr.wants === 'troca';
+  const nome = troca ? 'troca' : 'devolução';
+  const base = {
+    items: rr.items || [],
+    itemsTitle: troca ? 'Itens para troca' : 'Itens para devolução',
+    reply: rr.reply ? { label: 'Mensagem da Bielyy', text: rr.reply } : null,
+    button: { label: '↩️ Ver minha solicitação', url: SITE_URL() + '/?conta=1' },
+    noTrackBtn: true,
+    kicker: (troca ? 'TROCA' : 'DEVOLUÇÃO') + ' · PEDIDO #' + o.order_nsu
+  };
+  switch (kind) {
+    case 'troca_em_analise':
+      return Object.assign(base, {
+        subject: `Recebemos seu pedido de ${nome} · #${o.order_nsu}`,
+        title: `Recebemos seu pedido de ${nome}`,
+        lines: [
+          'Motivo: ' + (REASONS[rr.reason] || 'outro') + '.',
+          'Vamos analisar e responder em até 2 dias úteis, por e-mail ou WhatsApp, com as instruções para o envio. Por enquanto, guarde o produto com a embalagem e os acessórios.'
+        ],
+        noThanks: true
+      });
+    case 'troca_aprovada':
+      return Object.assign(base, {
+        subject: `Sua ${nome} foi aprovada ✅ · #${o.order_nsu}`,
+        title: `${troca ? 'Troca' : 'Devolução'} aprovada`,
+        lines: [
+          'Agora é só enviar o produto de volta para nós, bem embalado, com os acessórios e, se possível, na embalagem original.',
+          rr.reply ? 'Siga as instruções da mensagem abaixo para a postagem.' : 'Em seguida mandamos as instruções para a postagem.'
+        ],
+        noThanks: true
+      });
+    case 'troca_recebida':
+      return Object.assign(base, {
+        subject: `Recebemos o produto de volta 📦 · #${o.order_nsu}`,
+        title: 'Recebemos o produto de volta',
+        lines: [troca
+          ? 'O produto chegou e estamos conferindo. Assim que terminarmos, enviamos o novo item e avisamos você por aqui.'
+          : 'O produto chegou e estamos conferindo. Assim que terminarmos, fazemos o reembolso e avisamos você por aqui.'],
+        noThanks: true
+      });
+    case 'troca_concluida':
+      return Object.assign(base, {
+        subject: troca ? `Troca concluída 💜 · #${o.order_nsu}` : `Reembolso feito 💜 · #${o.order_nsu}`,
+        title: troca ? 'Troca concluída' : 'Reembolso feito',
+        lines: [troca
+          ? 'Sua troca foi concluída. Se um novo produto foi enviado, o código de rastreio aparece na mensagem abaixo ou chega em seguida.'
+          : 'Fizemos o reembolso na mesma forma de pagamento da compra. No Pix, o valor cai na hora; no cartão, aparece na fatura conforme o calendário do seu banco (pode levar até 2 faturas).'],
+        noThanks: true
+      });
+    case 'troca_recusada':
+      return Object.assign(base, {
+        subject: `Sobre o seu pedido de ${nome} · #${o.order_nsu}`,
+        title: `Não conseguimos aprovar a ${nome}`,
+        lines: ['Explicamos o motivo na mensagem abaixo. Se tiver qualquer dúvida, é só responder este e-mail ou chamar a gente no WhatsApp.'],
+        noThanks: true
+      });
+    default:
       return null;
   }
 }
 
 const STEPS = [['recebido', 'Pedido'], ['pago', 'Pagamento'], ['em_preparacao', 'Preparo'], ['enviado', 'Envio'], ['entregue', 'Entregue']];
-const ICON = { recebido: '🛍️', pago: '✅', em_preparacao: '📦', enviado: '🚚', entregue: '🎉', cancelado: '💜' };
+const ICON = { recebido: '🛍️', pago: '✅', em_preparacao: '📦', enviado: '🚚', entregue: '🎉', cancelado: '💜',
+  troca_em_analise: '↩️', troca_aprovada: '✅', troca_recebida: '📦', troca_concluida: '💜', troca_recusada: '💬' };
 const C = { roxo: '#6D42B8', rosa: '#C24E7A', tinta: '#3A2E52', suave: '#6B6680', lilas: '#F3ECFF', borda: '#E9E0F7', fundo: '#F6F1FF' };
 
 function stepsHtml(kind) {
@@ -146,7 +213,7 @@ function buildOrderEmail(o, kind, extra) {
   const first = String((o.customer && o.customer.name) || '').trim().split(' ')[0];
   const track = SITE_URL() + '/pedido.html?pedido=' + encodeURIComponent(o.order_nsu);
   const logo = SITE_URL() + '/site-asset-0.jpg';
-  const items = itemsOf(o);
+  const items = c.items ? c.items.map(i => Object.assign({}, i, { img: absUrl(i.img), total: null })) : itemsOf(o);
   const shown = items.slice(0, 10);
   const totalNum = Number(o.total);
   const shipping = o.shipping && (o.shipping.label || o.shipping.price != null) ? o.shipping : null;
@@ -161,6 +228,11 @@ function buildOrderEmail(o, kind, extra) {
       ${c.tracking.link
         ? `<a href="${esc(c.tracking.code)}" style="display:inline-block;margin-top:6px;font-size:15px;font-weight:bold;color:${C.roxo};word-break:break-all">Abrir acompanhamento da entrega →</a>`
         : `<div style="margin-top:6px;font-size:22px;font-weight:bold;letter-spacing:2px;color:${C.roxo}">${esc(c.tracking.code)}</div>`}
+    </td></tr></table>` : '';
+
+  const replyHtml = c.reply ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="background:${C.lilas};border-left:4px solid ${C.roxo};border-radius:12px;padding:14px 16px;text-align:left">
+      <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.suave};font-weight:bold">${esc(c.reply.label)}</div>
+      <div style="margin-top:6px;font-size:15px;line-height:1.55;color:${C.tinta}">${esc(c.reply.text).replace(/\n/g, '<br>')}</div>
     </td></tr></table>` : '';
 
   const itemRows = shown.map(i => `<tr>
@@ -193,23 +265,24 @@ function buildOrderEmail(o, kind, extra) {
   <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:22px;padding:30px 26px 28px;border:1px solid ${C.borda}">
     <div style="text-align:center">
       <div style="width:64px;height:64px;line-height:64px;border-radius:32px;background:${C.lilas};margin:0 auto;font-size:30px">${ICON[kind] || '🐾'}</div>
-      <div style="margin-top:14px;font-size:12px;letter-spacing:1.5px;color:${C.rosa};font-weight:bold">PEDIDO #${esc(o.order_nsu)}</div>
+      <div style="margin-top:14px;font-size:12px;letter-spacing:1.5px;color:${C.rosa};font-weight:bold">${esc(c.kicker || 'PEDIDO #' + o.order_nsu)}</div>
       <h1 style="margin:6px 0 12px;font-size:24px;line-height:1.25;color:${C.roxo}">${esc(String(c.title).replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]+$/u, ''))}</h1>
       <p style="margin:0 0 6px;font-size:15px;line-height:1.55">Oi${first ? ', <b>' + esc(first) + '</b>' : ''}!${c.noThanks ? '' : ' Obrigada por comprar na Bielyy Store.'}</p>
       ${c.lines.map(l => `<p style="margin:0 0 6px;font-size:15px;line-height:1.55;color:${C.tinta}">${esc(l)}</p>`).join('')}
     </div>
     ${kind === 'cancelado' ? '' : stepsHtml(kind)}
     ${trackingHtml}
+    ${replyHtml}
     ${c.button ? btn(c.button) : btn({ label: '📦 Acompanhar meu pedido', url: track })}
   </td></tr>
 
   <tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
 
   <tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:22px;padding:22px 24px;border:1px solid ${C.borda}">
-    <div style="font-size:16px;font-weight:bold;color:${C.tinta};margin-bottom:6px">Seu pedido</div>
+    <div style="font-size:16px;font-weight:bold;color:${C.tinta};margin-bottom:6px">${esc(c.itemsTitle || 'Seu pedido')}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${itemRows}</table>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-top:2px solid ${C.borda};padding-top:8px">${totals}</table>
-    ${c.button ? btn({ label: '📦 Acompanhar meu pedido', url: track }, true) : ''}
+    ${c.items ? '' : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-top:2px solid ${C.borda};padding-top:8px">${totals}</table>`}
+    ${c.button && !c.noTrackBtn ? btn({ label: '📦 Acompanhar meu pedido', url: track }, true) : ''}
   </td></tr>
 
   <tr><td align="center" style="padding:22px 16px 6px;font-size:13px;line-height:1.6;color:${C.suave}">
@@ -226,11 +299,12 @@ function buildOrderEmail(o, kind, extra) {
     c.title,
     ...c.lines,
     c.tracking ? `${c.tracking.label}: ${c.tracking.code}` : '',
+    c.reply ? `${c.reply.label}: ${c.reply.text}` : '',
     c.button ? `${c.button.label}: ${c.button.url}` : '',
     '',
     `Pedido #${o.order_nsu}`,
     ...shown.map(i => `${i.qty}x ${i.title}${i.sub ? ' (' + cut(i.sub, 90) + ')' : ''}${i.total != null ? ' — ' + money(i.total) : ''}`),
-    Number.isFinite(totalNum) && totalNum > 0 ? `Total: ${money(totalNum)}` : '',
+    !c.items && Number.isFinite(totalNum) && totalNum > 0 ? `Total: ${money(totalNum)}` : '',
     '',
     `Acompanhe seu pedido: ${track}`,
     'Dúvidas? Responda este e-mail ou chame no WhatsApp: ' + WHATSAPP,
@@ -269,4 +343,57 @@ async function notifyOrder(order, kind) {
   }
 }
 
-module.exports = { sendEmail, notifyOrder, buildOrderEmail };
+// Aviso de troca/devolução para a cliente, uma vez por etapa de cada solicitação.
+async function notifyReturn(order, status) {
+  try {
+    const rr = order && order.returnRequest;
+    if (!rr || !status) return false;
+    const to = order.accountEmail || (order.customer && order.customer.email);
+    if (!validEmail(to)) return false;
+    order.emailLog = order.emailLog && typeof order.emailLog === 'object' ? order.emailLog : {};
+    const key = `troca:${rr.id}:${status}`;
+    if (order.emailLog[key]) return false;
+    const mail = buildOrderEmail(order, 'troca_' + status, { rr });
+    if (!mail) return false;
+    const ok = await sendEmail({ to, ...mail });
+    if (ok) order.emailLog[key] = new Date().toISOString();
+    return ok;
+  } catch (e) {
+    console.error('Aviso de troca falhou:', e && e.message);
+    return false;
+  }
+}
+
+// Avisa a loja que chegou uma solicitação nova (vai para o Gmail da loja).
+async function notifyStoreReturn(order) {
+  try {
+    const rr = order && order.returnRequest;
+    if (!rr) return false;
+    const to = process.env.STORE_NOTIFY_EMAIL || 'bielyystore@gmail.com';
+    const c = order.customer || {};
+    const troca = rr.wants === 'troca';
+    const dias = rr.deliveredAt ? Math.floor((Date.now() - new Date(rr.deliveredAt).getTime()) / 864e5) : null;
+    const linhas = [
+      ['Pedido', '#' + order.order_nsu],
+      ['Cliente', [c.name, c.phone, order.accountEmail || c.email].filter(Boolean).join(' · ')],
+      ['Quer', troca ? 'TROCA' : 'DEVOLUÇÃO (reembolso)'],
+      ['Motivo', REASONS[rr.reason] || rr.reason],
+      ['Entregue', dias == null ? 'sem data de entrega no painel' : `há ${dias} dia(s)` + (dias > 7 && ['arrependimento', 'tamanho'].includes(rr.reason) ? ' (passou dos 7 dias do arrependimento)' : '')],
+      ['Itens', (rr.items || []).map(i => `${i.qty}x ${i.title}${i.sub ? ' (' + i.sub + ')' : ''}`).join('; ')],
+      ['Detalhes', rr.details || '—'],
+      ['Fotos', rr.photos && rr.photos.length ? `${rr.photos.length} (veja no painel)` : 'nenhuma']
+    ];
+    const admin = SITE_URL() + '/admin.html';
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#3A2E52">
+      <h2 style="color:#6D42B8;margin:0 0 12px">↩️ Nova solicitação de ${troca ? 'troca' : 'devolução'}</h2>
+      <table cellpadding="6" style="border-collapse:collapse">${linhas.map(([k, v]) => `<tr><td style="color:#6B6680;vertical-align:top"><b>${esc(k)}</b></td><td>${esc(v).replace(/\n/g, '<br>')}</td></tr>`).join('')}</table>
+      <p style="margin-top:16px">Responda pelo painel (pedido #${esc(order.order_nsu)}, card "Troca ou devolução"): a cliente recebe o aviso por e-mail.<br><a href="${admin}">${admin}</a></p></div>`;
+    const text = linhas.map(([k, v]) => `${k}: ${v}`).join('\n') + `\n\nResponda pelo painel: ${admin}`;
+    return await sendEmail({ to, subject: `↩️ ${troca ? 'Troca' : 'Devolução'} pedida · #${order.order_nsu}${c.name ? ' · ' + c.name : ''}`, html, text });
+  } catch (e) {
+    console.error('Aviso da troca para a loja falhou:', e && e.message);
+    return false;
+  }
+}
+
+module.exports = { sendEmail, notifyOrder, buildOrderEmail, notifyReturn, notifyStoreReturn };

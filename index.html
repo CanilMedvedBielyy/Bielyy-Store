@@ -736,6 +736,19 @@ function gaPurchase(nsu, value, items){
   .rv-gal-h{font-size:12.5px; font-weight:700; color:var(--ink); margin:4px 0 6px;}
   .rv-gal{display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px;} .rv-gal img{width:78px; height:78px; flex-shrink:0; object-fit:cover; border-radius:12px; cursor:zoom-in;}
   .rv-ok{font-size:12.5px; color:#2F7D4A; font-weight:600; margin-top:6px;}
+  .acct-rt{border:none; cursor:pointer; font-family:Poppins; display:inline-flex; align-items:center; gap:6px; margin:8px 0 0; font-size:12.5px; font-weight:700; color:#B4471A; background:#FFE9DC; padding:5px 10px; border-radius:999px;}
+  .rt-st{background:#FFF4EC; border:1.5px solid #FFD9C2; border-radius:12px; padding:9px 12px; font-size:12.5px; line-height:1.5; margin:8px 0 2px;}
+  .rt-st b{color:#B4471A;} .rt-st .rt-rp{margin-top:6px; padding-top:6px; border-top:1px dashed #FFD0B3; white-space:pre-wrap; color:var(--ink);}
+  .rt-sec{font-family:'Baloo 2'; font-size:15.5px; color:var(--ink); margin:14px 0 6px;}
+  .rt-it{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1.5px solid var(--lavender); border-radius:12px; margin-bottom:6px; cursor:pointer;}
+  .rt-it.on{border-color:var(--purple); background:#FBF8FF;}
+  .rt-it img,.rt-it .ph{width:42px; height:42px; border-radius:10px; object-fit:cover; background:var(--lavender); flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .rt-it input[type=checkbox]{width:18px; height:18px; accent-color:var(--purple-deep); flex-shrink:0;}
+  .rt-it select{padding:4px 6px; border-radius:8px; border:1.5px solid var(--lavender); font-family:Poppins; font-size:12.5px;}
+  .rt-op{display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border:1.5px solid var(--lavender); border-radius:12px; margin-bottom:6px; cursor:pointer; font-size:13px; line-height:1.4;}
+  .rt-op.on{border-color:var(--purple); background:#FBF8FF;} .rt-op input{accent-color:var(--purple-deep); margin-top:2px;}
+  .rt-op small{display:block; color:var(--ink-soft); font-size:11.5px;}
+  .rt-note{background:#F3ECFF; border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; color:var(--ink); margin:10px 0;}
   .acct-rv{border:none; cursor:pointer; font-family:Poppins; display:inline-flex; align-items:center; gap:6px; margin-left:10px; font-size:12.5px; font-weight:700; color:#B7791F; background:#FFF4D6; padding:5px 10px; border-radius:999px;}
 
   /* ---------- image lightbox ---------- */
@@ -1241,7 +1254,7 @@ function gaPurchase(nsu, value, items){
       <div class="benefit"><div class="bi" style="background:#FFE4EF">🛵</div><div><b>Entrega hoje em SP</b><span>Pedidos até 15h · consulte seu CEP</span></div></div>
       <div class="benefit"><div class="bi" style="background:#E3F5EC">💸</div><div><b>Desconto no Pix</b><span>O menor preço da loja</span></div></div>
       <div class="benefit"><div class="bi" style="background:#F3ECFF">💳</div><div><b>Até 4x sem juros</b><span>ou desconto no Pix</span></div></div>
-      <div class="benefit"><div class="bi" style="background:#FFF4D6">🔁</div><div><b>Troca em 7 dias</b><span>Produto lacrado, sem stress</span></div></div>
+      <div class="benefit"><div class="bi" style="background:#FFF4D6">🔁</div><div><b>Troca em 7 dias</b><span>Frete de volta por nossa conta</span></div></div>
     </div>
   </section>
 
@@ -1641,7 +1654,7 @@ function gaPurchase(nsu, value, items){
     <div class="trust-seal"><div class="ts-ic">🔒</div><div><b>Site 100% seguro</b><span>Conexão protegida com certificado SSL (o cadeado na barra do navegador)</span></div></div>
     <div class="trust-seal"><div class="ts-ic">💳</div><div><b>Pagamento seguro</b><span>Pix e cartão processados pela InfinitePay. A loja não vê nem guarda os dados do seu cartão</span></div></div>
     <div class="trust-seal"><div class="ts-ic">📦</div><div><b>Entrega garantida</b><span>Envio com código de rastreio para todo o Brasil e motoboy em SP</span></div></div>
-    <div class="trust-seal"><div class="ts-ic">🔄</div><div><b>Troca fácil</b><span>Até 7 dias para trocar ou devolver o produto lacrado</span></div></div>
+    <div class="trust-seal"><div class="ts-ic">🔄</div><div><b>Troca fácil</b><span>Até 7 dias para trocar ou devolver, com frete de volta grátis</span></div></div>
   </div>
   <div class="wrap footer-bottom">
     <span>© 2026 Bielyy Store — Pet Boutique. Todos os direitos reservados.</span>
@@ -4675,6 +4688,7 @@ function renderAccount(){
         box.innerHTML = `<p style="color:var(--ink-soft); font-size:13px; line-height:1.6;">Você ainda não tem pedidos com o e-mail <b>${escH(user.email)}</b>.<br>Os pedidos que você fizer usando esse e-mail aparecem aqui.</p>`;
         return;
       }
+      ACCT_ORDERS = j.orders;
       box.innerHTML = j.orders.map(o => {
         const st = ORDER_STATUS[o.status] || [o.status, 'var(--ink)', 'var(--lavender)'];
         const d = o.createdAt ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '';
@@ -4693,6 +4707,7 @@ function renderAccount(){
           <div style="font-size:12.5px; line-height:1.5; margin-bottom:8px;">${items}</div>
           ${o.trackingCode ? `<div style="font-size:12.5px; background:var(--lavender); border-radius:10px; padding:7px 10px; margin-bottom:8px;">🚚 ${o.carrier ? escH(({correios:'Correios',loggi:'Loggi',jadlog:'Jadlog',motoboy:'Motoboy',outra:'Rastreio'})[o.carrier]||'Rastreio') : 'Rastreio'}: <b>${/^https?:/i.test(o.trackingCode) ? 'link de acompanhamento' : escH(o.trackingCode)}</b></div>` : ''}
           <a href="/pedido.html?pedido=${encodeURIComponent(o.order_nsu)}" style="font-size:12.5px; font-weight:700; color:var(--purple-deep);">Ver andamento →</a>${(o.status==='enviado'||o.status==='entregue') ? `<button class="acct-rv" onclick="openReviewFlow('${escH(o.order_nsu)}')">⭐ Avaliar produtos</button>` : ''}
+          ${rtStatusHTML(o)}
         </div>`;
       }).join('');
     })
@@ -4701,6 +4716,114 @@ function renderAccount(){
       if(box) box.innerHTML = '<p style="color:#E0703B; font-size:13px;">Sem conexão. Tente de novo em instantes.</p>';
     });
 }
+let ACCT_ORDERS = [];
+const RT_OPEN = ['em_analise','aprovada','recebida'];
+const RT_LABEL = { em_analise:'Em análise', aprovada:'Aprovada: envie o produto de volta', recebida:'Produto recebido: em conferência', concluida:'Concluída', recusada:'Não aprovada' };
+function rtCanAsk(o){
+  if(!['enviado','entregue'].includes(o.status)) return false;
+  if(o.returnRequest && RT_OPEN.includes(o.returnRequest.status)) return false;
+  if(o.deliveredAt && Date.now() - new Date(o.deliveredAt).getTime() > 90*864e5) return false;
+  return true;
+}
+function rtStatusHTML(o){
+  const r = o.returnRequest;
+  let h = '';
+  if(r){
+    h += `<div class="rt-st">↩️ ${r.wants==='troca'?'Troca':'Devolução'}: <b>${escH(RT_LABEL[r.status]||r.statusLabel||r.status)}</b>`
+      + `<div style="font-size:11.5px; color:var(--ink-soft);">Pedida em ${r.createdAt ? new Date(r.createdAt).toLocaleDateString('pt-BR') : ''} · ${escH((r.items||[]).map(i=>i.qty+'× '+i.title).join(', '))}</div>`
+      + (r.reply ? `<div class="rt-rp"><b style="color:var(--purple-deep)">Mensagem da Bielyy:</b> ${escH(r.reply)}</div>` : '')
+      + `</div>`;
+  }
+  if(rtCanAsk(o)) h += `<button class="acct-rt" onclick="openReturnFlow('${escH(o.order_nsu)}')">↩️ Trocar ou devolver</button>`;
+  return h;
+}
+const RT = { nsu:'', sel:{}, reason:'', wants:'', photos:[] };
+const RT_REASONS = [
+  ['arrependimento','Desisti da compra / não gostei','Até 7 dias depois de receber'],
+  ['tamanho','Tamanho, cor ou modelo não serviu','Até 7 dias depois de receber'],
+  ['defeito','Produto com defeito',''],
+  ['errado','Veio produto errado ou diferente do anúncio',''],
+  ['avaria','Chegou danificado no transporte','Mande fotos da caixa e do produto'],
+  ['outro','Outro motivo','']
+];
+function openReturnFlow(nsu){
+  const o = ACCT_ORDERS.find(x => x.order_nsu === nsu); if(!o) return;
+  RT.nsu = nsu; RT.sel = {}; RT.reason = ''; RT.wants = ''; RT.photos = [];
+  const iv = (o.itemsView && o.itemsView.length) ? o.itemsView : (o.items || []).map(i => ({ title: i.name, sub: '', qty: i.qty, img: '' }));
+  if(iv.length === 1) RT.sel[0] = 1;
+  const body = document.getElementById('authModalBody');
+  body.innerHTML = `
+    <button onclick="renderAccount()" style="border:none; background:none; color:var(--purple-deep); font-family:Poppins; font-weight:700; font-size:13px; cursor:pointer; padding:0; margin-bottom:8px;">← Voltar para Meus pedidos</button>
+    <h2 style="font-family:'Baloo 2'; color:var(--purple-deep); margin-bottom:2px;">Trocar ou devolver ↩️</h2>
+    <p style="color:var(--ink-soft); font-size:12.5px; margin-bottom:4px;">Pedido #${escH(nsu)}${o.deliveredAt ? ' · entregue em ' + new Date(o.deliveredAt).toLocaleDateString('pt-BR') : ''}</p>
+    <div style="max-height:62vh; overflow:auto; padding-right:2px;">
+      <div class="rt-sec">1. Quais produtos?</div>
+      <div id="rtItems">${iv.map((i, k) => `<label class="rt-it ${RT.sel[k]?'on':''}" id="rti${k}">
+          <input type="checkbox" ${RT.sel[k]?'checked':''} onchange="rtToggle(${k}, this.checked, ${Number(i.qty)||1})">
+          ${i.img ? `<img src="${escH(/^\//.test(i.img) ? i.img : '/' + i.img)}" alt="">` : '<span class="ph">🐾</span>'}
+          <span style="flex:1; min-width:0; font-size:12.5px; line-height:1.3;"><b>${escH(i.title)}</b>${i.sub ? `<br><span style="color:var(--ink-soft); font-size:11.5px;">${escH(i.sub)}</span>` : ''}</span>
+          ${(Number(i.qty)||1) > 1 ? `<select onclick="event.stopPropagation()" onchange="RT.sel[${k}] = RT.sel[${k}] ? Number(this.value) : 0" id="rtq${k}">${Array.from({length: Number(i.qty)}, (_, n) => `<option value="${n+1}" ${n+1===Number(i.qty)?'selected':''}>${n+1} un.</option>`).join('')}</select>` : ''}
+        </label>`).join('')}</div>
+      <div class="rt-sec">2. Qual o motivo?</div>
+      <div id="rtReasons">${RT_REASONS.map(([v, l, h]) => `<label class="rt-op" id="rtr_${v}"><input type="radio" name="rtReason" value="${v}" onchange="rtPick('reason','${v}')"><span>${l}${h ? `<small>${h}</small>` : ''}</span></label>`).join('')}</div>
+      <div class="rt-sec">3. O que você prefere?</div>
+      <label class="rt-op" id="rtw_troca"><input type="radio" name="rtWants" value="troca" onchange="rtPick('wants','troca')"><span>Trocar<small>por outro tamanho, cor ou produto</small></span></label>
+      <label class="rt-op" id="rtw_devolucao"><input type="radio" name="rtWants" value="devolucao" onchange="rtPick('wants','devolucao')"><span>Devolver e receber o dinheiro de volta<small>na mesma forma de pagamento da compra</small></span></label>
+      <div class="rt-sec">4. Conte para a gente</div>
+      <textarea id="rtDetails" class="rv-text" maxlength="1000" placeholder="Ex.: queria o tamanho G no lugar do M · o brinquedo veio rasgado na costura · veio a cor azul e eu pedi rosa..."></textarea>
+      <div style="font-size:12px; color:var(--ink-soft); margin:-2px 0 6px;">Fotos (ajudam muito em caso de defeito, item errado ou avaria):</div>
+      <div class="rv-photos" id="rtPhotos">${rtPhotosHTML()}</div>
+      <div class="rt-note">📦 Depois de enviar, respondemos em até <b>2 dias úteis</b> por e-mail ou WhatsApp com as instruções para mandar o produto de volta. Guarde o produto com a embalagem e os acessórios. <a href="/trocas-e-devolucoes.html" target="_blank" style="color:var(--purple-deep); font-weight:700;">Ver a política de trocas</a></div>
+      <p class="rv-err" id="rtErr"></p>
+    </div>
+    <button class="btn btn-primary" id="rtBtn" style="width:100%; justify-content:center; margin-top:8px;" onclick="rtSend()">Enviar solicitação</button>`;
+}
+function rtToggle(k, on, qty){
+  const q = document.getElementById('rtq' + k);
+  RT.sel[k] = on ? (q ? Number(q.value) : qty) : 0;
+  const el = document.getElementById('rti' + k); if(el) el.classList.toggle('on', on);
+}
+function rtPick(field, v){
+  RT[field] = v;
+  const pre = field === 'reason' ? 'rtr_' : 'rtw_';
+  document.querySelectorAll(field === 'reason' ? '#rtReasons .rt-op' : '[id^="rtw_"]').forEach(el => el.classList.toggle('on', el.id === pre + v));
+  const t = document.getElementById('rtDetails');
+  if(t && field === 'wants') t.placeholder = v === 'troca' ? 'Para qual tamanho, cor ou produto você quer trocar? Conte também o que aconteceu.' : 'Conte o que aconteceu (opcional para desistência).';
+}
+function rtPhotosHTML(){
+  return RT.photos.map((d, k) => `<span class="rv-th"><img src="${d}" alt=""><button type="button" aria-label="Remover foto" onclick="RT.photos.splice(${k},1); document.getElementById('rtPhotos').innerHTML = rtPhotosHTML()">✕</button></span>`).join('')
+    + (RT.photos.length < 3 ? `<label class="rv-add">📷<span>${RT.photos.length ? 'Mais fotos' : 'Adicionar'}</span><small>até 3</small><input type="file" accept="image/*" multiple hidden onchange="rtAddPhotos(this)"></label>` : '');
+}
+async function rtAddPhotos(input){
+  const e = document.getElementById('rtErr'); if(e) e.textContent = '';
+  for(const f of [...(input.files || [])].filter(f => /^image\//.test(f.type))){
+    if(RT.photos.length >= 3) break;
+    try { RT.photos.push(await rvShrink(f)); } catch(err){ if(e) e.textContent = 'Não conseguimos abrir uma das fotos. Tente outra.'; }
+  }
+  const box = document.getElementById('rtPhotos'); if(box) box.innerHTML = rtPhotosHTML();
+}
+function rtSend(){
+  const user = getLoggedInUser(); if(!user){ renderAuthModal('login'); return; }
+  const err = document.getElementById('rtErr'), btn = document.getElementById('rtBtn');
+  const items = Object.entries(RT.sel).filter(([, q]) => q > 0).map(([idx, qty]) => ({ idx: Number(idx), qty }));
+  const details = (document.getElementById('rtDetails') || {}).value || '';
+  const fail = m => { err.textContent = m; err.scrollIntoView({ block: 'nearest' }); };
+  if(!items.length) return fail('Marque qual produto você quer trocar ou devolver.');
+  if(!RT.reason) return fail('Escolha o motivo.');
+  if(!RT.wants) return fail('Escolha se prefere trocar ou devolver.');
+  if(RT.wants === 'troca' && details.trim().length < 3) return fail('Conte para qual tamanho, cor ou produto você quer trocar.');
+  if(RT.reason === 'outro' && details.trim().length < 3) return fail('Conte um pouquinho o motivo.');
+  err.textContent = ''; btn.disabled = true; btn.textContent = 'Enviando...';
+  fetch('/.netlify/functions/return-request', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order: RT.nsu, token: user.token, items, reason: RT.reason, wants: RT.wants, details, photos: RT.photos }) })
+    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      if(!ok || !j.success) throw new Error(j.error || 'Não deu certo. Tente de novo.');
+      pulseToast('Solicitação enviada! Respondemos em até 2 dias úteis 💜');
+      renderAccount();
+    })
+    .catch(e => { btn.disabled = false; btn.textContent = 'Enviar solicitação'; fail(e.message || 'Sem conexão. Tente de novo.'); });
+}
 function acctMenuHTML(){
   const user = getLoggedInUser();
   const item = (ic, bg, title, sub, act, cls) => `<button role="menuitem" class="${cls||''}" onclick="closeAcctMenu(); ${act}"><span class="am-ic" style="background:${bg}">${ic}</span><span>${title}${sub?`<small>${sub}</small>`:''}</span></button>`;
@@ -4708,6 +4831,7 @@ function acctMenuHTML(){
     return `<div class="am-head"><b>Oi, ${escH(user.name.split(' ')[0])}! 💜</b><span>${escH(user.email)}</span></div>`
       + item('📦','#F3ECFF','Meus pedidos','Status e código de rastreio','openAuthModal()')
       + item('🔍','#E3EDFF','Acompanhar pelo número','Para pedidos sem conta',"location.href='/pedido.html'")
+      + item('↩️','#FFE9DC','Trocas e devoluções','Peça pelo seu pedido','openAuthModal()')
       + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151?text='+encodeURIComponent('Oi! Preciso de ajuda com um pedido.'),'_blank')")
       + item('💜','#FFE4EF','Sobre a Bielyy','Nossa história',"showView('about')")
       + `<div class="am-sep"></div>`

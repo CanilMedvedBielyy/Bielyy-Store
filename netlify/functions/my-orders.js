@@ -6,6 +6,7 @@
 const { blobStore } = require('../lib/blobs');
 const { readToken } = require('../lib/session');
 const { itemsView } = require('../lib/order-view');
+const { deliveredAt, publicReturn } = require('../lib/returns');
 
 const lower = (v) => String(v || '').trim().toLowerCase();
 const phoneKey = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : ''; };
@@ -53,7 +54,9 @@ exports.handler = async function (event) {
         carrier: o.carrier || null,
         shipping: o.shipping && o.shipping.label ? o.shipping.label : null,
         items: itemsOf(o),
-        itemsView: itemsView(o)
+        itemsView: itemsView(o),
+        deliveredAt: deliveredAt(o),
+        returnRequest: publicReturn(o.returnRequest)
       }));
 
     return { statusCode: 200, headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ success: true, orders: mine }) };

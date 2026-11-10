@@ -18,6 +18,8 @@ import fn_moderate_review from '../netlify/functions/moderate-review.js';
 import fn_my_orders from '../netlify/functions/my-orders.js';
 import fn_pix_config from '../netlify/functions/pix-config.js';
 import fn_product_photo from '../netlify/functions/product-photo.js';
+import fn_return_photo from '../netlify/functions/return-photo.js';
+import fn_return_request from '../netlify/functions/return-request.js';
 import fn_review_order from '../netlify/functions/review-order.js';
 import fn_review_photo from '../netlify/functions/review-photo.js';
 import fn_signup from '../netlify/functions/signup.js';
@@ -46,6 +48,8 @@ export const FUNCTIONS = {
   'my-orders': fn_my_orders,
   'pix-config': fn_pix_config,
   'product-photo': fn_product_photo,
+  'return-photo': fn_return_photo,
+  'return-request': fn_return_request,
   'review-order': fn_review_order,
   'review-photo': fn_review_photo,
   'signup': fn_signup,

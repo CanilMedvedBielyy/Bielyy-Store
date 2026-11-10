@@ -53,6 +53,49 @@ function googleCategory(f) {
   return base;
 }
 
+// Peso de cada produto (kg) — o mesmo que o site usa para calcular o frete na SuperFrete
+function weightKg(name) {
+  const n = String(name || '');
+  if (n === 'Kong Travel Bolsa para Trilhas') return 0.14;
+  if (n === 'Kong Travel Cinto de Segurança Ultimate') return 0.35;
+  if (n === 'Kong Travel Assento Elevado de Segurança') return 2.0;
+  if (n === 'Kong Travel Capa e Rede para Banco Traseiro XL') return 1.0;
+  if (n === 'Kong Travel Capa e Rede 2 em 1 para Banco Traseiro') return 1.8;
+  if (n === 'Kong Travel Comedouro Dobrável') return 0.12;
+  if (n === 'Kong Travel Kit Comedouros Dobráveis') return 0.15;
+  if (n === 'Zee Dog Zee.Bed Naturals G') return 4.2;
+  if (/Lata 400g/.test(n)) return 0.45;
+  if (n === 'Carnilove Lata para Gatos 100g') return 0.12;
+  if (/Cremi Petisco Cremoso/.test(n) || /Crunchy Snack/.test(n)) return 0.08;
+  if (/Aditivo para a Água 473ml/.test(n)) return 0.55;
+  return 0.4;
+}
+
+// Frete dos produtos pesados (a partir de 0,9 kg), por região. Os produtos leves usam a tabela
+// de frete da conta no Merchant Center (Sudeste 25, Sul 32, Centro-Oeste 38, Norte/Nordeste 60).
+// Valores com folga: o Google aceita frete informado acima do real, nunca abaixo.
+const HEAVY_KG = 0.9;
+const REGION_STATES = {
+  sudeste: ['SP', 'RJ', 'MG', 'ES'],
+  sul: ['PR', 'SC', 'RS'],
+  centro: ['GO', 'MT', 'MS', 'DF'],
+  nne: ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'MA', 'PA', 'PB', 'PE', 'PI', 'RN', 'RO', 'RR', 'SE', 'TO']
+};
+const HEAVY_PRICE = { sudeste: 65, sul: 80, centro: 90, nne: 150 };
+function heavyShippingXml() {
+  return Object.keys(REGION_STATES).map(r => REGION_STATES[r].map(uf => `      <g:shipping>
+        <g:country>BR</g:country>
+        <g:region>${uf}</g:region>
+        <g:service>Correios e transportadora</g:service>
+        <g:price>${HEAVY_PRICE[r].toFixed(2)} BRL</g:price>
+        <g:min_handling_time>0</g:min_handling_time>
+        <g:max_handling_time>1</g:max_handling_time>
+        <g:min_transit_time>2</g:min_transit_time>
+        <g:max_transit_time>10</g:max_transit_time>
+      </g:shipping>
+`).join('')).join('');
+}
+
 exports.handler = async function (event) {
   try {
     const base = process.env.URL || SITE;
@@ -97,6 +140,7 @@ exports.handler = async function (event) {
       const variants = (o.variants || p.variants || []).filter(v => Number(v.cartao) > 0);
       if (!variants.length) return;
       const link = SITE + '/?produto=' + productSlug(f);
+      const kg = weightKg(p.name || f.name);
       const many = variants.length > 1 && new Set(variants.map(v => v.label)).size > 1;
       variants.forEach((v, i) => {
         const label = v.label && v.label !== 'Único' ? v.label : '';
@@ -112,7 +156,8 @@ exports.handler = async function (event) {
           category: googleCategory(f),
           productType: f.category,
           variantLabel: many ? label : '',
-          variantAttr: (p.colors && p.colors.length) || /cor/i.test(p.colorWord || '') ? 'color' : 'size'
+          variantAttr: (p.colors && p.colors.length) || /cor/i.test(p.colorWord || '') ? 'color' : 'size',
+          kg
         });
       });
     });
@@ -129,7 +174,8 @@ ${it.extra.map(u => `      <g:additional_image_link>${esc(u)}</g:additional_imag
       <g:condition>new</g:condition>
       <g:identifier_exists>no</g:identifier_exists>
       <g:google_product_category>${esc(it.category)}</g:google_product_category>
-${it.productType ? `      <g:product_type>${esc(it.productType)}</g:product_type>\n` : ''}${it.group ? `      <g:item_group_id>${esc(it.group)}</g:item_group_id>\n` : ''}${it.variantLabel ? `      <g:${it.variantAttr}>${esc(it.variantLabel)}</g:${it.variantAttr}>\n` : ''}    </item>`).join('\n');
+${it.productType ? `      <g:product_type>${esc(it.productType)}</g:product_type>\n` : ''}${it.group ? `      <g:item_group_id>${esc(it.group)}</g:item_group_id>\n` : ''}${it.variantLabel ? `      <g:${it.variantAttr}>${esc(it.variantLabel)}</g:${it.variantAttr}>\n` : ''}      <g:shipping_weight>${it.kg} kg</g:shipping_weight>
+${it.kg >= HEAVY_KG ? heavyShippingXml() : ''}    </item>`).join('\n');
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">

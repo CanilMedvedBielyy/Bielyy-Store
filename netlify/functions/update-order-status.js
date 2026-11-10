@@ -3,7 +3,8 @@
 
 const { blobStore } = require('../lib/blobs');
 const { syncOrderStock } = require('../lib/catalog');
-const { notifyOrder } = require('../lib/mailer');
+const { notifyOrder, notifyReturn } = require('../lib/mailer');
+const { RETURN_STATUS } = require('../lib/returns');
 
 const VALID_STATUSES = ['aguardando_pagamento', 'pago', 'em_preparacao', 'enviado', 'entregue', 'cancelado'];
 const crypto = require('crypto');
@@ -29,13 +30,13 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const { password, order_nsu, status, trackingCode, note, carrier, notify } = body;
+  const { password, order_nsu, status, trackingCode, note, carrier, notify, returnStatus, returnReply } = body;
   const CARRIERS = ['correios', 'loggi', 'jadlog', 'motoboy', 'outra'];
 
   if (!isAdmin(event, password)) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Senha incorreta' }) };
   }
-  if (!order_nsu || (status && !VALID_STATUSES.includes(status)) || (!status && note === undefined && trackingCode === undefined && carrier === undefined)) {
+  if (!order_nsu || (status && !VALID_STATUSES.includes(status)) || (returnStatus && !RETURN_STATUS[returnStatus]) || (!status && note === undefined && trackingCode === undefined && carrier === undefined && returnStatus === undefined && returnReply === undefined)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados inválidos' }) };
   }
 
@@ -56,6 +57,7 @@ exports.handler = async function (event) {
       }
       order.status = status;
       order.statusUpdatedAt = new Date().toISOString();
+      if (status === 'entregue' && prevStatus !== 'entregue') order.deliveredAt = order.statusUpdatedAt;
     }
     if (trackingCode !== undefined && trackingCode !== null) {
       order.trackingCode = String(trackingCode).slice(0, 60);
@@ -65,6 +67,21 @@ exports.handler = async function (event) {
     }
     if (note !== undefined) {
       order.note = String(note).slice(0, 1000);
+    }
+
+    // troca/devolução: a loja muda a etapa e/ou escreve a resposta para a cliente
+    let prevReturn = null;
+    if (returnStatus !== undefined || returnReply !== undefined) {
+      const rr = order.returnRequest;
+      if (!rr) return { statusCode: 400, body: JSON.stringify({ error: 'Este pedido não tem solicitação de troca' }) };
+      prevReturn = rr.status;
+      if (returnReply !== undefined && returnReply !== null) rr.reply = String(returnReply).trim().slice(0, 1000);
+      if (returnStatus && returnStatus !== rr.status) {
+        rr.status = returnStatus;
+        rr.history = Array.isArray(rr.history) ? rr.history : [];
+        rr.history.push({ at: new Date().toISOString(), status: returnStatus });
+      }
+      rr.updatedAt = new Date().toISOString();
     }
 
     if (status) await syncOrderStock(order, event); // baixa/devolve estoque automaticamente
@@ -79,6 +96,10 @@ exports.handler = async function (event) {
       } else if (order.status === 'enviado' && newTracking && newTracking !== prevTracking) {
         emailSent = await notifyOrder(order, 'enviado'); // código de rastreio chegou depois
       }
+    }
+
+    if (prevReturn !== null && notify !== false && order.returnRequest.status !== prevReturn) {
+      emailSent = (await notifyReturn(order, order.returnRequest.status)) || emailSent;
     }
 
     await store.setJSON(order_nsu, order);

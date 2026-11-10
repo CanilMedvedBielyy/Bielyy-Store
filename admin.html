@@ -130,6 +130,11 @@
   .btn.line{background:#fff; color:var(--purple-deep); border:1.5px solid var(--purple-soft);}
   .field{width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); margin-top:6px;}
   textarea.field{min-height:70px; resize:vertical;}
+  .tag.rt{background:#FFE9DC; color:#B4471A;}
+  .chip.rt{border-color:#F4B999; color:#B4471A;} .chip.rt.on{background:#B4471A; border-color:#B4471A; color:#fff;}
+  .rt-card{border:2px solid #F4B999;}
+  .rt-ph{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;} .rt-ph a img{width:84px; height:84px; object-fit:cover; border-radius:10px; border:1px solid var(--line);}
+  .rt-warn{background:#FFF1EA; color:#9A4A22; border-radius:10px; padding:8px 12px; font-size:12.5px; margin-top:8px;}
   .addr{background:var(--lavender); border-radius:12px; padding:12px 14px; font-size:14px; line-height:1.6; margin-top:6px;}
   .cm{background:#FFF7DA; border-radius:12px; padding:10px 14px; font-size:13px; color:#7A5A00; margin-top:8px;}
 
@@ -311,6 +316,9 @@ const STATUS_LABEL = {
   enviado: '🚚 Enviado', entregue: '🎉 Entregue', cancelado: '✖ Cancelado'
 };
 const FLOW = ['aguardando_pagamento','pago','em_preparacao','enviado','entregue'];
+const RT_STATUS = { em_analise:'🕐 Em análise', aprovada:'✅ Aprovada (aguardando envio)', recebida:'📦 Produto recebido', concluida:'💜 Concluída', recusada:'✖ Não aprovada' };
+const RT_REASON = { arrependimento:'Desistiu da compra / não gostou', tamanho:'Tamanho, cor ou modelo não serviu', defeito:'Produto com defeito', errado:'Veio produto errado / diferente do anúncio', avaria:'Chegou danificado no transporte', outro:'Outro motivo' };
+const rtOpen = o => !!(o.returnRequest && ['em_analise','aprovada','recebida'].includes(o.returnRequest.status));
 const NEXT = { aguardando_pagamento:'pago', pago:'em_preparacao', em_preparacao:'enviado', enviado:'entregue' };
 const NEXT_LABEL = { aguardando_pagamento:'✅ Confirmar pagamento', pago:'📦 Iniciar preparação', em_preparacao:'🚚 Marcar como enviado', enviado:'🎉 Marcar como entregue' };
 const COUNTS_AS_SALE = ['pago','em_preparacao','enviado','entregue'];
@@ -499,9 +507,9 @@ function renderStats(){
     <div class="stat"><div class="num">${fmt(com)}</div><div class="lbl">Comissão a pagar (cupons)</div></div>`;
 }
 function renderChips(){
-  const cnt = s => s==='all' ? ORDERS.length : ORDERS.filter(o=>o.status===s).length;
-  const list = [['all','Todos'],['aguardando_pagamento','Aguardando'],['pago','Pagos'],['em_preparacao','Em preparação'],['enviado','Enviados'],['entregue','Entregues'],['cancelado','Cancelados']];
-  document.getElementById('statusChips').innerHTML = list.map(([k,l])=>`<button class="chip ${STATUS_F===k?'on':''}" onclick="STATUS_F='${k}';renderChips();renderOrders()">${l} (${cnt(k)})</button>`).join('');
+  const cnt = s => s==='all' ? ORDERS.length : s==='trocas' ? ORDERS.filter(rtOpen).length : ORDERS.filter(o=>o.status===s).length;
+  const list = [['all','Todos'],['aguardando_pagamento','Aguardando'],['pago','Pagos'],['em_preparacao','Em preparação'],['enviado','Enviados'],['entregue','Entregues'],['cancelado','Cancelados'],['trocas','↩️ Trocas']];
+  document.getElementById('statusChips').innerHTML = list.map(([k,l])=>`<button class="chip ${STATUS_F===k?'on':''} ${k==='trocas'&&cnt(k)?'rt':''}" onclick="STATUS_F='${k}';renderChips();renderOrders()">${l} (${cnt(k)})</button>`).join('');
 }
 function renderCouponFilter(){
   const sel = document.getElementById('couponF'); const cur = sel.value;
@@ -514,7 +522,8 @@ function filtered(){
   const qd = digits(q);
   const pay = document.getElementById('payF').value, cf = document.getElementById('couponF').value;
   return ORDERS.filter(o=>{
-    if(STATUS_F!=='all' && o.status!==STATUS_F) return false;
+    if(STATUS_F==='trocas'){ if(!rtOpen(o)) return false; }
+    else if(STATUS_F!=='all' && o.status!==STATUS_F) return false;
     if(pay!=='all' && o._pm!==pay) return false;
     if(cf==='none' && o._coupon) return false;
     if(cf!=='all' && cf!=='none' && (!o._coupon || o._coupon.code!==cf)) return false;
@@ -534,7 +543,7 @@ function renderOrders(){
         <div class="o-sub">#${esc(o.order_nsu)} · ${dt(o._date)} · ${o._pm==='whatsapp'?'WhatsApp':'InfinitePay'}</div></div>
       <div class="o-right"><div class="o-total">${fmt(o._total)}</div><span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div>
       <div class="o-items">${n} ${n===1?'item':'itens'}: ${esc(itemsText(o))}</div>
-      <div class="tags">${o.box?`<span class="tag" style="background:#F3ECFF;color:#6D42B8">🎀 BOX · ${esc(o.box.pet||'pet')}</span>`:''}${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
+      <div class="tags">${rtOpen(o)?`<span class="tag rt">↩️ ${o.returnRequest.wants==='troca'?'Troca':'Devolução'} · ${esc((RT_STATUS[o.returnRequest.status]||'').replace(/^\S+ /,''))}</span>`:''}${o.box?`<span class="tag" style="background:#F3ECFF;color:#6D42B8">🎀 BOX · ${esc(o.box.pet||'pet')}</span>`:''}${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
     </div>`;
   }).join('');
 }
@@ -563,6 +572,8 @@ function openDetail(id){
       </div>
       ${c.phone?`<div class="btnrow" style="margin-top:8px"><a class="btn wa" style="text-decoration:none" href="${waLink(c.phone, msgFull)}" target="_blank" rel="noopener">💬 Mandar status no WhatsApp</a></div>
       <div class="hint" style="margin-top:4px">Abre o WhatsApp da cliente com uma mensagem pronta: agradecimento, resumo do pedido e o status atual.</div>`:''}</div>
+
+    ${returnCard(o)}
 
     <div class="card"><h3>📬 Dados para envio
       <span style="display:flex;gap:6px"><button class="ghost" onclick="copy(addrText(ORDERS.find(x=>x.order_nsu===CUR)),'Endereço copiado ✓')">Copiar</button><button class="ghost" onclick="printLabel()">🖨 Etiqueta</button></span></h3>
@@ -615,6 +626,53 @@ function openDetail(id){
         <div class="btnrow" style="margin-top:8px"><button class="ghost" onclick="copy(trackUrl(CUR),'Link copiado ✓')">Copiar link</button>
         <a class="ghost" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener">Ver como a cliente vê</a></div></div></div>`;
   document.getElementById('ov').classList.add('show');
+}
+function rtPhotoUrl(k){ return '/.netlify/functions/return-photo?k='+encodeURIComponent(k)+'&p='+encodeURIComponent(PASSWORD); }
+function returnCard(o){
+  const r = o.returnRequest; if(!r) return '';
+  const troca = r.wants==='troca';
+  const dAt = r.deliveredAt || o.deliveredAt;
+  const dias = dAt ? Math.floor((Date.now()-new Date(dAt).getTime())/864e5) : null;
+  const pediuDias = dAt && r.createdAt ? Math.floor((new Date(r.createdAt).getTime()-new Date(dAt).getTime())/864e5) : null;
+  const legal = ['arrependimento','tamanho'].includes(r.reason)
+    ? (pediuDias==null ? 'Desistência: vale até 7 dias depois que a cliente recebe. Este pedido não tem data de entrega no painel; confira pelo rastreio.'
+       : pediuDias<=7 ? `Pedido feito ${pediuDias} dia(s) depois da entrega: dentro dos 7 dias. A devolução é direito dela, com reembolso total (inclusive o frete da compra) e o frete de volta por nossa conta.`
+       : `Pedido feito ${pediuDias} dia(s) depois da entrega: passou dos 7 dias da desistência. Confira a data real de recebimento no rastreio antes de recusar.`)
+    : ['defeito','errado','avaria'].includes(r.reason)
+      ? 'Defeito, item errado ou avaria: é responsabilidade da loja (frete de ida e volta por nossa conta). Prazo para resolver: 30 dias.'
+      : '';
+  const hist = (r.history||[]).map(h=>`${dt(h.at)} · ${esc(RT_STATUS[h.status]||h.status)}`).join('<br>');
+  const opts = Object.entries(RT_STATUS).map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('');
+  return `<div class="card rt-card"><h3>↩️ ${troca?'Troca':'Devolução'} pedida pela cliente <span class="tag rt">${esc(RT_STATUS[r.status]||r.status)}</span></h3>
+    <dl class="kv">
+      <dt>Pedida em</dt><dd>${dt(r.createdAt)}${dias!=null?` · entregue há ${dias} dia(s)`:''}</dd>
+      <dt>Quer</dt><dd><b>${troca?'Trocar':'Devolver e receber o dinheiro'}</b></dd>
+      <dt>Motivo</dt><dd>${esc(RT_REASON[r.reason]||r.reason)}</dd>
+      <dt>Itens</dt><dd>${(r.items||[]).map(i=>esc(i.qty+'x '+i.title+(i.sub?' ('+i.sub+')':''))).join('<br>')}</dd>
+      <dt>Detalhes</dt><dd style="white-space:pre-wrap">${esc(r.details||'—')}</dd>
+    </dl>
+    ${(r.photos||[]).length?`<div class="rt-ph">${r.photos.map(k=>`<a href="${rtPhotoUrl(k)}" target="_blank" rel="noopener"><img src="${rtPhotoUrl(k)}" alt="foto"></a>`).join('')}</div>`:''}
+    ${legal?`<div class="rt-warn">⚖️ ${legal}</div>`:''}
+    <label class="hint" style="display:block;margin-top:12px">Etapa</label>
+    <select class="field" id="rtStatus">${opts}</select>
+    <textarea class="field" id="rtReply" placeholder="Mensagem para a cliente (vai no e-mail). Ex.: como postar o produto, o código de postagem, o motivo da recusa, o rastreio do novo item...">${esc(r.reply||'')}</textarea>
+    <div class="hint" style="margin-top:4px">Ao mudar a etapa, a cliente recebe um e-mail com a sua mensagem. Ela também vê tudo em Meus pedidos.</div>
+    <div class="btnrow"><button class="btn" onclick="saveReturn()">Salvar e avisar a cliente</button>
+      ${o._cust.phone?`<a class="btn wa" style="text-decoration:none" href="${waLink(o._cust.phone, returnWaMsg(o))}" target="_blank" rel="noopener">💬 Responder no WhatsApp</a>`:''}</div>
+    ${hist?`<div class="hint" style="margin-top:10px">${hist}</div>`:''}
+  </div>`;
+}
+function returnWaMsg(o){
+  const r = o.returnRequest, c = o._cust, first = String(c.name||'').trim().split(' ')[0];
+  const nome = r.wants==='troca' ? 'troca' : 'devolução';
+  return `Oi${first?', '+first:''}! Aqui é da *Bielyy Store* 🐾\n\nSobre o seu pedido de ${nome} do pedido *#${o.order_nsu}*:\n*Situação:* ${(RT_STATUS[r.status]||'').replace(/^\S+ /,'')}${r.reply?'\n\n'+r.reply:''}\n\nQualquer dúvida, estamos à disposição. 💜`;
+}
+function saveReturn(){
+  const st = document.getElementById('rtStatus').value, reply = document.getElementById('rtReply').value;
+  if(st==='recusada' && !reply.trim()){ alert('Escreva o motivo da recusa para a cliente.'); return; }
+  post({ order_nsu:CUR, returnStatus:st, returnReply:reply })
+    .then(d=>{ if(d.success){ applyUpdated(d.order); toast(d.emailSent ? 'Salvo ✓ · e-mail enviado à cliente 💌' : 'Salvo ✓'); } else alert('Não deu certo: '+(d.error||'erro')); })
+    .catch(()=>alert('Sem conexão.'));
 }
 function closeDetail(){ document.getElementById('ov').classList.remove('show'); CUR=null; }
 function post(body){
