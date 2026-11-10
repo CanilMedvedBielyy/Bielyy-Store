@@ -214,7 +214,7 @@ function buildOrderEmail(o, kind, extra) {
 
   <tr><td align="center" style="padding:22px 16px 6px;font-size:13px;line-height:1.6;color:${C.suave}">
     Dúvidas? É só responder este e-mail ou chamar no <a href="${WHATSAPP}" style="color:${C.roxo};font-weight:bold">WhatsApp</a>.<br>
-    Você também acompanha tudo em <b>Minha conta</b> no site.<br><br>
+    Você também acompanha tudo em <b>📦 Meus pedidos</b>, no site.<br><br>
     Com carinho, equipe <b style="color:${C.roxo}">Bielyy Store</b> 🐾<br>
     <a href="${SITE_URL()}" style="color:${C.suave}">bielyystore.com.br</a>
   </td></tr>

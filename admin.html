@@ -357,7 +357,7 @@ function orderWaMsg(o){
   }[o.status] || `*Status:* ${STATUS_LABEL[o.status] || o.status}`;
   const oi = `Olá${first ? ', ' + first : ''}! Tudo bem? Aqui é a equipe da *Bielyy Store*.`
     + (o.status === 'cancelado' ? '' : '\nAgradecemos pela sua compra! 💜');
-  return `${oi}\n\n${resumo}\n\n${status}\n\nAcompanhe seu pedido: ${trackUrl(o.order_nsu)}\nVocê também encontra todos os seus pedidos em *Minha conta*, no site bielyystore.com.br.\n\nQualquer dúvida, estamos à disposição.\n*Equipe Bielyy Store* 🐾`;
+  return `${oi}\n\n${resumo}\n\n${status}\n\nAcompanhe seu pedido: ${trackUrl(o.order_nsu)}\nVocê também encontra todos os seus pedidos em *Meus pedidos*, no site bielyystore.com.br.\n\nQualquer dúvida, estamos à disposição.\n*Equipe Bielyy Store* 🐾`;
 }
 function waLink(phone, text){
   let d = digits(phone); if(d.length<=11) d = '55'+d;
