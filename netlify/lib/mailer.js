@@ -41,36 +41,10 @@ async function sendEmail({ to, subject, html, text }) {
 }
 
 // ---------- montagem do e-mail do pedido ----------
-const imgPath = (v) => { const t = String(v || '').trim().slice(0, 200); return /^\/?[A-Za-z0-9_\-.]+(\/[A-Za-z0-9_\-.]+)*(\?[A-Za-z0-9_\-.=&%]*)?$/.test(t) && !t.includes('..') ? t : ''; };
+const { itemsView } = require('./order-view');
 const absUrl = (p) => p ? SITE_URL() + '/' + p.replace(/^\/+/, '') : '';
 const cut = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n - 1).trim() + '…' : t; };
-
-// Separa "Kit X (opção): itens" em título curto + linha de detalhe
-function splitName(name, variant) {
-  const m = String(name || '').match(/^(.*?) \(([^)]*)\)(?::\s*[\s\S]*)?$/);
-  if (m) return { title: m[1], sub: m[2] };
-  return { title: String(name || ''), sub: variant || '' };
-}
-
-function itemsOf(o) {
-  if (Array.isArray(o.itemsDetailed) && o.itemsDetailed.length) {
-    return o.itemsDetailed.map(i => {
-      const n = splitName(i.name, i.variant);
-      return {
-        title: n.title, sub: n.sub,
-        qty: Number(i.qty) || 1,
-        total: Number(i.unitPrice) ? Number(i.unitPrice) * (Number(i.qty) || 1) : null,
-        img: absUrl(imgPath(i.img))
-      };
-    });
-  }
-  return (o.items || [])
-    .filter(i => !/^Frete \(/.test(i.description || ''))
-    .map(i => {
-      const n = splitName(i.description, '');
-      return { title: n.title, sub: n.sub, qty: Number(i.quantity) || 1, total: Number(i.price) ? Number(i.price) * (Number(i.quantity) || 1) / 100 : null, img: '' };
-    });
-}
+const itemsOf = (o) => itemsView(o).map(i => Object.assign({}, i, { img: absUrl(i.img) }));
 
 function carrierOf(o) {
   if (o.carrier) return o.carrier;

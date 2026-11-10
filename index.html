@@ -4635,7 +4635,12 @@ function renderAccount(){
       box.innerHTML = j.orders.map(o => {
         const st = ORDER_STATUS[o.status] || [o.status, 'var(--ink)', 'var(--lavender)'];
         const d = o.createdAt ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '';
-        const items = (o.items || []).slice(0, 3).map(i => `${escH(i.qty)}x ${escH(i.name)}`).join('<br>') + ((o.items || []).length > 3 ? `<br>+ ${o.items.length - 3} item(ns)` : '');
+        const iv = (o.itemsView && o.itemsView.length) ? o.itemsView : (o.items || []).map(i => ({ title: i.name, sub: '', qty: i.qty, img: '' }));
+        const items = iv.slice(0, 3).map(i => `<div style="display:flex; align-items:center; gap:10px; padding:4px 0;">${i.img
+            ? `<img src="${escH(/^\//.test(i.img) ? i.img : '/' + i.img)}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:10px; object-fit:cover; background:var(--lavender); flex-shrink:0;">`
+            : `<span style="width:40px; height:40px; border-radius:10px; background:var(--lavender); display:flex; align-items:center; justify-content:center; flex-shrink:0;">🐾</span>`}
+          <div style="min-width:0; flex:1;"><div style="font-weight:600; line-height:1.3;">${escH(i.qty)}× ${escH(i.title)}</div>${i.sub ? `<div style="font-size:11.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escH(i.sub)}</div>` : ''}</div></div>`).join('')
+          + (iv.length > 3 ? `<div style="font-size:12px; color:var(--ink-soft); padding-top:2px;">+ ${iv.length - 3} item(ns)</div>` : '');
         return `<div style="border:1.5px solid var(--lavender); border-radius:14px; padding:12px 14px; margin-bottom:10px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px 8px; margin-bottom:6px;">
             <b style="font-size:13.5px; min-width:0; overflow-wrap:anywhere;">#${escH(o.order_nsu)}</b>

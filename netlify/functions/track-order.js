@@ -3,6 +3,7 @@
 // Só devolve informação limitada (sem endereço/telefone) por privacidade.
 
 const { blobStore } = require('../lib/blobs');
+const { itemsView } = require('../lib/order-view');
 
 function itemsOf(o) {
   if (Array.isArray(o.itemsDetailed) && o.itemsDetailed.length) {
@@ -43,6 +44,11 @@ exports.handler = async function (event) {
         shipping: order.shipping && order.shipping.label ? order.shipping.label : null,
         paymentMethod: order.paymentMethod || null,
         items: itemsOf(order),
+        itemsView: itemsView(order),
+        total: order.total != null && Number(order.total) > 0 ? Number(order.total) : null,
+        shippingPrice: order.shipping && order.shipping.price != null ? Number(order.shipping.price) || 0 : null,
+        shippingFree: !!(order.shipping && order.shipping.free),
+        couponDiscount: order.coupon && Number(order.coupon.discount) ? Number(order.coupon.discount) : null,
         customerFirstName: (order.customer && order.customer.name) ? order.customer.name.split(' ')[0] : null
       })
     };
