@@ -3,6 +3,7 @@
 
 const { blobStore } = require('../lib/blobs');
 const { syncOrderStock } = require('../lib/catalog');
+const { notifyOrder } = require('../lib/mailer');
 
 const VALID_STATUSES = ['aguardando_pagamento', 'pago', 'em_preparacao', 'enviado', 'entregue', 'cancelado'];
 const crypto = require('crypto');
@@ -28,7 +29,7 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const { password, order_nsu, status, trackingCode, note, carrier } = body;
+  const { password, order_nsu, status, trackingCode, note, carrier, notify } = body;
   const CARRIERS = ['correios', 'loggi', 'jadlog', 'motoboy', 'outra'];
 
   if (!isAdmin(event, password)) {
@@ -46,6 +47,8 @@ exports.handler = async function (event) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Pedido não encontrado' }) };
     }
 
+    const prevStatus = order.status;
+    const prevTracking = String(order.trackingCode || '').trim();
     if (status) {
       if (status === 'pago' && order.status !== 'pago' && !order.paidAt) {
         order.paidAt = new Date().toISOString();
@@ -65,9 +68,22 @@ exports.handler = async function (event) {
     }
 
     if (status) await syncOrderStock(order, event); // baixa/devolve estoque automaticamente
+
+    // Aviso por e-mail para a cliente (no e-mail da conta), uma vez por etapa.
+    // Mandar notify:false no pedido para mudar sem avisar.
+    let emailSent = false;
+    if (notify !== false) {
+      const newTracking = String(order.trackingCode || '').trim();
+      if (status && status !== prevStatus && status !== 'aguardando_pagamento') {
+        emailSent = await notifyOrder(order, status);
+      } else if (order.status === 'enviado' && newTracking && newTracking !== prevTracking) {
+        emailSent = await notifyOrder(order, 'enviado'); // código de rastreio chegou depois
+      }
+    }
+
     await store.setJSON(order_nsu, order);
 
-    return { statusCode: 200, body: JSON.stringify({ success: true, order }) };
+    return { statusCode: 200, body: JSON.stringify({ success: true, order, emailSent }) };
   } catch (err) {
     console.error('Erro ao atualizar pedido:', err);
     return { statusCode: 500, body: JSON.stringify({ error: 'Erro ao atualizar' }) };

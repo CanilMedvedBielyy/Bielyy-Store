@@ -4,6 +4,7 @@
 
 const { blobStore } = require('../lib/blobs');
 const { syncOrderStock } = require('../lib/catalog');
+const { notifyOrder } = require('../lib/mailer');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -33,9 +34,11 @@ exports.handler = async function (event) {
 
     // Só avança para "pago" se ainda estava aguardando (a InfinitePay pode reenviar o aviso
     // e não queremos voltar um pedido "enviado" para "pago")
+    let virouPago = false;
     if (!existing.status || existing.status === 'aguardando_pagamento') {
       existing.status = 'pago';
       existing.statusUpdatedAt = new Date().toISOString();
+      virouPago = true;
     }
     if (!existing.paidAt) existing.paidAt = new Date().toISOString();
     existing.paid_amount = body.paid_amount;
@@ -44,6 +47,7 @@ exports.handler = async function (event) {
     existing.receipt_url = body.receipt_url;
 
     await syncOrderStock(existing, event); // baixa o estoque dos produtos vendidos
+    if (virouPago) await notifyOrder(existing, 'pago'); // e-mail "pagamento confirmado" para a cliente
     await store.setJSON(orderNsu, existing);
 
     return { statusCode: 200, body: JSON.stringify({ success: true, message: null }) };

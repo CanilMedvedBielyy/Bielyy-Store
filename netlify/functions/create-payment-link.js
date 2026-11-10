@@ -4,6 +4,7 @@
 const { blobStore } = require('../lib/blobs');
 const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
+const { notifyOrder } = require('../lib/mailer');
 
 const cpfOk = (v) => {
   const d = String(v || '').replace(/\D/g, '');
@@ -108,6 +109,7 @@ exports.handler = async function (event) {
         trackStock: true,
         box: cleanBox(orderDetails.box)
       };
+      await notifyOrder(order, 'recebido'); // e-mail "recebemos seu pedido" (com o link para pagar)
       await store.setJSON(payload.order_nsu, order);
     } catch (blobErr) {
       // Não deixa o pedido falhar por causa disso, só loga

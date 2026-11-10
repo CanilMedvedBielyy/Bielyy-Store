@@ -5,6 +5,7 @@
 const { blobStore } = require('../lib/blobs');
 const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
+const { notifyOrder } = require('../lib/mailer');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const cpfOk = (v) => {
@@ -120,6 +121,7 @@ exports.handler = async function (event) {
       orderNsu = 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);
       order.order_nsu = orderNsu;
     }
+    await notifyOrder(order, 'recebido'); // e-mail "recebemos seu pedido" para a cliente
     await store.setJSON(orderNsu, order);
     return { statusCode: 200, body: JSON.stringify({ success: true, order_nsu: orderNsu }) };
   } catch (err) {

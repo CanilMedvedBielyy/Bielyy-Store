@@ -634,7 +634,7 @@ function setStatus(status){
     if(t===null) return; tracking = t;
   }
   const carSel = document.getElementById('carrier');
-  post({ order_nsu:CUR, status, trackingCode:tracking, carrier: status==='enviado' && carSel ? carSel.value : undefined }).then(d=>{ if(d.success){ applyUpdated(d.order); toast('Status atualizado ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
+  post({ order_nsu:CUR, status, trackingCode:tracking, carrier: status==='enviado' && carSel ? carSel.value : undefined }).then(d=>{ if(d.success){ applyUpdated(d.order); toast(d.emailSent ? 'Status atualizado ✓ · e-mail enviado à cliente 💌' : 'Status atualizado ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
 }
 const CARRIER_OPTS = [['correios','📮 Correios'],['loggi','🚚 Loggi'],['jadlog','📦 Jadlog'],['motoboy','🛵 Motoboy / Uber / 99'],['outra','Outra']];
 const CARRIER_NAME = {correios:'Correios', loggi:'Loggi', jadlog:'Jadlog', motoboy:'motoboy', outra:'transportadora'};
@@ -655,7 +655,7 @@ function saveExtras(){
   if(trk && trk !== (o.trackingCode||'') && ['pago','em_preparacao','aguardando_pagamento'].includes(o.status)
      && confirm('Marcar este pedido como "Enviado" também?')) body.status = 'enviado';
   post(body)
-    .then(d=>{ if(d.success){ applyUpdated(d.order); toast('Salvo ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
+    .then(d=>{ if(d.success){ applyUpdated(d.order); toast(d.emailSent ? 'Salvo ✓ · e-mail enviado à cliente 💌' : 'Salvo ✓'); } else alert('Não deu certo: '+(d.error||'erro')); }).catch(()=>alert('Sem conexão.'));
 }
 function printLabel(){
   const o = ORDERS.find(x=>x.order_nsu===CUR); if(!o) return;

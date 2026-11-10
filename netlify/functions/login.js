@@ -22,7 +22,7 @@ const escHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&
 async function sendResetEmail(to, name, link) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return false;
-  const from = process.env.RESET_EMAIL_FROM || 'Bielyy Store <nao-responda@bielyystore.com.br>';
+  const from = process.env.RESET_EMAIL_FROM || 'Bielyy Store <contato@bielyystore.com.br>';
   const first = escHtml(String(name || '').trim().split(' ')[0] || '');
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#3A2E52">
     <h2 style="color:#6D42B8;margin:0 0 12px">Crie sua senha nova 🐾</h2>
@@ -34,7 +34,7 @@ async function sendResetEmail(to, name, link) {
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [to], subject: 'Crie sua senha nova da Bielyy Store 🐾', html, text })
+    body: JSON.stringify({ from, to: [to], reply_to: process.env.REPLY_TO_EMAIL || 'contato@bielyystore.com.br', subject: 'Crie sua senha nova da Bielyy Store 🐾', html, text })
   });
   if (!r.ok) console.error('Resend recusou o e-mail:', r.status, await r.text().catch(() => ''));
   return r.ok;
