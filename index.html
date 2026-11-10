@@ -34,6 +34,44 @@
   "sameAs": ["https://instagram.com/bielyy_store"]
 }
 </script>
+<!-- Google Analytics e Google Ads: é só preencher os códigos abaixo; com eles vazios nada é carregado -->
+<script>
+window.BIELYY_GOOGLE = {
+  ga4: '',        // Google Analytics 4, ex.: 'G-ABC123XYZ'
+  ads: '',        // Google Ads, ex.: 'AW-1234567890'
+  adsCompra: ''   // rótulo da conversão "Compra" do Google Ads (opcional), ex.: 'AbCdEfGhIjK'
+};
+(function(){
+  var g = window.BIELYY_GOOGLE, ids = [g.ga4, g.ads].filter(Boolean);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){ dataLayer.push(arguments); };
+  if(!ids.length) return;
+  var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ids[0];
+  document.head.appendChild(s);
+  gtag('js', new Date());
+  ids.forEach(function(id){ gtag('config', id); });
+})();
+function bielyyTrack(name, params){
+  try {
+    var g = window.BIELYY_GOOGLE || {}; if(!g.ga4 && !g.ads) return;
+    gtag('event', name, params || {});
+    if(name === 'purchase' && g.ads && g.adsCompra)
+      gtag('event', 'conversion', { send_to: g.ads + '/' + g.adsCompra, value: params.value, currency: 'BRL', transaction_id: params.transaction_id });
+  } catch(e){}
+}
+function gaItem(name, f, vi, qty, v){
+  if(!f) return; v = v || (f.variants || [])[vi || 0] || {}; qty = qty || 1;
+  var price = Number(v.cartao) || 0;
+  bielyyTrack(name, { currency: 'BRL', value: Math.round(price * qty * 100) / 100, items: [{ item_id: String(f.id), item_name: f.name, item_brand: f.brand || '',
+    item_category: f.kit ? 'Kits' : (f.category || ''), item_variant: (v.label && v.label !== 'Único') ? v.label : undefined, price: price, quantity: qty }] });
+}
+function gaPurchase(nsu, value, items){
+  try { var k = 'bielyy_ga_sent', sent = JSON.parse(localStorage.getItem(k) || '[]'); if(sent.indexOf(String(nsu)) > -1) return;
+    sent.push(String(nsu)); localStorage.setItem(k, JSON.stringify(sent.slice(-30))); } catch(e){}
+  bielyyTrack('purchase', { transaction_id: String(nsu), currency: 'BRL', value: Number(value) || 0,
+    items: (items || []).map(function(i){ return { item_id: String(i.productId || ''), item_name: String(i.name || '').split(' (')[0], price: Number(i.unitPrice) || 0, quantity: i.qty || 1 }; }) });
+}
+</script>
 <link rel="icon" type="image/jpeg" href="site-asset-0.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
@@ -3456,6 +3494,7 @@ function addToCart(familyId, variantIdx, qty, mod){
   const v = f && (mod ? cartVariant(k) : f.variants[variantIdx]);
   if(STORE_CLOSED && f && !f.preorder){ storeClosedMsg(); return false; }
   if(!v || v.available === false){ pulseToast(f && f.kit ? 'Esse kit está esgotado no momento 🐾' : 'Este produto está esgotado no momento 🐾'); return false; }
+  try { gaItem('add_to_cart', f, variantIdx, qty || 1, v); } catch(e){}
   const max = maxQtyFor(familyId, variantIdx, k);
   const room = max - (cart[k]||0);
   if(room <= 0){ pulseToast(limitMsg(familyId)); return false; }
@@ -3752,6 +3791,7 @@ var PP_PHOTO = 0, PP_TITLE = document.title, PP_SCROLL = null;
 try { history.scrollRestoration = 'manual'; } catch(e){}
 function productSlug(f){ return f.id + '-' + String(f.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60); }
 function openProduct(id, fromHistory){
+  try { gaItem('view_item', familyById(id), 0, 1); } catch(e){}
   const f = familyById(id); if(!f) return;
   if(isBox(f)){ openBox(); return; } // a BOX abre a ficha do pet
   modalFamilyId = id;
@@ -4185,6 +4225,7 @@ function startPixOrder(o){
       if(!ok || !j.success){ pulseToast('Não deu para registrar o pedido agora. Tente de novo ou feche pelo WhatsApp 💜'); return; }
       if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
       cart = {}; saveCart(); updateCartCount(); try { renderCart(); renderCheckout(); } catch(e){}
+      try { gaPurchase(j.order_nsu || orderNsu, o.amount, o.body.itemsDetailed); } catch(e){}
       showPixPayment(j.order_nsu || orderNsu, o.amount, o.body.customer && o.body.customer.name);
     })
     .catch(() => { if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; } pulseToast('Sem conexão. Tente de novo em instantes.'); });
@@ -4338,6 +4379,7 @@ function finalizeOrderNow(){
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping ? encodeURIComponent(shipText(true)) : 'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
     msg += boxWaText(lines);
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
+    try { gaPurchase(orderNsu, total, itemsDetailed); } catch(e){}
     window.open(`https://wa.me/5511915971151?text=${msg}`, '_blank');
     pulseToast(`Pedido nº ${orderNsu} registrado! Acompanhe em “Acompanhar pedido” 📦`);
   } else {
@@ -4390,6 +4432,7 @@ function finalizeOrderNow(){
       accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || '',
       cpf
     };
+    try { localStorage.setItem('bielyy_ga_pending', JSON.stringify({ nsu: payload.order_nsu, value: total, items: itemsDetailed, ts: Date.now() })); } catch(e){}
     const btn = document.getElementById('finalizeBtn');
     if(btn){ btn.disabled = true; btn.textContent = 'Gerando link de pagamento...'; }
     fetch('/.netlify/functions/create-payment-link', {
@@ -5006,6 +5049,9 @@ setTimeout(() => showWelcomePopup(false), 7000); // convite com R$ 10 OFF para q
   let orderNsu = params.get('order_nsu');
 
   if(orderNsu){
+    // compra no cartão concluída: avisa o Google (uma vez só)
+    try { const gp = JSON.parse(localStorage.getItem('bielyy_ga_pending') || 'null');
+      if(gp && String(gp.nsu) === String(orderNsu)){ gaPurchase(orderNsu, gp.value, gp.items); localStorage.removeItem('bielyy_ga_pending'); } } catch(e){}
     // Salva no navegador pra sobreviver a um recarregamento acidental da página
     localStorage.setItem('bielyy_last_order', JSON.stringify({ orderNsu, ts: Date.now() }));
     window.history.replaceState({}, '', location.pathname);

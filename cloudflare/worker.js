@@ -2,7 +2,7 @@
 //
 // - As páginas, fotos e scripts (index.html, *.jpg...) são servidos direto pela
 //   Cloudflare, de graça e sem limite, sem nem passar por aqui.
-// - Este worker só roda para /.netlify/functions/*, /sitemap.xml e /migrar.
+// - Este worker só roda para /.netlify/functions/*, /sitemap.xml, /google-feed.xml e /migrar.
 //   Os endereços das funções continuam iguais aos do Netlify, então o site,
 //   o painel e o aviso de pagamento da InfinitePay não precisam mudar nada.
 import { FUNCTIONS } from './functions-map.js';
@@ -99,6 +99,7 @@ export default {
     }
 
     if (url.pathname === '/sitemap.xml') return runFunction('sitemap', request, url);
+    if (url.pathname === '/google-feed.xml') return runFunction('google-feed', request, url);
 
     if (url.pathname === '/migrar' || url.pathname === '/migrar/') {
       return new Response(MIGRATE_PAGE, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });

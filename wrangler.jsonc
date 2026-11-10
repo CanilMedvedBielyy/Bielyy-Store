@@ -19,7 +19,7 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none",
-    "run_worker_first": ["/.netlify/functions/*", "/sitemap.xml", "/migrar", "/migrar/"]
+    "run_worker_first": ["/.netlify/functions/*", "/sitemap.xml", "/google-feed.xml", "/migrar", "/migrar/"]
   },
 
   // Banco de dados (pedidos, clientes, avaliações, estoque do painel...).

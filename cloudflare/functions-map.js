@@ -10,6 +10,7 @@ import fn_get_customers from '../netlify/functions/get-customers.js';
 import fn_get_orders from '../netlify/functions/get-orders.js';
 import fn_get_pending_reviews from '../netlify/functions/get-pending-reviews.js';
 import fn_get_reviews from '../netlify/functions/get-reviews.js';
+import fn_google_feed from '../netlify/functions/google-feed.js';
 import fn_infinitepay_webhook from '../netlify/functions/infinitepay-webhook.js';
 import fn_local_delivery_config from '../netlify/functions/local-delivery-config.js';
 import fn_login from '../netlify/functions/login.js';
@@ -37,6 +38,7 @@ export const FUNCTIONS = {
   'get-orders': fn_get_orders,
   'get-pending-reviews': fn_get_pending_reviews,
   'get-reviews': fn_get_reviews,
+  'google-feed': fn_google_feed,
   'infinitepay-webhook': fn_infinitepay_webhook,
   'local-delivery-config': fn_local_delivery_config,
   'login': fn_login,
