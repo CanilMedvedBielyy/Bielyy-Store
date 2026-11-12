@@ -131,6 +131,20 @@
   .field{width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); margin-top:6px;}
   textarea.field{min-height:70px; resize:vertical;}
   .tag.rt{background:#FFE9DC; color:#B4471A;}
+  .tag.amb{background:#FFF4D6; color:#9A6B00;}
+  .amb-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin:10px 0;}
+  .amb-grid div{background:#FAF7FF; border:1px solid var(--line); border-radius:12px; padding:9px 10px;}
+  .amb-grid small{display:block; font-size:11px; color:var(--ink-soft);}
+  .amb-grid b{font-size:15px;}
+  .amb-bar{height:9px; background:#F3ECFF; border-radius:999px; overflow:hidden; margin:6px 0 4px;}
+  .amb-bar i{display:block; height:100%; background:linear-gradient(90deg,#8B5FD1,#FF7FAE);}
+  .amb-form{display:grid; grid-template-columns:1fr 1fr; gap:4px 12px;}
+  .amb-form label{font-size:12px; color:var(--ink-soft); margin-top:6px; display:block;}
+  @media (max-width:560px){ .amb-form{grid-template-columns:1fr;} }
+  .amb-table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px;}
+  .amb-table td,.amb-table th{padding:6px 4px; border-top:1px solid var(--line); text-align:left; vertical-align:top;}
+  .amb-table th{font-size:11.5px; color:var(--ink-soft); font-weight:600;}
+  .amb-banner{background:#FFF4D6; border:1.5px solid #F5DC8F; border-radius:14px; padding:12px 14px; margin-bottom:12px; font-size:13.5px;}
   .chip.rt{border-color:#F4B999; color:#B4471A;} .chip.rt.on{background:#B4471A; border-color:#B4471A; color:#fff;}
   .rt-card{border:2px solid #F4B999;}
   .rt-ph{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;} .rt-ph a img{width:84px; height:84px; object-fit:cover; border-radius:10px; border:1px solid var(--line);}
@@ -187,6 +201,7 @@
       <button class="tab" data-tab="reviews" onclick="setTab('reviews')">⭐ Avaliações</button>
       <button class="tab" data-tab="delivery" onclick="setTab('delivery')">🛵 Entrega hoje</button>
       <button class="tab" data-tab="pix" onclick="setTab('pix')">💠 Pix</button>
+      <button class="tab" data-tab="amb" onclick="setTab('amb')">🌟 Embaixadores</button>
     </div>
 
     <!-- PEDIDOS -->
@@ -243,6 +258,8 @@
     <section id="tab-reviews" class="hide"><div id="reviewsList"></div></section>
 
     <!-- PIX -->
+    <section id="tab-amb" class="hide"><div id="ambBox"><p class="hint">Carregando...</p></div></section>
+
     <section id="tab-pix" class="hide">
       <div class="card">
         <h3>💠 Pix direto no site</h3>
@@ -391,7 +408,7 @@ function normalize(o){
   const pm = o.paymentMethod || 'infinitepay';
   const baseInfo = coupon ? COUPON_INFO[coupon.code] : null;
   const info = baseInfo ? Object.assign({}, baseInfo, coupon.commissionPct != null ? { pct: Number(coupon.commissionPct)/100 } : {}, coupon.first === true ? { tag: '1ª compra' } : coupon.first === false ? { tag: 'recompra' } : {}) : null;
-  const commission = info && COUNTS_AS_SALE.includes(o.status) ? info.pct * Math.max(0, subtotal - discount) : 0;
+  const commission = info && !(coupon && coupon.self) && COUNTS_AS_SALE.includes(o.status) ? info.pct * Math.max(0, subtotal - discount) : 0;
   return Object.assign({}, o, { _items:items, _subtotal:subtotal, _coupon:coupon, _discount:discount, _ship:o.shipping||null, _total:total,
     _addr:addr, _pm:pm, _commission:commission, _info:info,
     _cust:o.customer||{}, _date:o.createdAt, _sale:COUNTS_AS_SALE.includes(o.status) });
@@ -420,6 +437,7 @@ function addrText(o){
   return [o._cust.name, o._cust.cpf ? 'CPF: ' + fmtCpf(o._cust.cpf) : '', x.l1, x.l2, x.l3, x.l4].filter(Boolean).join('\n');
 }
 function payLabel(o){
+  if(o._pm==='credito') return '🌟 Pago 100% com crédito de embaixador (' + esc((o.credit||{}).code||'') + ')';
   if(o._pm==='whatsapp') return 'WhatsApp (pagamento combinado por lá)';
   if(o._pm==='pix') return '💠 Pix direto no site — confira no seu banco se o valor caiu e depois confirme o pagamento';
   const d = o.paymentDetail ? (o.paymentDetail==='pix'?' · Pix':' · Cartão') : '';
@@ -448,6 +466,7 @@ function refresh(manual, fromLogin){
       renderAll();
       document.getElementById('syncPill').textContent = 'Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       if(!pollTimer) pollTimer = setInterval(()=>refresh(false), 60000);
+      if(!AMBD) ambLoad(true); else { (AMBD.program.ambassadors||[]).forEach(a => { COUPON_INFO[a.code] = { who:'Embaixador '+(a.name||a.code), pct:AMBD.program.settings.commissionPct/100 }; }); ORDERS = RAW.map(normalize); renderAll(); }
       if(manual && !fromLogin) toast('Atualizado ✓');
     })
     .catch(err=>{
@@ -480,7 +499,8 @@ function markSeen(){
 /* ============ abas ============ */
 function setTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  ['orders','customers','products','reviews','delivery','pix'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  ['orders','customers','products','reviews','delivery','pix','amb'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  if(t==='amb') ambLoad();
   if(t==='delivery') dlLoad();
   if(t==='orders') markSeen();
   if(t==='customers') renderCustomers();
@@ -540,10 +560,10 @@ function renderOrders(){
     const pre = o._items.some(i=>i.preorder);
     return `<div class="o-row" onclick="openDetail('${esc(o.order_nsu)}')">
       <div><div class="o-name">${esc(o._cust.name||'Cliente')}</div>
-        <div class="o-sub">#${esc(o.order_nsu)} · ${dt(o._date)} · ${o._pm==='whatsapp'?'WhatsApp':'InfinitePay'}</div></div>
+        <div class="o-sub">#${esc(o.order_nsu)} · ${dt(o._date)} · ${o._pm==='whatsapp'?'WhatsApp':o._pm==='credito'?'🌟 Crédito':o._pm==='pix'?'Pix':'InfinitePay'}</div></div>
       <div class="o-right"><div class="o-total">${fmt(o._total)}</div><span class="status st-${esc(o.status)}">${STATUS_LABEL[o.status]||esc(o.status)}</span></div>
       <div class="o-items">${n} ${n===1?'item':'itens'}: ${esc(itemsText(o))}</div>
-      <div class="tags">${rtOpen(o)?`<span class="tag rt">↩️ ${o.returnRequest.wants==='troca'?'Troca':'Devolução'} · ${esc((RT_STATUS[o.returnRequest.status]||'').replace(/^\S+ /,''))}</span>`:''}${o.box?`<span class="tag" style="background:#F3ECFF;color:#6D42B8">🎀 BOX · ${esc(o.box.pet||'pet')}</span>`:''}${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
+      <div class="tags">${rtOpen(o)?`<span class="tag rt">↩️ ${o.returnRequest.wants==='troca'?'Troca':'Devolução'} · ${esc((RT_STATUS[o.returnRequest.status]||'').replace(/^\S+ /,''))}</span>`:''}${o.box?`<span class="tag" style="background:#F3ECFF;color:#6D42B8">🎀 BOX · ${esc(o.box.pet||'pet')}</span>`:''}${o._coupon?`<span class="tag cup">🎟 ${esc(o._coupon.code)}</span>`:''}${o.credit&&o.credit.amount?`<span class="tag amb">🌟 Crédito ${fmt(o.credit.amount)}</span>`:''}${o._coupon&&o._coupon.invalid?`<span class="tag rt">⚠️ ${esc(o._coupon.code)}: ${esc(o._coupon.invalid)}</span>`:''}${pre?'<span class="tag pre">📦 Encomenda</span>':''}${o._ship&&(o._ship.local||/motoboy/i.test(o._ship.label||''))?'<span class="tag" style="background:#FFE4EF;color:#C24E7A">🛵 Entrega hoje</span>':''}${o._addr.city?`<span class="tag">📍 ${esc(o._addr.city)}</span>`:''}${o.trackingCode?`<span class="tag">🔎 ${esc(o.trackingCode)}</span>`:''}</div>
     </div>`;
   }).join('');
 }
@@ -673,6 +693,137 @@ function saveReturn(){
   post({ order_nsu:CUR, returnStatus:st, returnReply:reply })
     .then(d=>{ if(d.success){ applyUpdated(d.order); toast(d.emailSent ? 'Salvo ✓ · e-mail enviado à cliente 💌' : 'Salvo ✓'); } else alert('Não deu certo: '+(d.error||'erro')); })
     .catch(()=>alert('Sem conexão.'));
+}
+/* ============ embaixadores ============ */
+let AMBD = null, AMB_EDIT = null, AMB_OPEN = {};
+const AMB_MES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const ambMes = ym => { const [y,m] = String(ym).split('-').map(Number); return m ? AMB_MES[m-1]+' de '+y : ym; };
+const ambPrev = ym => { const [y,m] = ym.split('-').map(Number); return m===1 ? (y-1)+'-12' : y+'-'+String(m-1).padStart(2,'0'); };
+function ambApi(body){
+  return api('ambassador-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+}
+function ambSet(d){
+  if(!d || !d.success){ toast((d && d.error) || 'Erro'); return false; }
+  AMBD = d;
+  // os cupons dos embaixadores entram na conta de comissão da aba Pedidos
+  (d.program.ambassadors||[]).forEach(a => { COUPON_INFO[a.code] = { who: 'Embaixador ' + (a.name || a.code), pct: d.program.settings.commissionPct/100 }; });
+  ORDERS = RAW.map(normalize); renderAll();
+  ambRender(); return true;
+}
+function ambLoad(quiet){
+  return ambApi({ op:'get' }).then(d => { if(quiet){ if(d && d.success){ AMBD = d; (d.program.ambassadors||[]).forEach(a => { COUPON_INFO[a.code] = { who:'Embaixador '+(a.name||a.code), pct:d.program.settings.commissionPct/100 }; }); ORDERS = RAW.map(normalize); renderAll(); } return; } ambSet(d); })
+    .catch(() => { if(!quiet){ document.getElementById('ambBox').innerHTML = '<p class="hint">Não conseguimos carregar. <a href="#" onclick="ambLoad();return false">Tentar de novo</a></p>'; } });
+}
+function ambRender(){
+  const d = AMBD, s = d.program.settings, cur = d.currentMonth, prev = ambPrev(cur);
+  const reps = d.reports;
+  const today = new Date().getDate();
+  // meses já terminados com comissão ainda não liberada
+  const pend = {};
+  reps.forEach(r => r.months.forEach(m => { if(m.ym < cur && m.commission > 0 && !m.released){ (pend[m.ym] = pend[m.ym] || []).push({ r, m }); } }));
+  const pendMonths = Object.keys(pend).sort();
+  const banner = pendMonths.length ? pendMonths.map(ym => {
+    const tot = pend[ym].reduce((t,x)=>t+x.m.commission,0);
+    return `<div class="amb-banner">💜 <b>Comissão de ${ambMes(ym)}</b> pronta para liberar: ${pend[ym].map(x=>`${esc(x.r.ambassador.name||x.r.ambassador.code)} ${fmt(x.m.commission)}`).join(' · ')} (total ${fmt(tot)}).
+      ${ym === prev && today < s.releaseDay ? `<br><span class="hint">O combinado é liberar até o dia ${s.releaseDay}. Dá para liberar antes, se quiser.</span>` : ''}
+      <div class="btnrow" style="margin-top:8px"><button class="btn" onclick="ambRelease('${ym}')">Liberar e avisar por e-mail</button></div></div>`;
+  }).join('') : '';
+
+  const list = reps.length ? reps.map(r => {
+    const a = r.ambassador, m0 = r.months.find(m=>m.ym===cur) || {sales:0,commission:0,base:0}, mp = r.months.find(m=>m.ym===prev);
+    const k = r.currentCycle, pk = !k ? 0 : k.minValue>0 ? Math.min(100, Math.round(k.base/k.minValue*100)) : Math.min(100, Math.round(k.sales/Math.max(1,k.minSales)*100));
+    const open = AMB_OPEN[a.code];
+    const kitsToGive = r.cycles.filter(c => c.ended && c.eligible && !c.delivered);
+    return `<div class="card">
+      <h3><span>🌟 ${esc(a.name||a.code)} ${a.active?'':'<span class="tag">inativo</span>'}</span><span class="tag cup">🎟 ${esc(a.code)}</span></h3>
+      <div class="hint">${esc(a.pet||'')}${a.instagram?` · <a href="https://instagram.com/${esc(a.instagram)}" target="_blank">@${esc(a.instagram)}</a>`:''} · ${esc(a.email)} · desde ${ambMes(a.startMonth)}</div>
+      <div class="amb-grid">
+        <div><small>Crédito disponível</small><b>${fmt(r.available)}</b>${r.reserved>0?`<small>${fmt(r.reserved)} reservado</small>`:''}</div>
+        <div><small>${AMB_MES[Number(cur.split('-')[1])-1]} (prevista)</small><b>${fmt(m0.commission)}</b><small>${m0.sales} venda(s) · ${fmt(m0.base)}</small></div>
+        <div><small>${AMB_MES[Number(prev.split('-')[1])-1]}</small><b>${fmt(mp?mp.commission:0)}</b><small>${mp&&mp.released?'✅ liberada':mp&&mp.commission>0?'⏳ a liberar':'—'}</small></div>
+        <div><small>Total vendido</small><b>${fmt(r.totals.base)}</b><small>${r.totals.sales} venda(s)</small></div>
+      </div>
+      ${k?`<div class="hint">🎁 Kit do bimestre (${esc(k.label)}): ${fmt(k.base)}${k.minValue>0?' de '+fmt(k.minValue):''} vendidos · ${k.sales} venda(s) · kit de ${fmt(k.value)}${k.eligible?' · meta batida 🎉':''}</div><div class="amb-bar"><i style="width:${pk}%"></i></div>`:''}
+      ${kitsToGive.map(c=>`<div class="amb-banner" style="margin-top:8px">🎁 Kit a entregar: ${esc(c.label)}, ${fmt(c.base)} vendidos (${c.sales} vendas), <b>${fmt(c.value)}</b> em produtos. <button class="btn" style="margin-left:6px" onclick="ambKit('${a.code}','${c.cycle}',${c.value})">Marcar como entregue</button></div>`).join('')}
+      <div class="btnrow">
+        <button class="btn line" onclick="AMB_OPEN['${a.code}']=!AMB_OPEN['${a.code}']; ambRender();">${open?'Fechar':'Ver vendas e extrato'}</button>
+        <button class="btn line" onclick="ambAdjust('${a.code}')">± Ajustar crédito</button>
+        <button class="btn line" onclick="AMB_EDIT='${a.code}'; ambRender(); document.getElementById('ambFormCard').scrollIntoView({behavior:'smooth'});">Editar</button>
+        <button class="btn line" onclick="copy(location.origin+'/?cupom=${a.code}','Link do cupom copiado')">Copiar link do cupom</button>
+      </div>
+      ${open ? ambDetail(r) : ''}
+    </div>`;
+  }).join('') : '<div class="card"><p class="hint">Nenhum embaixador cadastrado ainda. Cadastre abaixo: use o <b>mesmo e-mail</b> que ele usa para entrar no site.</p></div>';
+
+  const e = AMB_EDIT ? (d.program.ambassadors.find(a=>a.code===AMB_EDIT) || {}) : {};
+  const form = `<div class="card" id="ambFormCard"><h3>${AMB_EDIT?'✏️ Editar embaixador':'➕ Novo embaixador'}</h3>
+    <div class="amb-form">
+      <div><label>Nome do tutor</label><input class="field" id="afName" value="${esc(e.name||'')}"></div>
+      <div><label>Pet (nome e raça)</label><input class="field" id="afPet" value="${esc(e.pet||'')}" placeholder="Ex.: Theo, border collie"></div>
+      <div><label>E-mail da conta no site</label><input class="field" id="afEmail" value="${esc(e.email||'')}" placeholder="o mesmo que ele usa para entrar"></div>
+      <div><label>Instagram</label><input class="field" id="afIg" value="${esc(e.instagram||'')}" placeholder="@perfil"></div>
+      <div><label>Código do cupom</label><input class="field" id="afCode" value="${esc(e.code||'')}" placeholder="Ex.: THEO" style="text-transform:uppercase"></div>
+      <div><label>WhatsApp</label><input class="field" id="afPhone" value="${esc(e.phone||'')}"></div>
+      <div><label>Mês de entrada (conta o bimestre do kit)</label><input class="field" type="month" id="afStart" value="${esc(e.startMonth||cur)}"></div>
+      <div><label>Situação</label><select class="field" id="afActive"><option value="1" ${e.active!==false?'selected':''}>Ativo</option><option value="0" ${e.active===false?'selected':''}>Inativo (cupom e desconto param)</option></select></div>
+    </div>
+    <div class="btnrow"><button class="btn" onclick="ambSave()">${AMB_EDIT?'Salvar alterações':'Cadastrar embaixador'}</button>${AMB_EDIT?`<button class="btn line" onclick="AMB_EDIT=null; ambRender();">Cancelar</button>`:''}</div>
+    <p class="hint" style="margin-top:8px">O embaixador precisa ter conta no site com esse e-mail. Ao entrar, ele vê o desconto de ${s.discountPct}% e o painel em <b>bielyystore.com.br/embaixador.html</b>.</p></div>`;
+
+  const rules = `<div class="card"><h3>⚙️ Regras do programa</h3>
+    <div class="amb-form">
+      <div><label>Comissão do embaixador (%)</label><input class="field" type="number" step="0.5" id="asCom" value="${s.commissionPct}"></div>
+      <div><label>Desconto do embaixador no site (%)</label><input class="field" type="number" step="0.5" id="asDisc" value="${s.discountPct}"></div>
+      <div><label>Desconto da cliente com o cupom (%)</label><input class="field" type="number" step="0.5" id="asCli" value="${s.customerPercent}"></div>
+      <div><label>Desconto da cliente nos kits (%)</label><input class="field" type="number" step="0.5" id="asCliKit" value="${s.customerKitPercent}"></div>
+      <div><label>Compra mínima da cliente (R$, 0 = sem mínimo)</label><input class="field" type="number" step="1" id="asMin" value="${s.minSubtotal}"></div>
+      <div><label>Dia de liberar a comissão</label><input class="field" type="number" step="1" id="asDay" value="${s.releaseDay}"></div>
+      <div><label>Meta do kit: vender no bimestre (R$)</label><input class="field" type="number" step="50" id="asKitVal" value="${s.kitMinValue}"></div>
+      <div><label>Valor mínimo do kit (R$ em produtos)</label><input class="field" type="number" step="5" id="asKitMinKit" value="${s.kitMinKit}"></div>
+      <div><label>Kit maior se vender muito (% do vendido)</label><input class="field" type="number" step="0.5" id="asKit" value="${s.kitPct}"></div>
+      <div><label>Mínimo de vendas em número (0 = não exige)</label><input class="field" type="number" step="1" id="asKitMin" value="${s.kitMinSales}"></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px"><input type="checkbox" id="asCwd" ${s.creditWithDiscount?'checked':''}> Pode usar o crédito junto com o desconto de embaixador</label>
+    <div class="btnrow"><button class="btn" onclick="ambSaveSettings()">Salvar regras</button></div>
+    <p class="hint" style="margin-top:6px">A comissão é calculada sobre o valor pago nos produtos (com o desconto do cupom, sem frete), só em vendas pagas, de 1 até o último dia do mês. Compras feitas na conta do próprio embaixador não contam.</p></div>`;
+
+  document.getElementById('ambBox').innerHTML = banner + list + form + rules;
+}
+function ambDetail(r){
+  const kind = { venda:'✅ venda', aguardando:'⏳ aguardando', cancelado:'✖ cancelado' };
+  const months = r.months.filter(m => m.orders.length || m.released).map(m => `<div style="margin-top:12px"><b style="text-transform:capitalize">${esc(m.label)}</b> · ${m.sales} venda(s) · ${fmt(m.base)} · comissão <b>${fmt(m.commission)}</b> ${m.released?`· ✅ liberada em ${dt(m.released.at)}${m.released.emailed===false?' (e-mail não saiu)':''}`:''}
+    <table class="amb-table"><tr><th>Pedido</th><th>Data</th><th>Situação</th><th>Valor</th><th>Comissão</th></tr>
+    ${m.orders.map(o=>`<tr><td><a href="#" onclick="setTab('orders'); openDetail('${esc(o.nsu)}'); return false;">#${esc(o.nsu)}</a></td><td>${dt(o.date)}</td><td>${kind[o.kind]}${o.returned?' · devolução':''}</td><td>${o.kind==='venda'?fmt(o.base):'—'}</td><td>${o.kind==='venda'?fmt(o.commission):'—'}</td></tr>`).join('')}</table></div>`).join('') || '<p class="hint" style="margin-top:10px">Nenhuma venda com o cupom ainda.</p>';
+  const st = r.statement.length ? `<table class="amb-table"><tr><th>Data</th><th>Movimento</th><th>Valor</th></tr>${r.statement.map(e=>`<tr><td>${dt(e.date)}</td><td>${esc(e.label)}</td><td style="color:${e.amount>=0?'#24804A':'#B4471A'};font-weight:700">${e.amount>=0?'+ ':'− '}${fmt(Math.abs(e.amount))}</td></tr>`).join('')}</table>` : '<p class="hint">Sem movimentações.</p>';
+  return `<div style="margin-top:12px; border-top:1px solid var(--line); padding-top:8px">${months}<div style="margin-top:14px"><b>Extrato do crédito</b> · saldo ${fmt(r.available)}</div>${st}</div>`;
+}
+function ambSave(){
+  const v = id => document.getElementById(id).value;
+  ambApi({ op:'save', originalCode: AMB_EDIT || undefined, ambassador: { name:v('afName'), pet:v('afPet'), email:v('afEmail'), instagram:v('afIg'), code:v('afCode'), phone:v('afPhone'), startMonth:v('afStart'), active: v('afActive')==='1' } })
+    .then(d => { if(ambSet(d)){ AMB_EDIT = null; ambRender(); toast('Embaixador salvo ✓'); } }).catch(()=>toast('Sem conexão'));
+}
+function ambSaveSettings(){
+  const n = id => Number(document.getElementById(id).value);
+  ambApi({ op:'settings', settings: { commissionPct:n('asCom'), discountPct:n('asDisc'), customerPercent:n('asCli'), customerKitPercent:n('asCliKit'), minSubtotal:n('asMin'), releaseDay:n('asDay'), kitPct:n('asKit'), kitMinSales:n('asKitMin'), kitMinValue:n('asKitVal'), kitMinKit:n('asKitMinKit'), creditWithDiscount: document.getElementById('asCwd').checked } })
+    .then(d => { if(ambSet(d)) toast('Regras salvas ✓'); }).catch(()=>toast('Sem conexão'));
+}
+function ambRelease(ym){
+  if(!confirm(`Liberar a comissão de ${ambMes(ym)}? Ela vira crédito na conta de cada embaixador e eles recebem um e-mail.`)) return;
+  ambApi({ op:'release', month: ym }).then(d => {
+    if(!ambSet(d)) return;
+    const r = d.released || [];
+    toast(r.length ? `Liberado ✓ ${r.map(x=>x.name+' '+fmt(x.amount)+(x.emailed?' 💌':' (sem e-mail)')).join(' · ')}` : (d.message || 'Nada para liberar'));
+  }).catch(()=>toast('Sem conexão'));
+}
+function ambAdjust(code){
+  const v = prompt('Valor do ajuste em R$ (ex.: 20 para dar crédito, -20 para tirar):'); if(v==null) return;
+  const amount = Number(String(v).replace(',','.')); if(!amount){ toast('Valor inválido'); return; }
+  const note = prompt('Motivo (aparece no extrato do embaixador):', amount>0?'Crédito extra da loja':'Ajuste da loja'); if(note==null) return;
+  ambApi({ op:'adjust', code, amount, note }).then(d => { if(ambSet(d)) toast('Ajuste salvo ✓'); }).catch(()=>toast('Sem conexão'));
+}
+function ambKit(code, cycle, value){
+  const note = prompt('O que foi no kit? (opcional)', ''); if(note==null) return;
+  ambApi({ op:'kit', code, cycle, value, note }).then(d => { if(ambSet(d)) toast('Kit marcado como entregue ✓'); }).catch(()=>toast('Sem conexão'));
 }
 function closeDetail(){ document.getElementById('ov').classList.remove('show'); CUR=null; }
 function post(body){

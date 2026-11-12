@@ -5,6 +5,7 @@ const { blobStore } = require('../lib/blobs');
 const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 const { notifyOrder } = require('../lib/mailer');
+const { checkOrder } = require('../lib/ambassadors');
 
 const cpfOk = (v) => {
   const d = String(v || '').replace(/\D/g, '');
@@ -73,6 +74,10 @@ exports.handler = async function (event) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Entre na sua conta para finalizar o pedido', needLogin: true }) };
   }
 
+  // cupom e crédito de embaixador (o crédito é conferido com o saldo de verdade)
+  const amb = await checkOrder(event, accountEmail, orderDetails.coupon || null, orderDetails.credit).catch(e => { console.error('Erro ao conferir embaixador:', e); return { error: 'Não conseguimos conferir seu crédito agora. Tente de novo.', statusCode: 503 }; });
+  if (amb.error) return { statusCode: amb.statusCode || 409, body: JSON.stringify({ error: amb.error, available: amb.available }) };
+
   try {
     const response = await fetch('https://api.checkout.infinitepay.io/links', {
       method: 'POST',
@@ -103,7 +108,8 @@ exports.handler = async function (event) {
         paymentDetail: orderDetails.paymentDetail || null,
         itemsDetailed: Array.isArray(orderDetails.itemsDetailed) ? orderDetails.itemsDetailed.slice(0, 60) : null,
         subtotal: orderDetails.subtotal != null ? orderDetails.subtotal : null,
-        coupon: orderDetails.coupon || null,
+        coupon: amb.coupon || null,
+        credit: amb.credit || undefined,
         paymentUrl: data.url || null,
         stockItems: cleanStockItems(orderDetails.stockItems),
         trackStock: true,

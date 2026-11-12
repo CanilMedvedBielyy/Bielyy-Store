@@ -1600,6 +1600,10 @@ function gaPurchase(nsu, value, items){
             <div class="ck-summary-line"><span>Subtotal</span><span id="ckSubtotal">R$ 0,00</span></div>
             <div class="ck-summary-line" id="ckCouponRow" style="display:none; color:var(--green);"><span>Desconto (<span id="ckCouponCodeLabel"></span>)</span><span id="ckCouponDiscountVal">- R$ 0,00</span></div>
             <div class="ck-summary-line"><span>Frete</span><span id="ckShipping">A calcular</span></div>
+            <div id="ckCreditRow" style="display:none; background:#F3ECFF; border:1.5px solid #E2D3FB; border-radius:12px; padding:10px 12px; margin:8px 0;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; cursor:pointer;"><input type="checkbox" id="ckUseCredit" onchange="AMB_USE_CREDIT=this.checked; renderCheckout();" style="width:18px; height:18px; accent-color:var(--purple-deep);"> 🌟 Usar meu crédito de embaixador</label>
+              <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); margin-top:4px;"><span id="ckCreditAvail"></span><span id="ckCreditVal" style="color:var(--green); font-weight:700;"></span></div>
+            </div>
             <div class="ck-summary-line" style="border-bottom:none; font-weight:700; font-size:17px; padding-top:14px;"><span>Total</span><span id="ckTotal" style="color:var(--purple-deep); font-family:'Baloo 2';">R$ 0,00</span></div>
             <button class="btn btn-primary" id="finalizeBtn" style="width:100%; justify-content:center; margin-top:16px;" onclick="finalizeOrder()">Confirmar pedido</button>
             <div class="ck-seals"><span>🔒 Compra 100% segura</span><span>🛡️ Site protegido SSL</span><span>💳 Pagamento InfinitePay</span></div>
@@ -2169,7 +2173,57 @@ function shipText(card){
 }
 function computeOrderTotal(sub, discount, shipping, card){
   if(appliedCoupon && appliedCoupon.forceTotal != null) return appliedCoupon.forceTotal;
-  return Math.max(0, sub - discount) + shipCharge(card === undefined ? payingByCard() : card);
+  const base = Math.max(0, sub - discount) + shipCharge(card === undefined ? payingByCard() : card);
+  if(card !== undefined) return base;
+  return Math.round((base - ambCreditUse(base)) * 100) / 100; // checkout: desconta o crédito de embaixador
+}
+/* ---------- Programa de embaixadores ---------- */
+var AMB = null, AMB_USE_CREDIT = false, AMB_TOKEN = null;
+function ambCreditUse(base){
+  if(!AMB || !AMB_USE_CREDIT || !(AMB.available > 0) || !(base > 0)) return 0;
+  if(appliedCoupon && appliedCoupon.forceTotal != null) return 0;
+  if(!AMB.creditWithDiscount && appliedCoupon && appliedCoupon.code === 'EMBAIXADOR') return 0;
+  let c = Math.min(AMB.available, base);
+  const rest = base - c;
+  if(rest > 0 && rest < 1) c = Math.max(0, base - 1); // o pagamento online precisa de pelo menos R$ 1,00
+  return Math.round(c * 100) / 100;
+}
+function ambPendingCoupon(){
+  try {
+    const q = new URLSearchParams(location.search).get('cupom');
+    if(q){ localStorage.setItem('bielyy_cupom', q.trim().toUpperCase().slice(0, 30)); }
+    return localStorage.getItem('bielyy_cupom') || '';
+  } catch(e){ return ''; }
+}
+function ambApplyCode(code, quiet){
+  const ci = document.getElementById('couponInput'); if(!ci || !COUPONS[code]) return false;
+  ci.value = code; applyCoupon();
+  if(!quiet) pulseToast(code === 'EMBAIXADOR' ? `Seu desconto de embaixador está ativo: ${COUPONS[code].percent}% OFF 🌟` : `Cupom ${code} aplicado! 🎉`);
+  return true;
+}
+function ambInit(){
+  const u = getLoggedInUser();
+  const token = u && u.token || '';
+  AMB_TOKEN = token;
+  fetch('/.netlify/functions/ambassador', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ op:'init', token: token || undefined }) })
+    .then(r => r.json()).then(j => {
+      if(token !== AMB_TOKEN) return; // trocou de conta no meio do caminho
+      Object.assign(COUPONS, j.coupons || {});
+      const was = AMB;
+      AMB = j.me || null;
+      if(AMB){
+        COUPONS.EMBAIXADOR = { percent: AMB.discountPct, kitPercent: AMB.discountPct, boxPercent: AMB.discountPct, ambassadorSelf: true, label: `${AMB.discountPct}% OFF de embaixador Bielyy 🌟` };
+        if(!appliedCoupon || appliedCoupon.code === AMB.code) ambApplyCode('EMBAIXADOR', true);
+      } else {
+        delete COUPONS.EMBAIXADOR;
+        AMB_USE_CREDIT = false;
+        if(appliedCoupon && appliedCoupon.code === 'EMBAIXADOR'){ appliedCoupon = null; const ci = document.getElementById('couponInput'); if(ci) ci.value = ''; const rb = document.getElementById('couponResult'); if(rb) rb.innerHTML = ''; }
+        const pend = ambPendingCoupon();
+        if(pend && !appliedCoupon && COUPONS[pend] && ambApplyCode(pend)) { try { localStorage.removeItem('bielyy_cupom'); } catch(e){} }
+      }
+      try { renderCart(); } catch(e){}
+      try { if(document.getElementById('view-checkout').style.display === 'block') renderCheckout(); } catch(e){}
+    }).catch(() => {});
 }
 function hasUsedFirstPurchaseCoupon(){
   return localStorage.getItem('bielyy_first_purchase_used') === '1';
@@ -4153,6 +4207,20 @@ function renderCheckout(){
   }
   document.getElementById('ckShipping').textContent = shipping ? shipText(payingByCard()) : 'A calcular no carrinho';
   document.getElementById('ckTotal').textContent = fmt(computeOrderTotal(sub, discount, shipping));
+  const cr = document.getElementById('ckCreditRow');
+  if(cr){
+    const show = !!(AMB && AMB.available > 0);
+    cr.style.display = show ? 'block' : 'none';
+    if(show){
+      const base = computeOrderTotal(sub, discount, shipping, payingByCard());
+      const use = ambCreditUse(base);
+      document.getElementById('ckUseCredit').checked = AMB_USE_CREDIT;
+      document.getElementById('ckCreditAvail').textContent = 'Disponível: ' + fmt(AMB.available);
+      document.getElementById('ckCreditVal').textContent = use > 0 ? '- ' + fmt(use) : '';
+      const btn = document.getElementById('finalizeBtn');
+      if(btn && !btn.disabled) btn.textContent = (use > 0 && base - use <= 0.001) ? 'Confirmar pedido com crédito' : 'Confirmar pedido';
+    }
+  }
 }
 function selectPayment(method){
   selectedPaymentMethod = method;
@@ -4235,8 +4303,9 @@ function startPixOrder(o){
     .then(({ ok, j, st }) => {
       if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; }
       if(st === 401){ sessionExpiredAtCheckout(); return; }
-      if(!ok || !j.success){ pulseToast('Não deu para registrar o pedido agora. Tente de novo ou feche pelo WhatsApp 💜'); return; }
+      if(!ok || !j.success){ pulseToast(j.error || 'Não deu para registrar o pedido agora. Tente de novo ou feche pelo WhatsApp 💜'); if(o.body.credit) ambInit(); return; }
       if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
+      if(o.body.credit){ AMB_USE_CREDIT = false; ambInit(); }
       cart = {}; saveCart(); updateCartCount(); try { renderCart(); renderCheckout(); } catch(e){}
       try { gaPurchase(j.order_nsu || orderNsu, o.amount, o.body.itemsDetailed); } catch(e){}
       showPixPayment(j.order_nsu || orderNsu, o.amount, o.body.customer && o.body.customer.name);
@@ -4335,6 +4404,7 @@ function finalizeOrderNow(){
   const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
   const discount = couponDiscount(sub);
   const total = computeOrderTotal(sub, discount, shipping);
+  const creditAmt = Math.round((computeOrderTotal(sub, discount, shipping, payingByCard()) - total) * 100) / 100;
   // Dados completos do pedido: vão para o painel da loja (admin)
   const itemsDetailed = lines.map(l=>({
     name: orderItemName(l.family, l.variant),
@@ -4350,6 +4420,32 @@ function finalizeOrderNow(){
   const shipPaid = shipCharge(payingByCard());
   const shipInfo = shipping ? { label: shipping.label, price: shipPaid, free: shipPaid === 0, local: !!shipping.local, cost: shipping.price, couponCovered: shipCoverage() || undefined, freeShipRegion: (regionalCoverage(shipping) > 0 && freeShipRule()) ? freeShipRule().name : undefined } : null;
 
+  // Pedido pago 100% com o crédito de embaixador
+  if(creditAmt > 0 && total <= 0.001){
+    const btn = document.getElementById('finalizeBtn');
+    if(btn){ btn.disabled = true; btn.textContent = 'Registrando o pedido...'; }
+    const orderNsu = 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);
+    fetch('/.netlify/functions/create-order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      order_nsu: orderNsu, paymentMethod: 'credito', credit: creditAmt,
+      customer: {name, phone, email, cpf}, address: { cep: cepCk, street, number, complement, neighborhood, city },
+      itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total: 0, box: boxPayload(lines),
+      accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
+    }) })
+      .then(r => r.json().then(j => ({ ok: r.ok, j, st: r.status })))
+      .then(({ ok, j, st }) => {
+        if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; }
+        if(st === 401){ sessionExpiredAtCheckout(); return; }
+        if(!ok || !j.success){ pulseToast(j.error || 'Não deu para registrar o pedido agora. Tente de novo 💜'); ambInit(); return; }
+        cart = {}; saveCart(); updateCartCount(); AMB_USE_CREDIT = false; try { renderCart(); renderCheckout(); } catch(e){}
+        try { gaPurchase(j.order_nsu || orderNsu, 0, itemsDetailed); } catch(e){}
+        ambInit();
+        showView('home');
+        alert(`Pedido nº ${j.order_nsu || orderNsu} confirmado e pago com o seu crédito de embaixador 🌟\n\nVocê recebe as atualizações por e-mail e acompanha em Meus pedidos.`);
+      })
+      .catch(() => { if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; } pulseToast('Sem conexão. Tente de novo em instantes.'); });
+    return;
+  }
+
   if(selectedPaymentMethod === 'whats'){
     const availableLines = lines.filter(l => !l.family.preorder);
     const preorderLines = lines.filter(l => l.family.preorder);
@@ -4364,9 +4460,10 @@ function finalizeOrderNow(){
           customer: {name, phone, email, cpf},
           address: { cep: cepCk, street, number, complement, neighborhood, city },
           itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total, box: boxPayload(lines),
+          credit: creditAmt > 0 ? creditAmt : undefined,
           accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
         })
-      }).catch(()=>{});
+      }).then(() => { if(creditAmt > 0) ambInit(); }).catch(()=>{});
     } catch(e){}
     let msg = `Olá! Vim pelo site da Bielyy Store e quero fechar este pedido:%0A*Pedido nº ${orderNsu}*%0A`;
 
@@ -4389,6 +4486,7 @@ function finalizeOrderNow(){
     if(appliedCoupon && discount > 0){
       msg += `Cupom ${appliedCoupon.code}: -${fmt(discount)}%0A`;
     }
+    if(creditAmt > 0) msg += `Crédito de embaixador: -${fmt(creditAmt)}%0A`;
     msg += `Frete (${shipping?shipping.label:'a calcular'}): ${shipping ? encodeURIComponent(shipText(true)) : 'a calcular'}%0ATotal: ${fmt(total)}%0A%0ANome: ${name}%0AEndereço: ${address}${complement ? ' - '+complement : ''}, ${city}%0ACEP: ${cepCk}`;
     msg += boxWaText(lines);
     if(appliedCoupon && appliedCoupon.firstPurchaseOnly) markFirstPurchaseCouponUsed();
@@ -4402,6 +4500,7 @@ function finalizeOrderNow(){
         customer: { name, phone, email, cpf },
         address: { cep: cepCk, street, number, complement, neighborhood, city },
         itemsDetailed, stockItems: stockItemsOf(lines), subtotal: sub, coupon: couponInfo, shipping: shipInfo, total: amount, box: boxPayload(lines),
+        credit: creditAmt > 0 ? creditAmt : undefined,
         accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || ''
       } });
       return;
@@ -4422,9 +4521,10 @@ function finalizeOrderNow(){
       if(shipPaid > 0){
         payload.items.push({quantity: 1, price: Math.round(shipPaid*100), description: `Frete (${shipping.label})`});
       }
-      if(appliedCoupon && discount > 0){
-        // InfinitePay não tem campo de desconto — reduzimos o preço dos itens de verdade
-        let remaining = Math.round(discount*100);
+      const cutTotal = ((appliedCoupon && discount > 0) ? discount : 0) + (creditAmt > 0 ? creditAmt : 0);
+      if(cutTotal > 0){
+        // InfinitePay não tem campo de desconto — reduzimos o preço dos itens de verdade (cupom + crédito de embaixador)
+        let remaining = Math.round(cutTotal*100);
         for(const item of payload.items){
           if(remaining <= 0) break;
           const cut = Math.min(remaining, item.price - 1);
@@ -4441,6 +4541,7 @@ function finalizeOrderNow(){
       stockItems: stockItemsOf(lines),
       subtotal: sub,
       coupon: couponInfo,
+      credit: creditAmt > 0 ? creditAmt : undefined,
       box: boxPayload(lines),
       accountEmail: (getLoggedInUser() || {}).email || '', token: (getLoggedInUser() || {}).token || '',
       cpf
@@ -4476,7 +4577,8 @@ function finalizeOrderNow(){
           window.location.href = data.url;
         } else {
           console.error('Erro InfinitePay:', data);
-          pulseToast('Não deu pra gerar o link agora. Tenta de novo ou usa o WhatsApp 💜');
+          pulseToast((data && typeof data.error === 'string' && data.error) || 'Não deu pra gerar o link agora. Tenta de novo ou usa o WhatsApp 💜');
+          if(creditAmt > 0) ambInit();
           if(btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido'; }
         }
       })
@@ -4829,6 +4931,7 @@ function acctMenuHTML(){
   const item = (ic, bg, title, sub, act, cls) => `<button role="menuitem" class="${cls||''}" onclick="closeAcctMenu(); ${act}"><span class="am-ic" style="background:${bg}">${ic}</span><span>${title}${sub?`<small>${sub}</small>`:''}</span></button>`;
   if(user){
     return `<div class="am-head"><b>Oi, ${escH(user.name.split(' ')[0])}! 💜</b><span>${escH(user.email)}</span></div>`
+      + (AMB ? item('🌟','#FFF4D6','Painel de embaixador', 'Crédito: ' + fmt(AMB.available), "location.href='/embaixador.html'") : '')
       + item('📦','#F3ECFF','Meus pedidos','Status e código de rastreio','openAuthModal()')
       + item('🔍','#E3EDFF','Acompanhar pelo número','Para pedidos sem conta',"location.href='/pedido.html'")
       + item('↩️','#FFE9DC','Trocas e devoluções','Peça pelo seu pedido','openAuthModal()')
@@ -4902,6 +5005,7 @@ function updateAccountUI(){
   if(bl) bl.textContent = user ? user.name.split(' ')[0].slice(0,10) : 'Conta';
   btn.onclick = (e) => { e.stopPropagation(); toggleAcctMenu(); };
   btn.title = user ? 'Minha conta e meus pedidos' : 'Entrar ou criar conta';
+  if(((user && user.token) || '') !== (AMB_TOKEN || '') || AMB_TOKEN == null) ambInit(); // entrou ou saiu da conta: confere se é embaixador
 }
 
 /* =====================================================
@@ -5164,6 +5268,19 @@ setInterval(loadCatalog, 120000); // confere mudanças de estoque a cada 2 minut
 if(new URLSearchParams(location.search).has('box') || location.hash === '#bielyybox'){ window.history.replaceState({}, '', location.pathname); setTimeout(openBox, 400); }
 (function(){ const t = new URLSearchParams(location.search).get('redefinir'); if(!t) return; window.history.replaceState({}, '', location.pathname);
   setTimeout(() => { try { localStorage.removeItem('bielyy_user'); } catch(e){} updateAccountUI(); document.getElementById('authModal').classList.add('show'); document.getElementById('overlay').classList.add('show'); renderResetPassword(t); }, 300); })();
+(function(){ const q = new URLSearchParams(location.search); const cat = q.get('categoria'), ver = q.get('ver');
+  if(!cat && !ver) return;
+  const slug = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/&/g,' e ').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  setTimeout(() => {
+    try {
+      if(cat){ const want = slug(cat); const c = CATEGORIES.find(x => slug(x) === want) || CATEGORIES.find(x => slug(x).startsWith(want));
+        if(c){ goCategory(c); return; } showView('shop'); return; }
+      if(['loja','shop','produtos'].includes(ver)) showView('shop');
+      else if(['encomendas','encomenda','preorder'].includes(ver)) showView('preorder');
+      else if(['sobre','about'].includes(ver)) showView('about');
+    } catch(e){ console.warn(e); }
+  }, 350);
+})();
 if(new URLSearchParams(location.search).get('conta')){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openAuthModal(), 300); }
 setTimeout(() => showWelcomePopup(false), 7000); // convite com R$ 10 OFF para quem ainda não tem conta
 

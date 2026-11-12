@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Embaixador — Bielyy Store</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/site-asset-0.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple-deep:#6D42B8; --purple:#8B5FD1; --purple-soft:#B79BEA;
+    --lavender:#F3ECFF; --pink:#FF7FAE; --pink-soft:#FFD9E6;
+    --cream:#FFF9FC; --gold:#FFC93C; --ink:#3A2E52; --ink-soft:#7A6E96;
+    --green:#3FAE5C; --red:#E0703B; --line:#EDE4FA;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Poppins',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; padding:18px 16px 40px;}
+  h1,h2,h3{font-family:'Baloo 2',cursive; color:var(--purple-deep); line-height:1.2;}
+  button{font-family:'Poppins',sans-serif; cursor:pointer; border:none;}
+  .wrap{max-width:680px; margin:0 auto;}
+  .top{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .top a{color:var(--purple-deep); font-size:13.5px; font-weight:600; text-decoration:none;}
+  .top img{width:44px; height:44px; border-radius:50%; border:2px solid #fff; box-shadow:0 4px 12px rgba(109,66,184,.18);}
+  .card{background:#fff; border-radius:20px; padding:20px; box-shadow:0 10px 28px rgba(109,66,184,.10); margin-bottom:14px;}
+  .hero{background:linear-gradient(135deg,var(--purple-deep),var(--purple) 55%,var(--pink)); color:#fff; border-radius:22px; padding:22px 20px; margin-bottom:14px; box-shadow:0 12px 30px rgba(109,66,184,.25);}
+  .hero h1{color:#fff; font-size:25px;}
+  .hero p{font-size:13.5px; opacity:.92; margin-top:2px;}
+  .code{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;}
+  .chip{background:rgba(255,255,255,.18); border:1.5px dashed rgba(255,255,255,.6); border-radius:12px; padding:7px 14px; font-weight:700; letter-spacing:1.5px; font-size:16px;}
+  .hbtn{background:#fff; color:var(--purple-deep); border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:700;}
+  .hbtn.wa{background:#25D366; color:#fff;}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;}
+  .stat{background:#fff; border-radius:18px; padding:14px; box-shadow:0 8px 22px rgba(109,66,184,.08);}
+  .stat small{display:block; font-size:11.5px; color:var(--ink-soft); line-height:1.35;}
+  .stat b{display:block; font-family:'Baloo 2'; font-size:23px; color:var(--purple-deep); margin-top:4px; line-height:1.1;}
+  .stat.main{background:var(--lavender); border:2px solid #E2D3FB;}
+  .stat .go{display:inline-block; margin-top:8px; font-size:12px; font-weight:700; color:var(--purple-deep); text-decoration:none;}
+  @media (max-width:560px){ .stats{grid-template-columns:1fr 1fr;} .stat.main{grid-column:1 / -1;} }
+  h2{font-size:19px; margin-bottom:4px;}
+  .muted{color:var(--ink-soft); font-size:12.5px; line-height:1.5;}
+  .bar{height:12px; background:var(--lavender); border-radius:999px; overflow:hidden; margin:12px 0 6px;}
+  .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--purple),var(--pink)); border-radius:999px; transition:width .5s;}
+  .kitrow{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft);}
+  .kitval{margin-top:10px; background:var(--lavender); border-radius:14px; padding:12px 14px; font-size:13.5px;}
+  .kitval b{color:var(--purple-deep);}
+  .months{display:flex; gap:8px; overflow-x:auto; padding:4px 0 10px; margin:8px 0 4px; scrollbar-width:none;}
+  .months button{flex-shrink:0; padding:7px 14px; border-radius:999px; background:var(--lavender); color:var(--ink); font-size:12.5px; font-weight:600; text-transform:capitalize;}
+  .months button.on{background:var(--purple-deep); color:#fff;}
+  .msum{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 12px;}
+  .msum div{background:var(--cream); border:1.5px solid var(--line); border-radius:14px; padding:10px; text-align:center;}
+  .msum small{display:block; font-size:11px; color:var(--ink-soft);}
+  .msum b{font-size:15px;}
+  .badge{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;}
+  .b-venda{background:#E3F5EC; color:#24804A;} .b-aguardando{background:#FFF4D6; color:#9A6B00;} .b-cancelado{background:#FDEBE5; color:#B4471A;}
+  .ord{display:flex; gap:12px; padding:12px 0; border-top:1px solid var(--line); align-items:center;}
+  .ord:first-child{border-top:none;}
+  .ord img,.ord .ph{width:46px; height:46px; border-radius:12px; object-fit:cover; background:var(--lavender); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px;}
+  .ord .mid{flex:1; min-width:0; font-size:13px;}
+  .ord .mid b{display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ord .mid span{font-size:11.5px; color:var(--ink-soft);}
+  .ord .val{text-align:right; font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+  .ord .val b{display:block; font-size:14px; color:var(--green);}
+  .ord.off .val b{color:var(--ink-soft); text-decoration:line-through;}
+  .rel{margin-top:10px; font-size:12.5px; background:#E3F5EC; color:#24804A; border-radius:12px; padding:9px 12px; font-weight:600;}
+  .rel.wait{background:#FFF4D6; color:#9A6B00;}
+  .st{display:flex; justify-content:space-between; gap:10px; padding:11px 0; border-top:1px solid var(--line); font-size:13px;}
+  .st:first-child{border-top:none;}
+  .st .l small{display:block; font-size:11.5px; color:var(--ink-soft);}
+  .st .a{font-weight:700; white-space:nowrap;}
+  .st .a.pos{color:var(--green);} .st .a.neg{color:var(--red);}
+  .balance{display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:12px; border-top:2px solid var(--lavender); font-weight:700;}
+  .balance b{font-family:'Baloo 2'; font-size:21px; color:var(--purple-deep);}
+  .rules li{font-size:13px; line-height:1.55; margin:0 0 8px 18px;}
+  .rules li b{color:var(--purple-deep);}
+  .empty{font-size:13px; color:var(--ink-soft); padding:14px 0; text-align:center;}
+  .gate{text-align:center; padding:30px 22px;}
+  .gate h1{font-size:23px; margin-bottom:6px;}
+  .gate p{font-size:13.5px; color:var(--ink-soft); margin-bottom:18px; line-height:1.55;}
+  .btn{display:inline-block; padding:12px 22px; border-radius:999px; background:linear-gradient(135deg,var(--purple),var(--pink)); color:#fff; font-weight:700; font-size:14px; text-decoration:none;}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px; font-size:13px; opacity:0; transition:.25s; pointer-events:none; z-index:9;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .loading{text-align:center; padding:60px 0; color:var(--ink-soft); font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">← Voltar para a loja</a><img src="/site-asset-0.jpg" alt="Bielyy Store"></div>
+  <div id="app"><div class="loading">Carregando seu painel... 🐾</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v) => { const [i, d] = Number(v || 0).toFixed(2).split('.'); return 'R$ ' + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
+const dshort = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const mName = (ym) => { const [y, m] = ym.split('-').map(Number); return MESES[m - 1] + ' de ' + y; };
+const mShort = (ym) => { const [y, m] = ym.split('-').map(Number); return MESES[m - 1].slice(0, 3) + '/' + String(y).slice(2); };
+const nextYm = (ym) => { const [y, m] = ym.split('-').map(Number); return m === 12 ? (y + 1) + '-01' : y + '-' + String(m + 1).padStart(2, '0'); };
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2200); }
+function user(){ try { return JSON.parse(localStorage.getItem('bielyy_user') || 'null'); } catch(e){ return null; } }
+let REP = null, SEL = null;
+
+function gate(title, text, btn){
+  $('app').innerHTML = `<div class="card gate"><div style="font-size:42px; margin-bottom:6px;">🌟</div><h1>${title}</h1><p>${text}</p>${btn || ''}</div>`;
+}
+function load(){
+  const u = user();
+  if(!u || !u.token){
+    gate('Painel do Embaixador', 'Entre na sua conta da Bielyy Store (a mesma que você cadastrou como embaixador) para ver suas vendas, sua comissão e seu crédito.', `<a class="btn" href="/?conta=1">Entrar na minha conta</a>`);
+    return;
+  }
+  fetch('/.netlify/functions/ambassador', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ op:'panel', token: u.token }) })
+    .then(r => r.json().then(j => ({ st: r.status, j })))
+    .then(({ st, j }) => {
+      if(st === 401){ gate('Sua sessão expirou', 'Entre de novo na sua conta para ver o painel.', `<a class="btn" href="/?conta=1">Entrar na minha conta</a>`); return; }
+      if(st === 403){ gate('Painel do Embaixador', esc(j.error), `<a class="btn" href="https://wa.me/5511915971151?text=${encodeURIComponent('Oi! Sou embaixador da Bielyy e não consigo abrir meu painel.')}" target="_blank">Falar no WhatsApp</a>`); return; }
+      if(!j.success){ gate('Ops!', esc(j.error || 'Não conseguimos carregar agora.'), `<a class="btn" href="javascript:load()">Tentar de novo</a>`); return; }
+      REP = j.report; SEL = SEL || REP.currentMonth; render();
+    })
+    .catch(() => gate('Sem conexão', 'Confira sua internet e tente de novo.', `<a class="btn" href="javascript:load()">Tentar de novo</a>`));
+}
+
+function render(){
+  const r = REP, a = r.ambassador, s = r.settings;
+  const cur = r.months.find(m => m.ym === r.currentMonth) || { sales: 0, commission: 0, base: 0 };
+  const first = String(a.name || a.pet || '').trim().split(' ')[0];
+  const link = location.origin + '/?cupom=' + encodeURIComponent(a.code);
+  const k = r.currentCycle;
+  const pctKit = !k ? 0 : k.minValue > 0 ? Math.min(100, Math.round(k.base / k.minValue * 100)) : Math.min(100, Math.round(k.sales / Math.max(1, k.minSales) * 100));
+  const metaTxt = !k ? '' : [k.minValue > 0 ? `vender <b>${fmt(k.minValue)}</b>` : '', k.minSales > 0 ? `fazer <b>${k.minSales} vendas</b>` : ''].filter(Boolean).join(' e ');
+  const faltaTxt = !k ? '' : k.eligible ? 'Meta batida! 🎉' : [k.missingValue > 0 ? `faltam ${fmt(k.missingValue)}` : '', k.missingSales > 0 ? `${k.missingSales} venda${k.missingSales > 1 ? 's' : ''}` : ''].filter(Boolean).join(' e ');
+
+  $('app').innerHTML = `
+    <div class="hero">
+      <h1>Oi, ${esc(first || 'embaixador')}! 🌟</h1>
+      <p>Painel do embaixador Bielyy${a.pet ? ' · ' + esc(a.pet) : ''}</p>
+      <div class="code">
+        <span class="chip">${esc(a.code)}</span>
+        <button class="hbtn" onclick="copyTxt('${esc(a.code)}','Cupom copiado!')">Copiar cupom</button>
+        <button class="hbtn" onclick="copyTxt('${esc(link)}','Link copiado!')">Copiar link</button>
+        <a class="hbtn wa" style="text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(`Use meu cupom ${a.code} na Bielyy Store e ganhe ${s.customerPercent}% OFF 🐾 ${link}`)}">Compartilhar</a>
+      </div>
+      <p style="margin-top:10px; font-size:12px;">Quem usa o seu cupom ganha <b>${s.customerPercent}% OFF</b>${s.customerKitPercent !== s.customerPercent ? ` (${s.customerKitPercent}% nos kits)` : ''}${s.minSubtotal > 0 ? ` em compras a partir de ${fmt(s.minSubtotal)}` : ''}. O link já aplica o cupom sozinho.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat main"><small>💜 Crédito disponível para comprar</small><b>${fmt(r.available)}</b>
+        ${r.reserved > 0 ? `<small style="margin-top:4px;">${fmt(r.reserved)} reservado em compra aguardando pagamento</small>` : ''}
+        <a class="go" href="/">Usar no site →</a></div>
+      <div class="stat"><small>Comissão prevista de ${MESES[Number(r.currentMonth.split('-')[1]) - 1]}</small><b>${fmt(cur.commission)}</b><small>libera até ${String(s.releaseDay).padStart(2,'0')}/${nextYm(r.currentMonth).split('-')[1]}</small></div>
+      <div class="stat"><small>Vendas com seu cupom em ${MESES[Number(r.currentMonth.split('-')[1]) - 1]}</small><b>${cur.sales}</b><small>${fmt(cur.base)} vendidos</small></div>
+    </div>
+
+    ${k ? `<div class="card">
+      <h2>🎁 Kit do bimestre</h2>
+      <p class="muted">${esc(k.label)}: ${metaTxt ? metaTxt + ' com o seu cupom no bimestre e' : ''} você ganha um <b>kit de pelo menos ${fmt(k.minKit)}</b> em produtos${s.kitPct > 0 ? ` (ou ${s.kitPct}% do que vendeu, se der mais)` : ''}.</p>
+      <div class="bar"><i style="width:${pctKit}%"></i></div>
+      <div class="kitrow"><span>${fmt(k.base)}${k.minValue > 0 ? ' de ' + fmt(k.minValue) : ' vendidos'} · ${k.sales} venda${k.sales === 1 ? '' : 's'}</span><span>${faltaTxt}</span></div>
+      <div class="kitval">${k.eligible ? '🎉 Seu kit:' : 'Batendo a meta, seu kit vale:'} <b>${fmt(k.value)}</b> em produtos</div>
+      ${r.cycles.filter(c => c.ended).slice(0, 3).map(c => `<p class="muted" style="margin-top:8px;">${esc(c.label)}: ${c.delivered ? `✅ kit de ${fmt(c.delivered.value)} entregue` : c.eligible ? `🎁 kit de ${fmt(c.value)} a receber` : `${fmt(c.base)} vendidos (meta não batida)`}</p>`).join('')}
+    </div>` : ''}
+
+    <div class="card">
+      <h2>📊 Vendas por mês</h2>
+      <p class="muted">Contam as vendas pagas com o seu cupom, de 1 até o último dia do mês. A comissão é ${s.commissionPct}% do valor pago nos produtos (sem o frete).</p>
+      <div class="months">${r.months.map(m => `<button class="${m.ym === SEL ? 'on' : ''}" onclick="SEL='${m.ym}'; render();">${mShort(m.ym)}</button>`).join('')}</div>
+      ${monthHTML(r.months.find(m => m.ym === SEL) || r.months[0], r)}
+    </div>
+
+    <div class="card">
+      <h2>🧾 Extrato do crédito</h2>
+      <p class="muted">Entradas (comissões liberadas), saídas (compras com crédito) e devoluções de compras canceladas.</p>
+      <div style="margin-top:8px;">${r.statement.length ? r.statement.map(e => `<div class="st"><div class="l">${esc(e.label)}<small>${dshort(e.date)}${e.status === 'aguardando_pagamento' ? ' · aguardando pagamento' : ''}</small></div><div class="a ${e.amount >= 0 ? 'pos' : 'neg'}">${e.amount >= 0 ? '+ ' : '− '}${fmt(Math.abs(e.amount))}</div></div>`).join('') : '<div class="empty">Ainda não há movimentações. Sua primeira comissão aparece aqui no dia ' + String(s.releaseDay).padStart(2,'0') + ' do mês que vem 💜</div>'}</div>
+      <div class="balance"><span>Saldo</span><b>${fmt(r.available)}</b></div>
+    </div>
+
+    <div class="card">
+      <h2>📌 Como funciona</h2>
+      <ul class="rules" style="margin-top:10px;">
+        <li>Você ganha <b>${s.commissionPct}% de comissão</b> em cada venda paga com o seu cupom, sobre o valor dos produtos (o frete não conta).</li>
+        <li>As vendas de <b>1 até o último dia do mês</b> são somadas e a comissão vira <b>crédito</b> na sua conta até o dia <b>${String(s.releaseDay).padStart(2,'0')}</b> do mês seguinte. Você recebe um e-mail quando liberar.</li>
+        <li>O crédito serve para comprar <b>qualquer produto do site</b>: no checkout, marque <b>"Usar meu crédito"</b>. Ele não vence enquanto você for embaixador.</li>
+        <li>Você tem <b>${s.discountPct}% OFF</b> em todo o site, aplicado sozinho quando entra na sua conta${s.creditWithDiscount ? ', inclusive quando usa o crédito' : ''}.</li>
+        <li>Compras feitas na sua própria conta não geram comissão. Pedidos cancelados ou devolvidos saem da conta.</li>
+        <li>A cada <b>2 meses</b>, ${s.kitMinValue > 0 ? `vendendo <b>${fmt(s.kitMinValue)}</b> ou mais com o seu cupom` : 'batendo a meta'}${s.kitMinSales > 0 ? ` (e pelo menos ${s.kitMinSales} vendas)` : ''}, você ganha um <b>kit de pelo menos ${fmt(s.kitMinKit)}</b> em produtos${s.kitPct > 0 ? ` — ou ${s.kitPct}% do total vendido, se der mais` : ''}.</li>
+      </ul>
+      <p class="muted" style="margin-top:6px;">Dúvidas? <a href="https://wa.me/5511915971151" target="_blank" style="color:var(--purple-deep); font-weight:700;">Fale com a gente no WhatsApp</a>.</p>
+    </div>`;
+}
+
+function monthHTML(m, r){
+  if(!m) return '<div class="empty">Nenhuma venda ainda.</div>';
+  const isCur = m.ym === r.currentMonth;
+  const kindLabel = { venda: 'Venda ✓', aguardando: 'Aguardando pagamento', cancelado: 'Cancelado' };
+  const rows = m.orders.length ? m.orders.map(o => {
+    const it = o.items[0] || {}, more = o.items.length - 1;
+    return `<div class="ord ${o.kind !== 'venda' ? 'off' : ''}">
+      ${it.img ? `<img src="/${esc(String(it.img).replace(/^\/+/, ''))}" alt="" onerror="this.outerHTML='<span class=ph>🐾</span>'">` : '<span class="ph">🐾</span>'}
+      <div class="mid"><b>${esc(it.qty ? it.qty + '× ' : '')}${esc(it.title || 'Pedido')}${more > 0 ? ` + ${more}` : ''}</b>
+        <span>${dshort(o.date)} · <span class="badge b-${o.kind}">${kindLabel[o.kind]}</span>${o.returned ? ' · devolução descontada' : ''}</span></div>
+      <div class="val">${o.kind === 'venda' ? fmt(o.base) : ''}<b>${o.kind === 'venda' ? '+ ' + fmt(o.commission) : '—'}</b></div>
+    </div>`;
+  }).join('') : '<div class="empty">Nenhuma venda com o seu cupom neste mês ainda.</div>';
+  const rel = m.released
+    ? `<div class="rel">✅ Liberado em ${dshort(m.released.at)}: ${fmt(m.released.amount)} em crédito</div>`
+    : isCur ? `<div class="rel wait">⏳ Mês em andamento: a comissão vira crédito até ${String(r.settings.releaseDay).padStart(2,'0')}/${nextYm(m.ym).split('-')[1]}</div>`
+    : m.commission > 0 ? `<div class="rel wait">⏳ Aguardando liberação até o dia ${String(r.settings.releaseDay).padStart(2,'0')}</div>` : '';
+  return `<div class="msum">
+      <div><small>Vendas</small><b>${m.sales}</b></div>
+      <div><small>Vendido</small><b>${fmt(m.base)}</b></div>
+      <div><small>Comissão</small><b style="color:var(--green)">${fmt(m.commission)}</b></div>
+    </div>
+    ${m.pending || m.cancelled ? `<p class="muted" style="margin-bottom:6px;">${m.pending ? `${m.pending} aguardando pagamento` : ''}${m.pending && m.cancelled ? ' · ' : ''}${m.cancelled ? `${m.cancelled} cancelado${m.cancelled > 1 ? 's' : ''}` : ''} (não contam até serem pagos)</p>` : ''}
+    <div>${rows}</div>${rel}`;
+}
+function copyTxt(t, msg){
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(msg)).catch(() => { prompt('Copie:', t); });
+}
+load();
+</script>
+</body>
+</html>

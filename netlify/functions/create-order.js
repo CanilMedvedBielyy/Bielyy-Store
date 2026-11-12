@@ -6,6 +6,8 @@ const { blobStore } = require('../lib/blobs');
 const { cleanStockItems, getDoc } = require('../lib/catalog');
 const { readToken } = require('../lib/session');
 const { notifyOrder } = require('../lib/mailer');
+const { syncOrderStock } = require('../lib/catalog');
+const { checkOrder } = require('../lib/ambassadors');
 
 const clean = (v, max = 200) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const cpfOk = (v) => {
@@ -94,12 +96,22 @@ exports.handler = async function (event) {
     first: b.coupon.first === true ? true : (b.coupon.first === false ? false : undefined)
   } : null;
 
+  // cupom e crédito de embaixador (o crédito é conferido com o saldo de verdade)
+  const amb = await checkOrder(event, accountEmail, coupon, b.credit).catch(e => { console.error('Erro ao conferir embaixador:', e); return { error: 'Não conseguimos conferir seu crédito agora. Tente de novo.', statusCode: 503 }; });
+  if (amb.error) return { statusCode: amb.statusCode || 409, body: JSON.stringify({ error: amb.error, available: amb.available }) };
+  const payCredit = b.paymentMethod === 'credito';
+  if (payCredit && (!amb.credit || num(b.total) > 0.01)) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'O crédito não cobre o pedido inteiro. Escolha Pix, cartão ou WhatsApp para pagar o restante.' }) };
+  }
+  const now = new Date().toISOString();
+
   const order = {
     order_nsu: orderNsu,
-    status: 'aguardando_pagamento',
-    createdAt: new Date().toISOString(),
-    paymentMethod: b.paymentMethod === 'pix' ? 'pix' : 'whatsapp',
-    paymentDetail: b.paymentMethod === 'pix' ? 'pix' : undefined,
+    status: payCredit ? 'pago' : 'aguardando_pagamento',
+    createdAt: now,
+    paidAt: payCredit ? now : undefined,
+    paymentMethod: payCredit ? 'credito' : b.paymentMethod === 'pix' ? 'pix' : 'whatsapp',
+    paymentDetail: payCredit ? 'credito' : b.paymentMethod === 'pix' ? 'pix' : undefined,
     accountEmail: clean(accountEmail, 120).toLowerCase(),
     customer: { name: clean(customer.name, 120), phone: clean(customer.phone, 30), email: clean(customer.email, 120), cpf },
     address: {
@@ -109,7 +121,8 @@ exports.handler = async function (event) {
     items: items.map(it => ({ description: it.name + (it.variant ? ` (${it.variant})` : ''), quantity: it.qty, price: Math.round(it.unitPrice * 100) })),
     itemsDetailed: items,
     subtotal: num(b.subtotal),
-    coupon,
+    coupon: amb.coupon,
+    credit: amb.credit || undefined,
     shipping: b.shipping ? { label: clean(b.shipping.label, 60), price: num(b.shipping.price), free: !!b.shipping.free, local: !!b.shipping.local } : null,
     total: num(b.total),
     stockItems: cleanStockItems(b.stockItems),
@@ -124,7 +137,12 @@ exports.handler = async function (event) {
       orderNsu = 'W' + Date.now() + Math.floor(Math.random() * 90 + 10);
       order.order_nsu = orderNsu;
     }
-    await notifyOrder(order, 'recebido'); // e-mail "recebemos seu pedido" para a cliente
+    if (payCredit) {
+      await syncOrderStock(order, event); // pago com crédito: já sai do estoque
+      await notifyOrder(order, 'pago');
+    } else {
+      await notifyOrder(order, 'recebido'); // e-mail "recebemos seu pedido" para a cliente
+    }
     await store.setJSON(orderNsu, order);
     return { statusCode: 200, body: JSON.stringify({ success: true, order_nsu: orderNsu }) };
   } catch (err) {

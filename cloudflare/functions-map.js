@@ -1,5 +1,7 @@
 // Lista das funções do site (as mesmas da pasta netlify/functions).
 // Ao criar uma função nova, acrescente aqui também.
+import fn_ambassador from '../netlify/functions/ambassador.js';
+import fn_ambassador_admin from '../netlify/functions/ambassador-admin.js';
 import fn_calculate_shipping from '../netlify/functions/calculate-shipping.js';
 import fn_catalog from '../netlify/functions/catalog.js';
 import fn_catalog_save from '../netlify/functions/catalog-save.js';
@@ -30,6 +32,8 @@ import fn_update_order_status from '../netlify/functions/update-order-status.js'
 import fn_update_user from '../netlify/functions/update-user.js';
 
 export const FUNCTIONS = {
+  'ambassador': fn_ambassador,
+  'ambassador-admin': fn_ambassador_admin,
   'calculate-shipping': fn_calculate_shipping,
   'catalog': fn_catalog,
   'catalog-save': fn_catalog_save,
