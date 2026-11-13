@@ -9,6 +9,7 @@
 // da loja edita tudo pelo painel admin (aba "Entrega hoje").
 
 const { blobStore } = require('./blobs');
+const lalamove = require('./lalamove');
 
 const ROUTE_FACTOR = 1.35;
 
@@ -23,7 +24,9 @@ const DEFAULT_CONFIG = {
     { maxKm: 8, price: 21.9, freeAbove: null },
     { maxKm: 12, price: 29.9, freeAbove: null },
     { maxKm: 15, price: 35.9, freeAbove: null }
-  ]
+  ],
+  // Preço real do Lalamove no carrinho (desligado até você testar com as chaves de Produção)
+  lalamove: { useInCheckout: false, serviceType: '', markupPct: 0 }
 };
 
 function sanitizeConfig(c) {
@@ -45,7 +48,12 @@ function sanitizeConfig(c) {
     cutoffHour: Math.max(6, Math.min(22, parseInt(c.cutoffHour, 10) || d.cutoffHour)),
     workDays: Array.isArray(c.workDays) ? c.workDays.map(Number).filter(n => n >= 0 && n <= 6) : d.workDays,
     maxWeightKg: Math.max(1, Math.min(30, Number(c.maxWeightKg) || d.maxWeightKg)),
-    zones: zones.length ? zones : d.zones
+    zones: zones.length ? zones : d.zones,
+    lalamove: {
+      useInCheckout: !!(c.lalamove && c.lalamove.useInCheckout),
+      serviceType: String((c.lalamove && c.lalamove.serviceType) || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40),
+      markupPct: Math.max(0, Math.min(100, Number(c.lalamove && c.lalamove.markupPct) || 0))
+    }
   };
 }
 
@@ -150,8 +158,11 @@ function deliveryDay(cfg, now) {
 }
 
 // ---------- Cotação ----------
-// Devolve { option, info } — option é null quando o CEP está fora da área.
-async function quoteLocal({ cepDestino, weightKg, subtotal }, event, now) {
+// Devolve { option, info, lalamove } — option é null quando o CEP está fora da área.
+// "lalamove" (custo real) só vem para o painel: nunca vai para a cliente.
+// opts.withLalamove = true: cota o Lalamove mesmo com ele desligado no carrinho (teste do painel).
+async function quoteLocal({ cepDestino, weightKg, subtotal }, event, now, opts) {
+  opts = opts || {};
   const cfg = await getConfig(event);
   const info = { enabled: cfg.enabled };
   if (!cfg.enabled) return { option: null, info };
@@ -165,18 +176,31 @@ async function quoteLocal({ cepDestino, weightKg, subtotal }, event, now) {
   Object.assign(info, { routeKm, straightKm: Math.round(straight * 10) / 10, district: to.district, city: to.city, source: to.source });
 
   const zone = cfg.zones.find(z => routeKm <= z.maxKm);
-  if (!zone) return { option: null, info: Object.assign(info, { reason: 'fora-da-area' }) };
+  const useLL = cfg.lalamove.useInCheckout && lalamove.creds();
+  let ll = null;
+  if (opts.withLalamove || (zone && useLL)) {
+    ll = await lalamove.quoteCoords(from, to, { serviceType: cfg.lalamove.serviceType, timeoutMs: opts.withLalamove ? 8000 : 5000 }, event);
+    if (ll.ok) ll.price = lalamove.priceFrom(ll.total, cfg.lalamove.markupPct);
+  }
+  if (!zone) return { option: null, info: Object.assign(info, { reason: 'fora-da-area' }), lalamove: ll };
+
+  // Com o Lalamove ligado no carrinho: cobra o maior entre a faixa e o Lalamove (+ margem).
+  // Se o Lalamove falhar, fica o preço da faixa e a venda segue normal.
+  let zonePrice = zone.price, priceSource = 'faixa';
+  if (useLL && ll && ll.ok && ll.price > zonePrice) { zonePrice = ll.price; priceSource = 'lalamove'; }
 
   const free = zone.freeAbove != null && Number(subtotal) >= zone.freeAbove;
   const day = deliveryDay(cfg, now);
   return {
+    lalamove: ll,
+    priceSource,
     info: Object.assign(info, { zoneMaxKm: zone.maxKm }),
     option: {
       id: 'local',
       local: true,
       label: `Entrega ${day.when} (motoboy)`,
-      price: free ? 0 : zone.price,
-      fullPrice: zone.price,
+      price: free ? 0 : zonePrice,
+      fullPrice: zonePrice,
       free,
       freeAbove: zone.freeAbove,
       days: day.days,

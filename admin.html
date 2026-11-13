@@ -299,6 +299,20 @@
         <p class="hint" style="margin-top:10px">* Estimativa conservadora: R$ 5 + R$ 1,95 por km de rota (inclui o tempo parado no trânsito). Em horário de pico ou chuva o app pode cobrar mais — por isso a sugestão é cobrar pelo fim da faixa e despachar fora do pico quando possível.</p>
       </div>
       <div class="card">
+        <h3>🟠 Lalamove: preço real da moto</h3>
+        <div id="llStatus" class="cm" style="margin-top:0"></div>
+        <div class="dl-grid" style="margin-top:10px">
+          <label>Veículo <select class="field sm" id="llService"><option value="">Moto (escolha automática)</option></select>
+            <button class="ghost" onclick="llCities()">Ver veículos</button></label>
+          <label>Margem extra <input class="field sm" id="llMarkup" type="number" min="0" max="100" step="1" placeholder="0"> %</label>
+          <label><input type="checkbox" id="llUse"> <b>Usar o preço do Lalamove no carrinho</b></label>
+        </div>
+        <p class="hint">Ligado, a cliente paga o <b>maior</b> valor entre a faixa acima e a cotação do Lalamove naquele momento (mais a margem), arredondado em ,90. Se o Lalamove não responder, vale o preço da faixa e a venda segue normal.
+          O site só pergunta o preço: não chama motorista e não usa o saldo da Carteira.</p>
+        <div class="btnrow"><button class="btn" onclick="dlSave()">Salvar</button></div>
+        <div id="llOut" class="hint" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
         <h3>🔎 Testar um CEP</h3>
         <div class="toolbar"><input class="field sm" id="dlTest" placeholder="00000-000" maxlength="9" onkeydown="if(event.key==='Enter') dlTestCep()">
           <input class="field sm" id="dlTestSub" type="number" placeholder="Valor dos produtos (R$)">
@@ -604,6 +618,7 @@ function openDetail(id){
         <dt>E-mail</dt><dd>${esc(c.email||'—')}</dd>
       </dl>
       <div class="addr"><b>${esc(a.l1||'Endereço não informado')}</b><br>${a.l2?esc(a.l2)+'<br>':''}${esc(a.l3)}${a.l4?'<br>'+esc(a.l4):''}</div>
+      ${o._addr.cep && /s[aã]o paulo/i.test(o._addr.city||'') || o._addr.cep && o._ship && o._ship.local ? `<div class="btnrow" style="margin-top:8px"><button class="ghost" onclick="llOrder('${esc(String(o._addr.cep).replace(/\D/g,''))}')">🟠 Cotar Lalamove</button></div><div id="llOrderOut" class="hint" style="margin-top:4px"></div>` : ''}
     </div>
 
     <div class="card"><h3>🛍 Resumo da compra</h3>
@@ -1563,11 +1578,11 @@ const saved = sessionStorage.getItem('bielyy_admin_pwd');
 if(saved){ PASSWORD = saved; refresh(false, false); }
 
 /* ============ entrega hoje ============ */
-let DL = null, DL_DEFAULTS = null;
+let DL = null, DL_DEFAULTS = null, LL_STATUS = {configured:false}, LL_SERVICES = null;
 const DL_DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const dlCost = km => 5 + 1.95*km;
 function dlLoad(){
-  api('local-delivery-config').then(d=>{ DL = d.config; DL_DEFAULTS = d.defaults; dlRender(); })
+  api('local-delivery-config').then(d=>{ DL = d.config; DL_DEFAULTS = d.defaults; LL_STATUS = d.lalamove||{configured:false}; dlRender(); })
     .catch(e=>{ if(e.message==='senha') return logout(); toast('Não consegui carregar a configuração'); });
 }
 function dlRender(){
@@ -1575,6 +1590,7 @@ function dlRender(){
   document.getElementById('dlCep').value = fmtCep(DL.originCep);
   document.getElementById('dlCut').value = DL.cutoffHour;
   document.getElementById('dlWeight').value = DL.maxWeightKg;
+  llRender();
   document.getElementById('dlDays').innerHTML = DL_DAYS.map((n,i)=>`<label><input type="checkbox" data-day="${i}" ${DL.workDays.includes(i)?'checked':''}> ${n}</label>`).join('');
   document.getElementById('dlZones').innerHTML = DL.zones.map((z,i)=>{
     const c = dlCost(z.maxKm), ok = z.price >= c;
@@ -1586,7 +1602,58 @@ function dlRender(){
       <td><button class="ghost" onclick="DL.zones.splice(${i},1); dlRender()">remover</button></td></tr>`;
   }).join('');
 }
+function llRender(){
+  const L = DL.lalamove || (DL.lalamove = {useInCheckout:false, serviceType:'', markupPct:0});
+  const st = document.getElementById('llStatus');
+  st.innerHTML = !LL_STATUS.configured
+    ? '⚪ <b>Chaves não encontradas.</b> No Cloudflare, crie LALAMOVE_API_KEY e LALAMOVE_API_SECRET (tipo Secret) e publique de novo.'
+    : LL_STATUS.sandbox
+      ? '🧪 <b>Conectado com as chaves de TESTE (Sandbox).</b> Os preços são de teste e São Paulo pode não estar disponível. Para usar no carrinho, troque pelas chaves de Produção.'
+      : '🟢 <b>Conectado com as chaves de Produção.</b> Os preços são reais.';
+  const sel = document.getElementById('llService');
+  const opts = (LL_SERVICES||[]).map(s=>[s.key, s.key+(s.description?' · '+s.description:'')+(s.loadKg?' · até '+s.loadKg+' kg':'')]);
+  if(L.serviceType && !opts.some(o=>o[0]===L.serviceType)) opts.unshift([L.serviceType, L.serviceType]);
+  sel.innerHTML = '<option value="">Moto (escolha automática)</option>' + opts.map(([v,l])=>`<option value="${esc(v)}" ${v===L.serviceType?'selected':''}>${esc(l)}</option>`).join('');
+  document.getElementById('llMarkup').value = L.markupPct || '';
+  const use = document.getElementById('llUse');
+  use.checked = !!L.useInCheckout;
+  use.disabled = !LL_STATUS.configured || (LL_STATUS.sandbox && !L.useInCheckout);
+  use.parentElement.title = use.disabled ? 'Disponível com as chaves de Produção' : '';
+}
+function llCities(){
+  const out = document.getElementById('llOut'); out.textContent = 'Perguntando ao Lalamove...';
+  api('local-delivery-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lalamoveCities:true})})
+    .then(d=>{
+      if(!d.success){ out.innerHTML = '<span class="dl-bad">✗</span> '+esc(d.error||'Erro'); return; }
+      const sp = d.saoPaulo;
+      LL_SERVICES = sp ? sp.services : [];
+      dlCollect(); llRender();
+      if(sp && !DL.lalamove.serviceType && d.suggested) document.getElementById('llService').value = d.suggested;
+      out.innerHTML = sp
+        ? `<span class="dl-ok">✓ São Paulo encontrada</span> · ${LL_SERVICES.length} veículo(s). Sugestão: <b>${esc(d.suggested||'—')}</b>. Escolha e clique em Salvar.`
+        : `<span class="dl-bad">São Paulo não aparece</span> nessas chaves${LL_STATUS.sandbox?' (normal no Sandbox)':''}. Cidades disponíveis: ${esc((d.cities||[]).map(c=>c.name).join(', ')||'nenhuma')}.`;
+    }).catch(()=>{ out.textContent='Sem conexão.'; });
+}
+function llLine(L, opt, src){
+  if(!L) return '';
+  if(!L.ok) return `<br>🟠 Lalamove: <span class="dl-bad">${esc(L.error||'erro')}</span>`;
+  return `<br>🟠 Lalamove agora${L.sandbox?' (teste)':''}: custo <b>${fmt(L.total)}</b>${L.km?' · '+L.km+' km':''} · ${esc(L.serviceType)} → com a margem seria <b>${fmt(L.price)}</b>`
+    + (src==='lalamove' ? ' · <b>o carrinho está usando esse preço</b>' : opt && DL && DL.lalamove && DL.lalamove.useInCheckout ? ' · a faixa já cobre, o carrinho usa a faixa' : '');
+}
+function llOrder(cep){
+  const out = document.getElementById('llOrderOut'); if(!out) return;
+  out.textContent = 'Cotando no Lalamove...';
+  api('local-delivery-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testCep:String(cep).replace(/\D/g,'')})})
+    .then(d=>{
+      const L = d.lalamove, i = d.info||{};
+      if(!L) { out.innerHTML = '<span class="dl-bad">✗</span> Não achei a localização desse CEP.'; return; }
+      out.innerHTML = L.ok
+        ? `🟠 Lalamove agora${L.sandbox?' (teste)':''}: <b>${fmt(L.total)}</b>${L.km?' · '+L.km+' km':''} · ${esc(L.serviceType)}${i.routeKm?' · ~'+i.routeKm+' km pela estimativa do site':''}<br><span style="opacity:.8">Compare com o seu motoboy antes de chamar. O preço do Lalamove muda com o horário e a demanda.</span>`
+        : `🟠 Lalamove: <span class="dl-bad">${esc(L.error||'erro')}</span>`;
+    }).catch(()=>{ out.textContent='Sem conexão.'; });
+}
 function dlCollect(){
+  DL.lalamove = { useInCheckout: document.getElementById('llUse').checked, serviceType: document.getElementById('llService').value, markupPct: +document.getElementById('llMarkup').value || 0 };
   DL.enabled = document.getElementById('dlEnabled').checked;
   DL.originCep = document.getElementById('dlCep').value.replace(/\D/g,'');
   DL.cutoffHour = +document.getElementById('dlCut').value;
@@ -1609,8 +1676,8 @@ function dlTestCep(){
     .then(d=>{
       const i = d.info||{}, o = d.option;
       const where = [i.district, i.city].filter(Boolean).join(', ');
-      if(o) out.innerHTML = `<span class="dl-ok">✓ Atende</span> · ${esc(where)} · ~${i.routeKm} km de rota · cliente paga <b>${o.free?'Grátis':fmt(o.price)}</b> · ${esc(o.label)} · custo estimado do Uber ${fmt(dlCost(i.routeKm))}`;
-      else out.innerHTML = `<span class="dl-bad">✗ Não atende</span> · ${esc(where)} ${i.routeKm?'· ~'+i.routeKm+' km de rota':''} · motivo: ${({'fora-da-area':'fora das faixas','cep-sem-coordenadas':'não achei a localização desse CEP','peso':'pedido pesado demais'})[i.reason]||(i.enabled===false?'entrega hoje desativada':i.reason||'?')}`;
+      if(o) out.innerHTML = `<span class="dl-ok">✓ Atende</span> · ${esc(where)} · ~${i.routeKm} km de rota · cliente paga <b>${o.free?'Grátis':fmt(o.price)}</b> · ${esc(o.label)} · custo estimado do Uber ${fmt(dlCost(i.routeKm))}` + llLine(d.lalamove, o, d.priceSource);
+      else out.innerHTML = `<span class="dl-bad">✗ Não atende</span> · ${esc(where)} ${i.routeKm?'· ~'+i.routeKm+' km de rota':''} · motivo: ${({'fora-da-area':'fora das faixas','cep-sem-coordenadas':'não achei a localização desse CEP','peso':'pedido pesado demais'})[i.reason]||(i.enabled===false?'entrega hoje desativada':i.reason||'?')}` + llLine(d.lalamove, null, null);
     }).catch(()=>{ out.textContent='Sem conexão.'; });
 }
 
