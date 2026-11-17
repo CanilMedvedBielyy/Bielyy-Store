@@ -1131,6 +1131,24 @@ function gaPurchase(nsu, value, items){
   .kit-li.off .kit-nm{text-decoration:line-through;}
   .kit-out{display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#F1F1F4; color:#6B6680; font-size:11px; font-weight:700; text-decoration:none; white-space:nowrap;}
   .kit-li.zoom em{display:none;}
+  /* ---------- Achadinhos (links de afiliado) ---------- */
+  .rc-head{max-width:680px;}
+  .rc-chips{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 22px;}
+  .rc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px;}
+  .rc-card{display:flex; flex-direction:column; background:#fff; border-radius:22px; overflow:hidden; box-shadow:var(--shadow-sm); text-decoration:none; color:var(--ink); border:2px solid transparent; transition:.18s;}
+  .rc-card:hover{transform:translateY(-3px); border-color:var(--lavender);}
+  .rc-img{position:relative; aspect-ratio:1/1; background:#fff;}
+  .rc-img img{width:100%; height:100%; object-fit:contain; display:block;}
+  .rc-store{position:absolute; left:10px; top:10px; font-size:11px; font-weight:800; padding:4px 10px; border-radius:999px; color:#fff; letter-spacing:.2px;}
+  .rc-store.shopee{background:#EE4D2D;} .rc-store.mercadolivre{background:#FFE600; color:#2D3277;} .rc-store.amazon{background:#232F3E;} .rc-store.magalu{background:#0086FF;} .rc-store.outra{background:var(--purple-deep);}
+  .rc-tag{position:absolute; left:10px; bottom:10px; font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; background:var(--pink-soft); color:var(--purple-deep);}
+  .rc-body{padding:14px 16px 16px; display:flex; flex-direction:column; gap:6px; flex:1;}
+  .rc-body h3{font-family:'Poppins'; font-size:15px; font-weight:600; line-height:1.3; margin:0;}
+  .rc-note{font-size:12.5px; color:var(--ink-soft); font-style:italic; line-height:1.4;}
+  .rc-go{margin-top:auto; padding-top:8px; font-weight:700; font-size:13px; color:var(--purple-deep);}
+  .rc-disc{font-size:12px; color:var(--ink-soft); margin-top:26px; text-align:center; line-height:1.5;}
+  .rc-empty{text-align:center; padding:40px 10px; color:var(--ink-soft);}
+  @media (max-width:600px){ .rc-grid{grid-template-columns:repeat(2,1fr); gap:12px;} .rc-body{padding:10px 12px 12px;} .rc-body h3{font-size:13.5px;} .rc-note{display:none;} }
 </style>
 </head>
 <body>
@@ -1167,6 +1185,7 @@ function gaPurchase(nsu, value, items){
       <a href="#shop" onclick="showView('shop')">Loja</a>
       <a href="#preorder" onclick="showView('preorder')">Encomendas</a>
       <a href="#allBrands" onclick="goToBrands(event)">Marcas</a>
+      <a href="#achadinhos" onclick="showView('recs')">Achadinhos</a>
       <a href="#about" onclick="showView('about')">Sobre</a>
       <a href="/pedido.html" onclick="if(getLoggedInUser()){ event.preventDefault(); openAuthModal(); }">📦 Meus pedidos</a>
     </nav>
@@ -1197,6 +1216,10 @@ function gaPurchase(nsu, value, items){
     <button class="tab-btn" id="tabPreorder" onclick="switchTab('preorder')">
       <span style="font-size:16px; line-height:1;">📦</span>
       Encomendas
+    </button>
+    <button class="tab-btn" id="tabRecs" onclick="switchTab('recs')">
+      <span style="font-size:16px; line-height:1;">🛍️</span>
+      Achadinhos
     </button>
   </div>
 </div>
@@ -1537,6 +1560,24 @@ function gaPurchase(nsu, value, items){
 </main>
 
 <!-- ============ CHECKOUT VIEW ============ -->
+<!-- ============ ACHADINHOS (links de afiliado, cadastrados no painel) ============ -->
+<main id="view-recs" style="display:none;">
+  <section class="section" style="padding-top:40px;">
+    <div class="wrap">
+      <div class="section-head rc-head">
+        <div>
+          <span class="kicker">Achadinhos Bielyy</span>
+          <h2>O que a gente usa e recomenda</h2>
+          <p>Produtos que não vendemos aqui na loja, mas que aprovamos em casa com a nossa matilha. A compra é feita direto na Shopee, no Mercado Livre ou na Amazon.</p>
+        </div>
+      </div>
+      <div class="rc-chips" id="rcChips"></div>
+      <div class="rc-grid" id="rcGrid"><div class="rc-empty">Carregando os achadinhos… 🐾</div></div>
+      <p class="rc-disc">💜 Alguns links são de afiliado: o preço para você é o mesmo e a Bielyy Store pode receber uma pequena comissão, que ajuda a loja a crescer. Preço, entrega e garantia são da loja onde você comprar.</p>
+    </div>
+  </section>
+</main>
+
 <main id="view-checkout" style="display:none;">
   <section class="section" style="padding-top:40px;">
     <div class="wrap">
@@ -1630,6 +1671,7 @@ function gaPurchase(nsu, value, items){
       <ul>
         <li><a href="#" onclick="showView('shop')">Todos os produtos</a></li>
         <li><a href="#" onclick="showView('preorder')">Encomendas</a></li>
+        <li><a href="#achadinhos" onclick="showView('recs')">Achadinhos recomendados</a></li>
         <li><a href="#allBrands" onclick="goToBrands(event)">Marcas parceiras</a></li>
         <li><a href="#" onclick="showView('about')">Sobre a Bielyy</a></li>
       </ul>
@@ -2109,6 +2151,9 @@ const COUPONS = {
   "MATEUSADESTRA": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 5, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral) — cupom do adestrador Mateus" },
   // Embaixadores: copie a linha abaixo, troque o CÓDIGO e tire as duas barras do começo (pedido mínimo R$ 150; para a conta de gato, use minSubtotal: 100)
   // "CODIGO": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 7, minSubtotal: 150, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral) — embaixador Bielyy" },
+  // Moradores do prédio (CPM, Rua Sapucaia, 326): 15% nos avulsos, 5% em kits e na BOX, e entrega grátis no prédio.
+  // Só vale com o CEP 03170-050 e o número 326 no endereço de entrega.
+  "CPM15": { percent: 15, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, building: { cep: '03170050', number: '326', name: 'Rua Sapucaia, 326' }, label: "15% OFF + entrega grátis no prédio — moradores do CPM" },
   "1478180803": { fixed: 0, forceTotal: 1, freeShipping: true, label: "Cupom de teste — frete grátis e total R$ 1,00" }
 };
 /* ---------- Frete sem prejuízo ----------
@@ -2235,6 +2280,7 @@ function couponDiscount(sub){
   if(!appliedCoupon) return 0;
   // pedido mínimo: conta só os PRODUTOS (sem frete), pelo valor de vitrine — igual no carrinho e no checkout (Pix ou cartão)
   if(appliedCoupon.minSubtotal && cartSubtotal() < appliedCoupon.minSubtotal) return 0;
+  if(appliedCoupon.building && !cpmActive()) return 0; // cupom do prédio: só com o CEP do prédio
   return couponCalc(sub); // desconto por tipo de item: avulsos, kits e Bielyy BOX
 }
 function applyCoupon(opts_skipCheck){
@@ -2293,7 +2339,7 @@ function applyCoupon(opts_skipCheck){
   if(coupon.tiered){ applyTieredCoupon(raw, coupon, opts_skipCheck); return; }
   appliedCoupon = { code: raw, ...coupon };
   resultBox.innerHTML = `<p style="color:var(--green); font-size:12px; margin-top:8px;">🎉 Cupom aplicado: ${coupon.label}</p>`;
-  renderCart();
+  renderCart(); // (cupom do prédio: o aviso abaixo do cupom é atualizado pelo cpmSync)
 }
 // Cupom com valor maior na 1ª compra (ex.: MATEUSADESTRA: 15% na 1ª compra, 10% nas próximas)
 function tieredLabel(c){
@@ -2955,7 +3001,7 @@ function renderPreorder(){
 ===================================================== */
 function showView(view){
   activeDura='all'; activeLevel='all';
-  ['home','shop','preorder','about','checkout','brand'].forEach(v=>{
+  ['home','shop','preorder','about','checkout','brand','recs'].forEach(v=>{
     document.getElementById('view-'+v).style.display = (v===view) ? 'block' : 'none';
   });
   window.scrollTo({top:0, behavior:'smooth'});
@@ -2963,7 +3009,36 @@ function showView(view){
   if(view==='preorder'){ renderFiltersPre(); renderPreorder(); }
   if(view==='checkout'){ renderCheckout(); prefillCheckout(); }
   if(view==='about'){ try { renderAbout(); } catch(e){ console.warn(e); } }
+  if(view==='recs') recsLoad();
   updateTabBar(view);
+}
+
+/* =====================================================
+   ACHADINHOS: produtos recomendados com link de afiliado (cadastro no painel → aba Achadinhos)
+===================================================== */
+let RECS = null, RECS_PET = 'todos';
+const RECS_STORE = { shopee:['Shopee','Ver na Shopee'], mercadolivre:['Mercado Livre','Ver no Mercado Livre'], amazon:['Amazon','Ver na Amazon'], magalu:['Magalu','Ver na Magalu'], outra:['Loja parceira','Ver oferta'] };
+function recsLoad(){
+  if(RECS){ recsRender(); return; }
+  fetch('/.netlify/functions/recommended').then(r => r.json()).then(d => { RECS = Array.isArray(d.items) ? d.items : []; recsRender(); })
+    .catch(() => { const g = document.getElementById('rcGrid'); if(g) g.innerHTML = '<div class="rc-empty">Não conseguimos carregar agora. Tente de novo em instantes 🐾</div>'; });
+}
+function recsPet(p){ RECS_PET = p; recsRender(); }
+function recsRender(){
+  const grid = document.getElementById('rcGrid'), chips = document.getElementById('rcChips'); if(!grid || !RECS) return;
+  const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const hasCao = RECS.some(r => r.pet === 'cao'), hasGato = RECS.some(r => r.pet === 'gato');
+  chips.innerHTML = (hasCao && hasGato) ? [['todos','Todos'],['cao','🐶 Cães'],['gato','🐱 Gatos']].map(([k,l]) => `<button class="chip${RECS_PET===k?' active':''}" onclick="recsPet('${k}')">${l}</button>`).join('') : '';
+  const list = RECS.filter(r => RECS_PET === 'todos' || r.pet === RECS_PET || r.pet === 'todos');
+  if(!list.length){ grid.innerHTML = '<div class="rc-empty">Em breve, os nossos achadinhos favoritos aparecem aqui 💜</div>'; return; }
+  grid.innerHTML = list.map(r => {
+    const st = RECS_STORE[r.store] || RECS_STORE.outra;
+    const img = r.photo ? `<img src="${catPhotoUrl(r.photo)}" alt="${e(r.name)}" loading="lazy">` : '';
+    return `<a class="rc-card" href="${e(r.url)}" target="_blank" rel="sponsored nofollow noopener">
+      <div class="rc-img">${img}<span class="rc-store ${e(r.store)}">${st[0]}</span>${r.tag ? `<span class="rc-tag">${e(r.tag)}</span>` : ''}</div>
+      <div class="rc-body"><h3>${e(r.name)}</h3>${r.note ? `<div class="rc-note">“${e(r.note)}”</div>` : ''}<div class="rc-go">${st[1]} →</div></div>
+    </a>`;
+  }).join('');
 }
 
 /* =====================================================
@@ -3105,6 +3180,7 @@ function updateTabBar(view){
   if(!tabShop || !tabPre) return;
   tabShop.classList.toggle('active', view==='shop' || view==='home');
   tabPre.classList.toggle('active', view==='preorder');
+  const tabRecs = document.getElementById('tabRecs'); if(tabRecs) tabRecs.classList.toggle('active', view==='recs');
 }
 function switchTab(view){
   showView(view);
@@ -3407,7 +3483,7 @@ function boxShipSync(){
     o.label = String(o.label).replace(/ · \d+ envios$/, '') + (n > 1 ? ` · ${n} envios` : '');
   });
   SHIP_MULT = n;
-  if(shipping){ const o = SHIP_OPTIONS[SHIP_IDX] || SHIP_OPTIONS[0]; shipping = { label: o.label, price: o.price, days: o.days, local: !!o.local }; }
+  if(shipping){ const o = SHIP_OPTIONS[SHIP_IDX] || SHIP_OPTIONS[0]; shipping = { label: o.label, price: o.price, days: o.days, local: !!o.local, building: !!o.building }; }
 }
 // Frete grátis da BOX: cobre até BOX_FRETE_CAP por entrega (motoboy, PAC ou SEDEX)
 function boxCoverage(opt){ if(!opt || !cartLines().some(l => isBox(l.family))) return 0; return Math.min(opt.price || 0, BOX_FRETE_CAP * (SHIP_MULT || 1)); }
@@ -3614,14 +3690,41 @@ function cartSubtotal(){
   return cartLines().reduce((sum,l)=>sum + l.variant.cartao*l.qty, 0);
 }
 
+/* ---------- Cupom do prédio (CPM15) ----------
+   Com o cupom e o CEP do prédio, aparece a opção "Entrega no prédio" (grátis) e o desconto é liberado. */
+function cpmActive(){ const c = appliedCoupon; return !!(c && c.building && SHIP_CEP === c.building.cep); }
+function cpmSync(){
+  const c = appliedCoupon && appliedCoupon.building ? appliedCoupon : null;
+  if(typeof SHIP_OPTIONS === 'undefined') return;
+  const has = SHIP_OPTIONS.length && SHIP_OPTIONS[0].building, want = cpmActive();
+  if(want && !has){
+    SHIP_OPTIONS.unshift({ label: 'Entrega no prédio' + (SHIP_MULT > 1 ? ` · ${SHIP_MULT} envios` : ''), price: 0, days: 0, local: true, building: true, free: true, _free0: true, note: 'Moradores do CPM · entregamos no seu apartamento' });
+    SHIP_IDX = 0;
+    const o = SHIP_OPTIONS[0]; shipping = { label: o.label, price: 0, days: 0, local: true, building: true };
+  } else if(!want && has){
+    SHIP_OPTIONS.shift();
+    const wasBuilding = SHIP_IDX === 0; SHIP_IDX = Math.max(0, SHIP_IDX - 1);
+    if(wasBuilding && shipping){ const o = SHIP_OPTIONS[0]; shipping = o ? { label: o.label, price: o.price, days: o.days, local: !!o.local } : null; }
+  }
+  const rb = document.getElementById('couponResult');
+  if(c && rb){
+    const msg = cpmActive()
+      ? `<p style="color:var(--green); font-size:12px; margin-top:8px;">🎉 Cupom aplicado: ${c.label}</p>`
+      : SHIP_CEP
+        ? `<p style="color:#E0703B; font-size:12px; margin-top:8px;">O ${c.code} é exclusivo para os moradores do prédio da ${c.building.name}. Para outros endereços, ele não vale 💜</p>`
+        : `<p style="color:var(--ink-soft); font-size:12px; margin-top:8px;">🏢 Cupom do prédio: calcule o frete com o CEP ${c.building.cep.replace(/(\d{5})(\d{3})/, '$1-$2')} para liberar os 15% e a entrega grátis.</p>`;
+    if(rb.innerHTML !== msg) rb.innerHTML = msg;
+  }
+}
 function renderCart(){
   const body = document.getElementById('cartBody');
   const foot = document.getElementById('cartFoot');
   const lines = cartLines();
   boxShipSync(); // BOX trimestral: o frete vale para cada envio
+  cpmSync(); // cupom do prédio: opção "Entrega no prédio"
   // Frete grátis da entrega local depende do valor dos produtos: recalcula se o carrinho mudou
-  if(shipping && shipping.local){
-    const lo = SHIP_OPTIONS.find(o => o.local);
+  if(shipping && shipping.local && !shipping.building){
+    const lo = SHIP_OPTIONS.find(o => o.local && !o.building);
     if(lo){
       const subL = subSemBox(lines); // a BOX não entra no frete grátis
       const isFree = lo.freeAbove != null && subL >= lo.freeAbove;
@@ -3773,22 +3876,23 @@ function renderShipOptions(){
   if(!resultBox || !SHIP_OPTIONS.length) return;
   const local = SHIP_LOCAL || {};
   const html = SHIP_OPTIONS.map((o,i)=>{
-    const icon = o.local ? '🛵' : (/^SEDEX/.test(o.label) ? '⚡' : '📦');
+    const icon = o.building ? '🏢' : o.local ? '🛵' : (/^SEDEX/.test(o.label) ? '⚡' : '📦');
     const when = o.local ? `<small class="ship-sub">${o.note || ''}</small>` : `<small class="ship-sub">até ${o.days} dias úteis</small>`;
     const rest = Math.max(0, (o.price || 0) - optCoverage(o));
     const price = (o.local && o.free) || !(rest > 0)
       ? `<strong class="ship-free">Grátis</strong>`
       : `<span class="ship-price"><strong>${fmt(rest)}</strong><small>no Pix</small><small>${fmt(cardShipPrice(rest))} no cartão</small></span>`;
-    const tip = (SHIP_MULT > 1 && o.local && o._free0) ? `<small class="ship-sub ship-tip">1ª entrega grátis · você paga só as próximas ${SHIP_MULT - 1}</small>` : o.local && !o.free && o.freeAbove ? `<small class="ship-sub ship-tip">Grátis acima de ${fmt(o.freeAbove)} em produtos</small>` : '';
+    const tip = o.building ? '' : (SHIP_MULT > 1 && o.local && o._free0) ? `<small class="ship-sub ship-tip">1ª entrega grátis · você paga só as próximas ${SHIP_MULT - 1}</small>` : o.local && !o.free && o.freeAbove ? `<small class="ship-sub ship-tip">Grátis acima de ${fmt(o.freeAbove)} em produtos</small>` : '';
     return `<div class="ship-option${i===SHIP_IDX?' selected':''}${o.local?' ship-local':''}" onclick="selectShippingIdx(${i}, this)">
       <span class="ship-main"><span class="ship-title">${icon} ${o.label}</span>${when}${tip}</span>${price}
     </div>`;
-  }).join('') + `<div class="ship-note">${SHIP_OPTIONS.some(o=>o.local) ? '🛵 Entrega por motoboy direto da nossa loja no Ipiranga. ' : (local.reason === 'fora-da-area' ? '🛵 A entrega no mesmo dia atende até ' + (local.zoneMaxKm || 15) + ' km da loja (Ipiranga, SP). ' : '')}Correios via SuperFrete.</div>`;
+  }).join('') + `<div class="ship-note">${SHIP_OPTIONS.some(o=>o.local && !o.building) ? '🛵 Entrega por motoboy direto da nossa loja no Ipiranga. ' : (local.reason === 'fora-da-area' ? '🛵 A entrega no mesmo dia atende até ' + (local.zoneMaxKm || 15) + ' km da loja (Ipiranga, SP). ' : '')}Correios via SuperFrete.</div>`;
   if(resultBox.innerHTML !== html) resultBox.innerHTML = html;
 }
 function renderFreeNudge(lines){
   const box = document.getElementById('freeNudge'); if(!box) return;
   if(!lines.length || lines.some(l => isBox(l.family))){ box.innerHTML=''; return; } // com BOX: o frete já é grátis (até R$ 60 por entrega)
+  if(shipping && shipping.building){ box.innerHTML=''; return; } // entrega no prédio já é grátis
   const lo = (SHIP_OPTIONS||[]).find(o=>o.local && o.freeAbove);
   if(!lo || (shipping && !shipping.local)){
     // frete grátis por região (Correios / transportadora)
@@ -3808,7 +3912,7 @@ function renderFreeNudge(lines){
 function selectShippingIdx(i, el){
   const o = SHIP_OPTIONS[i]; if(!o) return;
   SHIP_IDX = i;
-  shipping = {label: o.label, price: o.price, days: o.days, local: !!o.local};
+  shipping = {label: o.label, price: o.price, days: o.days, local: !!o.local, building: !!o.building};
   document.querySelectorAll('.ship-option').forEach(x=>x.classList.remove('selected'));
   if(el) el.classList.add('selected');
   renderCart();
@@ -4401,6 +4505,14 @@ function finalizeOrderNow(){
     pulseToast('Calcula e escolhe uma opção de frete no carrinho antes de continuar 🐾');
     return;
   }
+  if(appliedCoupon && appliedCoupon.building){
+    const b = appliedCoupon.building, numOk = String(number).replace(/\D/g, '') === b.number;
+    if(cepCk !== b.cep || !numOk || !cpmActive()){
+      pulseToast(`O cupom ${appliedCoupon.code} é só para entrega no prédio da ${b.name}. Confira o CEP e o número, ou tire o cupom 💜`);
+      const el = document.getElementById(cepCk !== b.cep ? 'ckCep' : 'ckNumber'); if(el){ el.focus(); el.scrollIntoView({block:'center', behavior:'smooth'}); }
+      return;
+    }
+  }
   const sub = lines.reduce((sum,l)=>sum + checkoutPrice(l.variant)*l.qty, 0);
   const discount = couponDiscount(sub);
   const total = computeOrderTotal(sub, discount, shipping);
@@ -4936,6 +5048,7 @@ function acctMenuHTML(){
       + item('🔍','#E3EDFF','Acompanhar pelo número','Para pedidos sem conta',"location.href='/pedido.html'")
       + item('↩️','#FFE9DC','Trocas e devoluções','Peça pelo seu pedido','openAuthModal()')
       + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151?text='+encodeURIComponent('Oi! Preciso de ajuda com um pedido.'),'_blank')")
+      + item('🛍️','#FFF4D6','Achadinhos','Nossas indicações na Shopee e no Mercado Livre',"showView('recs')")
       + item('💜','#FFE4EF','Sobre a Bielyy','Nossa história',"showView('about')")
       + `<div class="am-sep"></div>`
       + item('🚪','#FFF1EA','Sair da conta','', 'logoutUser()', 'am-out');
@@ -4946,6 +5059,7 @@ function acctMenuHTML(){
     + `<div class="am-sep"></div>`
     + item('📦','#E3EDFF','Acompanhar pedido','Pelo número do pedido',"location.href='/pedido.html'")
     + item('💬','#E3F5EC','Ajuda no WhatsApp','Fale com a gente',"window.open('https://wa.me/5511915971151','_blank')")
+    + item('🛍️','#FFF4D6','Achadinhos','Nossas indicações na Shopee e no Mercado Livre',"showView('recs')")
     + item('💜','#FFE4EF','Sobre a Bielyy','Nossa história',"showView('about')");
 }
 function toggleAcctMenu(){
@@ -5265,6 +5379,7 @@ setInterval(loadCatalog, 120000); // confere mudanças de estoque a cada 2 minut
     const go = () => { if(familyById(id)){ try { history.replaceState({}, '', location.pathname); history.pushState({ p: id }, '', location.pathname + '?produto=' + pr); } catch(e){} openProduct(id, true); } };
     setTimeout(go, 50); } }
 { const av = new URLSearchParams(location.search).get('avaliar'); if(av){ window.history.replaceState({}, '', location.pathname); setTimeout(() => openReviewFlow(av), 400); } }
+if(new URLSearchParams(location.search).has('achadinhos') || location.hash === '#achadinhos'){ setTimeout(() => showView('recs'), 50); }
 if(new URLSearchParams(location.search).has('box') || location.hash === '#bielyybox'){ window.history.replaceState({}, '', location.pathname); setTimeout(openBox, 400); }
 (function(){ const t = new URLSearchParams(location.search).get('redefinir'); if(!t) return; window.history.replaceState({}, '', location.pathname);
   setTimeout(() => { try { localStorage.removeItem('bielyy_user'); } catch(e){} updateAccountUI(); document.getElementById('authModal').classList.add('show'); document.getElementById('overlay').classList.add('show'); renderResetPassword(t); }, 300); })();
@@ -5278,6 +5393,7 @@ if(new URLSearchParams(location.search).has('box') || location.hash === '#bielyy
       if(['loja','shop','produtos'].includes(ver)) showView('shop');
       else if(['encomendas','encomenda','preorder'].includes(ver)) showView('preorder');
       else if(['sobre','about'].includes(ver)) showView('about');
+      else if(['achadinhos','achados','recomendados'].includes(ver)) showView('recs');
     } catch(e){ console.warn(e); }
   }, 350);
 })();

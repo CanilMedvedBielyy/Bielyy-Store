@@ -202,6 +202,7 @@
       <button class="tab" data-tab="delivery" onclick="setTab('delivery')">🛵 Entrega hoje</button>
       <button class="tab" data-tab="pix" onclick="setTab('pix')">💠 Pix</button>
       <button class="tab" data-tab="amb" onclick="setTab('amb')">🌟 Embaixadores</button>
+      <button class="tab" data-tab="recs" onclick="setTab('recs')">🛍️ Achadinhos</button>
     </div>
 
     <!-- PEDIDOS -->
@@ -259,6 +260,28 @@
 
     <!-- PIX -->
     <section id="tab-amb" class="hide"><div id="ambBox"><p class="hint">Carregando...</p></div></section>
+
+    <!-- ACHADINHOS (links de afiliado) -->
+    <section id="tab-recs" class="hide">
+      <div class="card">
+        <h3>🛍️ Achadinhos: produtos recomendados com o seu link</h3>
+        <p class="hint">Aparecem na aba <b>Achadinhos</b> do site (endereço direto: <b>bielyystore.com.br/?achadinhos</b>, bom para a bio do Instagram).
+          Gere o link de afiliado no app da <b>Shopee</b> (Afiliados → Gerar link) ou do <b>Mercado Livre</b> (Afiliados → Gerar link), copie e cole aqui. A loja é reconhecida sozinha pelo link.</p>
+        <div class="pe-grid" style="margin-top:12px">
+          <div class="pe-full pe-photo"><span id="rcPrev" class="p-ph" style="display:flex;align-items:center;justify-content:center;background:#F3EEFB">📷</span>
+            <div><label>Foto do produto</label><br><input type="file" id="rcFile" accept="image/*" onchange="rcPick(this)"><div class="hint">Pode ser um print da foto do anúncio.</div></div></div>
+          <div class="pe-full"><label>Nome do produto</label><input class="field" id="rcName" maxlength="90" placeholder="Ex.: Fonte de água para gatos 2L"></div>
+          <div class="pe-full"><label>Link de afiliado</label><input class="field" id="rcUrl" inputmode="url" placeholder="https://s.shopee.com.br/... ou https://mercadolivre.com/sec/..." oninput="rcStoreHint()"><div class="hint" id="rcStoreHint"></div></div>
+          <div><label>Para quem</label><select class="field" id="rcPet"><option value="todos">Cães e gatos</option><option value="cao">Cães</option><option value="gato">Gatos</option></select></div>
+          <div><label>Etiqueta (opcional)</label><input class="field" id="rcTag" maxlength="24" placeholder="Ex.: Eu uso aqui em casa"></div>
+          <div class="pe-full"><label>Por que você recomenda (opcional)</label><textarea class="field" id="rcNote" maxlength="220" style="height:64px" placeholder="Ex.: A Alaska bebe muito mais água desde que comprei."></textarea></div>
+          <div class="pe-full"><label style="display:flex;gap:8px;align-items:center;font-size:13.5px"><input type="checkbox" id="rcHidden"> Esconder do site (fica salvo aqui)</label></div>
+        </div>
+        <div class="btnrow"><button class="btn" id="rcSaveBtn" onclick="rcSave()">💾 Adicionar achadinho</button><button class="ghost hide" id="rcCancel" onclick="rcClear()">Cancelar edição</button></div>
+        <div class="cm">💡 Recomende o que você <b>não vende</b> na Bielyy (fonte, caminha, tapete higiênico, coleira GPS...). Assim a comissão é um extra e não tira venda da loja.</div>
+      </div>
+      <div class="card"><h3>Seus achadinhos</h3><div id="rcList"><p class="hint">Carregando...</p></div></div>
+    </section>
 
     <section id="tab-pix" class="hide">
       <div class="card">
@@ -513,7 +536,7 @@ function markSeen(){
 /* ============ abas ============ */
 function setTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  ['orders','customers','products','reviews','delivery','pix','amb'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  ['orders','customers','products','reviews','delivery','pix','amb','recs'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
   if(t==='amb') ambLoad();
   if(t==='delivery') dlLoad();
   if(t==='orders') markSeen();
@@ -521,6 +544,7 @@ function setTab(t){
   if(t==='reviews') loadReviews();
   if(t==='products') loadProducts();
   if(t==='pix') pxLoad();
+  if(t==='recs') rcLoad();
 }
 function renderAll(){ renderStats(); renderChips(); renderCouponFilter(); renderOrders(); renderCustomers(); }
 
@@ -983,6 +1007,81 @@ function exportCustomersCSV(){
 }
 
 
+
+/* ============ Achadinhos (links de afiliado) ============ */
+let RC = [], RC_EDIT = null, RC_PHOTO = null;
+const RC_STORES = { shopee:'🟠 Shopee', mercadolivre:'🟡 Mercado Livre', amazon:'📦 Amazon', magalu:'🔵 Magalu', outra:'🔗 Outra loja' };
+const RC_PETS = { todos:'Cães e gatos', cao:'Cães', gato:'Gatos' };
+function rcStoreOf(u){
+  let h=''; try { h = new URL(String(u).match(/https?:\/\/\S+/i)[0]).hostname.toLowerCase(); } catch(e){ return ''; }
+  if(/shopee\.com|shope\.ee/.test(h)) return 'shopee';
+  if(/mercadoli(vre|bre)\.com|meli\.la/.test(h)) return 'mercadolivre';
+  if(/amazon\.com|amzn\.to|^a\.co$/.test(h)) return 'amazon';
+  if(/magazineluiza|magalu/.test(h)) return 'magalu';
+  return 'outra';
+}
+function rcStoreHint(){ const s = rcStoreOf(document.getElementById('rcUrl').value); document.getElementById('rcStoreHint').innerHTML = s ? 'Loja: <b>'+RC_STORES[s]+'</b>' : ''; }
+function rcPost(body){ return api('recommended', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); }
+function rcLoad(){
+  rcPost({ op:'list' }).then(d => { RC = d.items || []; rcRender(); }).catch(e => { document.getElementById('rcList').innerHTML = '<p class="hint">'+(e.message==='senha'?'Senha incorreta.':'Não consegui carregar. Tente de novo.')+'</p>'; });
+}
+function rcRender(){
+  const box = document.getElementById('rcList');
+  if(!RC.length){ box.innerHTML = '<p class="hint">Nenhum achadinho ainda. Adicione o primeiro acima 👆</p>'; return; }
+  box.innerHTML = RC.map((r,i) => `<div class="p-row" style="${r.hidden?'opacity:.55':''}">
+      ${r.photo ? `<img src="/.netlify/functions/product-photo?k=${encodeURIComponent(r.photo)}" alt="">` : '<span class="p-ph">🛍️</span>'}
+      <div><b>${esc(r.name)}</b>${r.hidden?' <span class="hint">(escondido)</span>':''}<div class="hint">${RC_STORES[r.store]||''} · ${RC_PETS[r.pet]||''}${r.tag?' · '+esc(r.tag):''}</div>
+        ${r.note?`<div class="hint" style="font-style:italic">“${esc(r.note)}”</div>`:''}</div>
+      <div class="p-act" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="ghost" title="Subir" onclick="rcMove('${r.id}',-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="ghost" title="Descer" onclick="rcMove('${r.id}',1)" ${i===RC.length-1?'disabled':''}>↓</button>
+        <a class="ghost" href="${esc(r.url)}" target="_blank" rel="noopener" style="text-decoration:none">Testar link</a>
+        <button class="ghost" onclick="rcEdit('${r.id}')">✏️ Editar</button>
+        <button class="ghost" onclick="rcDel('${r.id}')">🗑️</button>
+      </div></div>`).join('');
+}
+async function rcPick(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  try { RC_PHOTO = await pShrink(f); const pv = document.getElementById('rcPrev'); pv.outerHTML = `<img id="rcPrev" src="${RC_PHOTO}" alt="">`; }
+  catch(e){ alert(e.message); }
+}
+function rcSetPrev(src){ const pv = document.getElementById('rcPrev'); pv.outerHTML = src ? `<img id="rcPrev" src="${src}" alt="">` : '<span id="rcPrev" class="p-ph" style="display:flex;align-items:center;justify-content:center;background:#F3EEFB">📷</span>'; }
+function rcClear(){
+  RC_EDIT = null; RC_PHOTO = null;
+  ['rcName','rcUrl','rcTag','rcNote'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rcPet').value = 'todos'; document.getElementById('rcHidden').checked = false; document.getElementById('rcFile').value = '';
+  rcSetPrev(''); rcStoreHint();
+  document.getElementById('rcSaveBtn').textContent = '💾 Adicionar achadinho'; document.getElementById('rcCancel').classList.add('hide');
+}
+function rcEdit(id){
+  const r = RC.find(x => x.id === id); if(!r) return;
+  RC_EDIT = id; RC_PHOTO = null;
+  document.getElementById('rcName').value = r.name; document.getElementById('rcUrl').value = r.url;
+  document.getElementById('rcTag').value = r.tag || ''; document.getElementById('rcNote').value = r.note || '';
+  document.getElementById('rcPet').value = r.pet || 'todos'; document.getElementById('rcHidden').checked = !!r.hidden; document.getElementById('rcFile').value = '';
+  rcSetPrev(r.photo ? '/.netlify/functions/product-photo?k='+encodeURIComponent(r.photo) : ''); rcStoreHint();
+  document.getElementById('rcSaveBtn').textContent = '💾 Salvar alterações'; document.getElementById('rcCancel').classList.remove('hide');
+  document.getElementById('tab-recs').scrollIntoView({ behavior:'smooth' });
+}
+async function rcSave(){
+  const item = { id: RC_EDIT || undefined, name: document.getElementById('rcName').value.trim(), url: document.getElementById('rcUrl').value.trim(),
+    pet: document.getElementById('rcPet').value, tag: document.getElementById('rcTag').value.trim(), note: document.getElementById('rcNote').value.trim(), hidden: document.getElementById('rcHidden').checked };
+  if(!item.name){ alert('Coloque o nome do produto.'); return; }
+  if(!/https?:\/\//i.test(item.url)){ alert('Cole o link de afiliado (começa com https://).'); return; }
+  if(!RC_EDIT && !RC_PHOTO){ alert('Escolha uma foto do produto.'); return; }
+  const btn = document.getElementById('rcSaveBtn'); btn.disabled = true;
+  try {
+    const d = await rcPost({ op:'save', item, dataUrl: RC_PHOTO || undefined });
+    if(!d.success){ alert('Erro: '+(d.error||'')); return; }
+    RC = d.items; rcRender(); toast(RC_EDIT ? 'Achadinho atualizado ✓' : 'Achadinho adicionado ✓ já está no site'); rcClear();
+  } catch(e){ alert(e.message==='senha' ? 'Senha incorreta.' : 'Sem conexão. Tente de novo.'); }
+  finally { btn.disabled = false; }
+}
+function rcMove(id, dir){ rcPost({ op:'move', id, dir }).then(d => { if(d.success){ RC = d.items; rcRender(); } }).catch(()=>alert('Sem conexão.')); }
+function rcDel(id){
+  const r = RC.find(x => x.id === id); if(!r || !confirm('Apagar "'+r.name+'" dos achadinhos?')) return;
+  rcPost({ op:'delete', id }).then(d => { if(d.success){ RC = d.items; rcRender(); if(RC_EDIT===id) rcClear(); toast('Apagado ✓'); } else alert('Erro: '+(d.error||'')); }).catch(()=>alert('Sem conexão.'));
+}
 
 /* ============ Pix direto no site ============ */
 function pxLoad(){

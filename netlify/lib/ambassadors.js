@@ -26,7 +26,7 @@ const DEFAULTS = {
   creditWithDiscount: true // pode usar o crédito junto com o desconto de embaixador
 };
 // códigos que não podem virar cupom de embaixador
-const RESERVED = ['BIELYY10', 'VOLTEI5', 'BIELYYFRET3', 'ERIVAM10', 'MATEUSADESTRA', 'EMBAIXADOR', '1478180803'];
+const RESERVED = ['BIELYY10', 'VOLTEI5', 'BIELYYFRET3', 'ERIVAM10', 'MATEUSADESTRA', 'CPM15', 'EMBAIXADOR', '1478180803'];
 
 const lower = (v) => String(v || '').trim().toLowerCase();
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;

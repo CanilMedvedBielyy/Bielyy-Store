@@ -19,6 +19,7 @@ import fn_login from '../netlify/functions/login.js';
 import fn_moderate_review from '../netlify/functions/moderate-review.js';
 import fn_my_orders from '../netlify/functions/my-orders.js';
 import fn_pix_config from '../netlify/functions/pix-config.js';
+import fn_recommended from '../netlify/functions/recommended.js';
 import fn_product_photo from '../netlify/functions/product-photo.js';
 import fn_return_photo from '../netlify/functions/return-photo.js';
 import fn_return_request from '../netlify/functions/return-request.js';
@@ -51,6 +52,7 @@ export const FUNCTIONS = {
   'moderate-review': fn_moderate_review,
   'my-orders': fn_my_orders,
   'pix-config': fn_pix_config,
+  'recommended': fn_recommended,
   'product-photo': fn_product_photo,
   'return-photo': fn_return_photo,
   'return-request': fn_return_request,
