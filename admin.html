@@ -203,6 +203,7 @@
       <button class="tab" data-tab="pix" onclick="setTab('pix')">💠 Pix</button>
       <button class="tab" data-tab="amb" onclick="setTab('amb')">🌟 Embaixadores</button>
       <button class="tab" data-tab="recs" onclick="setTab('recs')">🛍️ Achadinhos</button>
+      <button class="tab" data-tab="shopee" onclick="setTab('shopee')">🧡 Shopee</button>
     </div>
 
     <!-- PEDIDOS -->
@@ -281,6 +282,21 @@
         <div class="cm">💡 Recomende o que você <b>não vende</b> na Bielyy (fonte, caminha, tapete higiênico, coleira GPS...). Assim a comissão é um extra e não tira venda da loja.</div>
       </div>
       <div class="card"><h3>Seus achadinhos</h3><div id="rcList"><p class="hint">Carregando...</p></div></div>
+    </section>
+
+    <!-- EXPORTAR PARA A SHOPEE -->
+    <section id="tab-shopee" class="hide">
+      <div class="card">
+        <h3>🧡 Levar os produtos para a Shopee</h3>
+        <p class="hint">Gera uma planilha com todos os produtos do site: nome, marca, descrição completa, preço para a Shopee, estoque, peso, medidas e as fotos já no tamanho que a Shopee pede (1024 x 1024, fundo branco).</p>
+        <p class="hint" style="margin-top:6px"><b>Preço Shopee</b> = o valor que faz você receber o mesmo que numa venda no Pix do site, já descontando a taxa da Shopee (20% + R$ 4,50 até R$ 79,99; 14% + R$ 16 / R$ 20 / R$ 26 acima). Sempre terminado em ,90.</p>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px">
+          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="shOut"> Incluir também os esgotados e os que estão chegando</label>
+        </div>
+        <div class="btnrow"><button class="btn" id="shBtn" onclick="shExport()">⬇ Preparar fotos e baixar a planilha</button></div>
+        <div id="shStatus" class="hint" style="margin-top:10px"></div>
+        <div class="cm">💡 Na primeira vez, preparar as fotos leva 1 a 3 minutos. Deixe esta tela aberta até baixar a planilha. Nas próximas vezes é rápido, porque as fotos já prontas não são refeitas.</div>
+      </div>
     </section>
 
     <section id="tab-pix" class="hide">
@@ -536,7 +552,7 @@ function markSeen(){
 /* ============ abas ============ */
 function setTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  ['orders','customers','products','reviews','delivery','pix','amb','recs'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
+  ['orders','customers','products','reviews','delivery','pix','amb','recs','shopee'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('hide', x!==t));
   if(t==='amb') ambLoad();
   if(t==='delivery') dlLoad();
   if(t==='orders') markSeen();
@@ -545,6 +561,7 @@ function setTab(t){
   if(t==='products') loadProducts();
   if(t==='pix') pxLoad();
   if(t==='recs') rcLoad();
+  if(t==='shopee') shInit();
 }
 function renderAll(){ renderStats(); renderChips(); renderCouponFilter(); renderOrders(); renderCustomers(); }
 
@@ -1081,6 +1098,103 @@ function rcMove(id, dir){ rcPost({ op:'move', id, dir }).then(d => { if(d.succes
 function rcDel(id){
   const r = RC.find(x => x.id === id); if(!r || !confirm('Apagar "'+r.name+'" dos achadinhos?')) return;
   rcPost({ op:'delete', id }).then(d => { if(d.success){ RC = d.items; rcRender(); if(RC_EDIT===id) rcClear(); toast('Apagado ✓'); } else alert('Erro: '+(d.error||'')); }).catch(()=>alert('Sem conexão.'));
+}
+
+/* ============ Exportar para a Shopee ============ */
+// Taxa da Shopee (desde 01/10/2026, CPF e CNPJ): faixa de preço do item -> % + valor fixo
+const SH_FEES = [ { max: 79.99, pct: 0.20, fix: 4.5 }, { max: 99.99, pct: 0.14, fix: 16 }, { max: 199.99, pct: 0.14, fix: 20 }, { max: Infinity, pct: 0.14, fix: 26 } ];
+function shFee(price){ const f = SH_FEES.find(b => price <= b.max); return Math.round((price * f.pct + f.fix) * 100) / 100; }
+// menor preço terminado em ,90 que faz você receber pelo menos o valor do Pix do site
+function shPrice(pix){
+  let best = null;
+  SH_FEES.forEach(b => {
+    let p = (pix + b.fix) / (1 - b.pct);
+    p = Math.ceil(p - 0.9 + 1e-9) + 0.9;
+    for(let i = 0; i < 300; i++){ if(p - shFee(p) >= pix - 0.004) break; p += 1; }
+    if(best === null || p < best) best = p;
+  });
+  return Math.round(best * 100) / 100;
+}
+// mesmo peso usado no cálculo de frete do site
+function shWeight(name){
+  const W = { 'Kong Travel Bolsa para Trilhas':0.14, 'Kong Travel Cinto de Segurança Ultimate':0.35, 'Kong Travel Assento Elevado de Segurança':2.0, 'Kong Travel Capa e Rede para Banco Traseiro XL':1.0,
+    'Kong Travel Capa e Rede 2 em 1 para Banco Traseiro':1.8, 'Kong Travel Comedouro Dobrável':0.12, 'Kong Travel Kit Comedouros Dobráveis':0.15, 'Zee Dog Zee.Bed Naturals G':4.2,
+    'Carnilove Lata para Gatos 100g':0.12, 'Cremi Petisco Cremoso para Gatos Salmão 60g':0.08, 'Carnilove Crunchy Snack para Gatos Pato com Framboesa 50g':0.08, 'Arm & Hammer Tartar Control Aditivo para a Água 473ml':0.55 };
+  if(W[name] != null) return W[name];
+  if(/Lata 400g/.test(name)) return 0.45;
+  return 0.4;
+}
+function shBox(kg){ return kg <= 0.5 ? [20,15,8] : kg <= 2 ? [30,20,15] : [40,30,20]; }
+function shLoadImg(url){ return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('foto não abriu')); im.src = url; }); }
+async function shSquare(url){
+  const im = await shLoadImg(url), S = 1024, pad = 0.06 * S, c = document.createElement('canvas');
+  c.width = S; c.height = S; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, S, S);
+  const r = Math.min((S - 2*pad) / im.naturalWidth, (S - 2*pad) / im.naturalHeight), w = im.naturalWidth * r, h = im.naturalHeight * r;
+  g.imageSmoothingQuality = 'high'; g.drawImage(im, (S - w) / 2, (S - h) / 2, w, h);
+  return c.toDataURL('image/jpeg', 0.88);
+}
+function shInit(){ if(!CAT_BASE) loadProducts(); }
+function shText(p){
+  const st = pStory(p.id), L = [];
+  if(st.h) L.push(st.h);
+  L.push(st.w || p.desc || '');
+  if(st.b.length) L.push('✅ Destaques:\n' + st.b.map(x => '• ' + x).join('\n'));
+  if(st.u.length) L.push('🐾 Como usar:\n' + st.u.map(x => '• ' + x).join('\n'));
+  if(st.c.length) L.push('⚠️ Cuidados:\n' + st.c.map(x => '• ' + x).join('\n'));
+  L.push('📦 Produto original ' + (p.brand || '') + ', novo. Enviado com carinho por uma boutique pet de São Paulo.');
+  return L.filter(Boolean).join('\n\n');
+}
+async function shExport(){
+  const btn = document.getElementById('shBtn'), stat = document.getElementById('shStatus');
+  const say = t => { stat.innerHTML = t; };
+  btn.disabled = true;
+  try {
+    if(!CAT_BASE){ say('Lendo os produtos do site...'); await loadProducts(); }
+    const withOut = document.getElementById('shOut').checked;
+    const list = pAll().filter(p => !p.hidden && !p.preorder && (withOut || !p.out));
+    const { map } = await api('shopee-export', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ op:'map' }) });
+    // 1) fotos no padrão da Shopee
+    const jobs = [];
+    list.forEach(p => { [p.photo, ...p.photos].filter(Boolean).slice(0, 9).forEach(k => { if(!map[k] && !jobs.find(j => j.k === k)) jobs.push({ k, id: p.id }); }); });
+    let done = 0, fail = 0;
+    for(const j of jobs){
+      say(`Preparando as fotos: ${done + 1} de ${jobs.length}... (não feche esta tela)`);
+      const url = pPhoto(j.k);
+      try {
+        if(!url) throw new Error('sem foto');
+        const dataUrl = await shSquare(url);
+        const r = await api('shopee-export', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ op:'photo', src: j.k, id: j.id, dataUrl }) });
+        if(r.key) map[j.k] = r.key; else fail++;
+      } catch(e){ if(e.message === 'senha') throw e; fail++; }
+      done++;
+    }
+    // 2) planilha (uma linha por variação)
+    say('Montando a planilha...');
+    const site = location.origin, photoUrl = k => map[k] ? site + '/.netlify/functions/product-photo?k=' + encodeURIComponent(map[k]) : '';
+    const head = ['SKU','ID','Nome no site','Marca','Categoria no site','Variação','Preço Pix no site','Preço Shopee','Taxa Shopee','Você recebe','Estoque','Peso (kg)','Comprimento (cm)','Largura (cm)','Altura (cm)','Foto da variação','Foto 1','Foto 2','Foto 3','Foto 4','Foto 5','Foto 6','Foto 7','Foto 8','Foto 9','Descrição','Etiquetas','Situação'];
+    const rows = [head];
+    list.forEach(p => {
+      const photos = [p.photo, ...p.photos].filter(Boolean).slice(0, 9), colors = (p.o && p.o.colors) || (p.b && p.b.colors) || [];
+      const kg = shWeight(p.name), box = shBox(kg), desc = shText(p), tags = pStory(p.id).t.join(', ');
+      const vs = p.variants.length ? p.variants : [{ label:'Único', pix: 0 }];
+      vs.forEach((v, i) => {
+        const pix = Number(v.pix) || 0, price = pix ? shPrice(pix) : '', fee = price ? shFee(price) : '';
+        const col = colors.find(c => c && c.label === v.label);
+        const stock = p.out ? 0 : (col && col.stock != null ? Number(col.stock) : (vs.length > 1 ? Math.floor(p.stock / vs.length) : p.stock));
+        const vPhoto = (v.photoIdx != null && photos[v.photoIdx]) ? photoUrl(photos[v.photoIdx]) : '';
+        rows.push(['BIELYY-' + p.id + (vs.length > 1 ? '-' + (i + 1) : ''), p.id, p.name, p.brand || '', p.category || '', vs.length > 1 ? v.label : '',
+          pix ? pix.toFixed(2).replace('.', ',') : '', price ? price.toFixed(2).replace('.', ',') : '', fee ? fee.toFixed(2).replace('.', ',') : '', price ? (price - fee).toFixed(2).replace('.', ',') : '',
+          stock, String(kg).replace('.', ','), box[0], box[1], box[2], vPhoto, ...Array.from({ length: 9 }, (_, n) => photos[n] ? photoUrl(photos[n]) : ''),
+          desc, tags, p.out ? (p.soon ? 'Chegando' : 'Esgotado') : 'Em estoque']);
+      });
+    });
+    const cell = v => { v = String(v == null ? '' : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const text = '\ufeff' + rows.map(r => r.map(cell).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type:'text/csv;charset=utf-8' }));
+    a.download = 'bielyy-para-shopee.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    say(`✅ Pronto! <b>${list.length} produtos</b> (${rows.length - 1} linhas) na planilha <b>bielyy-para-shopee.csv</b>.` + (fail ? ` <span style="color:#C0392B">${fail} foto(s) não abriram: confira esses produtos.</span>` : ''));
+  } catch(e){ say(e.message === 'senha' ? 'Senha incorreta. Saia e entre de novo.' : 'Erro: ' + e.message); }
+  finally { btn.disabled = false; }
 }
 
 /* ============ Pix direto no site ============ */
