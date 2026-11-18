@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#6D42B8">
+<title>Um convite especial — Bielyy Store</title>
+<meta name="description" content="Você foi selecionado para o Programa de Embaixadores da Bielyy Store. Abra o seu convite!">
+<meta property="og:type" content="website">
+<meta property="og:title" content="💌 Você recebeu um convite da Bielyy Store!">
+<meta property="og:description" content="Toque para abrir: você foi selecionado para o Programa de Embaixadores 🐾🎉">
+<meta property="og:image" content="https://bielyystore.com.br/banner-filhote.jpg">
+<meta property="og:url" content="https://bielyystore.com.br/convite-embaixador.html">
+<link rel="icon" type="image/jpeg" href="site-asset-0.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum:#6D42B8; --violet:#8B5FD1; --lilac:#B79BEA; --mist:#F3ECFF;
+    --rose:#FF7FAE; --blush:#FFD9E6; --sun:#FFC93C; --ink:#3A2E52; --ink2:#6F6489;
+    --paper:#FFFDFE; --mint:#3FAE83;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--mist);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body.locked{overflow:hidden}
+  a{color:inherit}
+  button{font:inherit}
+  :focus-visible{outline:3px solid var(--sun);outline-offset:3px;border-radius:10px}
+
+  /* ---------- Camada de festa (canvas + balões) ---------- */
+  #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+  .balloons{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+  .balloon{position:absolute;bottom:-180px;width:var(--w,64px);animation:rise var(--t,9s) cubic-bezier(.35,.1,.45,1) var(--d,0s) forwards}
+  .balloon svg{display:block;width:100%;height:auto;animation:sway var(--s,3.2s) ease-in-out infinite alternate;transform-origin:50% 100%}
+  @keyframes rise{0%{transform:translateY(0)}100%{transform:translateY(calc(-100vh - 260px))}}
+  @keyframes sway{0%{transform:rotate(-7deg) translateX(-6px)}100%{transform:rotate(7deg) translateX(6px)}}
+
+  /* ---------- Envelope (tela de abertura) ---------- */
+  .intro{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:24px;
+    background:radial-gradient(circle at 20% 15%,#fff 0 2px,transparent 3px) 0 0/46px 46px, radial-gradient(circle at 70% 60%,#E7DBFF 0 2px,transparent 3px) 0 0/58px 58px, var(--mist);
+    transition:opacity .7s ease, visibility .7s}
+  .intro.gone{opacity:0;visibility:hidden}
+  .intro .from{display:flex;align-items:center;gap:10px;font-family:'Baloo 2',cursive;color:var(--plum);font-size:18px;font-weight:700}
+  .intro .from img{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--lilac);background:#fff}
+  .env{position:relative;width:min(320px,82vw);aspect-ratio:1.45;perspective:900px;cursor:pointer;animation:float 3.4s ease-in-out infinite;border:0;background:none}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
+  .env .back{position:absolute;inset:0;background:var(--plum);border-radius:16px;box-shadow:0 22px 40px rgba(109,66,184,.35)}
+  .env .letter{position:absolute;left:7%;right:7%;top:6%;bottom:6%;background:var(--paper);border-radius:10px;display:flex;align-items:flex-start;justify-content:center;gap:10px;padding-top:6%;z-index:1;
+    font-family:'Baloo 2',cursive;color:var(--plum);font-size:24px;font-weight:800;box-shadow:0 2px 8px rgba(58,46,82,.12);transition:transform .9s cubic-bezier(.2,.9,.25,1.2) .35s}
+  .env .front{position:absolute;inset:0;border-radius:16px;overflow:hidden;pointer-events:none;z-index:2;
+    background:linear-gradient(160deg,#9A6FE0,var(--violet));clip-path:polygon(0 0,50% 57%,100% 0,100% 100%,0 100%)}
+  .env .flap{position:absolute;left:0;right:0;top:0;height:60%;transform-origin:50% 0;transition:transform .6s cubic-bezier(.5,0,.3,1), z-index 0s .3s;z-index:3}
+  .env .flap::before{content:'';position:absolute;inset:0;background:#7B4FC6;clip-path:polygon(0 0,100% 0,50% 100%);border-radius:16px 16px 0 0;filter:drop-shadow(0 3px 2px rgba(0,0,0,.12))}
+  .env .seal{position:absolute;left:50%;top:60%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFA8C8,var(--rose) 55%,#E55F92);
+    box-shadow:0 6px 14px rgba(229,95,146,.45), inset 0 -3px 0 rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:28px;z-index:4;transition:transform .45s cubic-bezier(.4,1.6,.5,1), opacity .3s}
+  .env .to{position:absolute;left:0;right:0;bottom:12%;text-align:center;color:#fff;font-family:'Baloo 2',cursive;font-size:19px;font-weight:700;z-index:4;letter-spacing:.3px;transition:opacity .3s}
+  .env.open{animation:none}
+  .env.open .seal{transform:scale(0) rotate(-40deg);opacity:0}
+  .env.open .to{opacity:0}
+  .env.open .flap{transform:rotateX(180deg);z-index:0}
+  .env.open .letter{transform:translateY(-62%) scale(1.04)}
+  .tap{display:inline-flex;align-items:center;gap:10px;background:var(--plum);color:#fff;border:0;border-radius:999px;padding:15px 28px;font-weight:600;font-size:16px;cursor:pointer;
+    box-shadow:0 10px 24px rgba(109,66,184,.35);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 10px 24px rgba(109,66,184,.35),0 0 0 0 rgba(139,95,209,.45)}50%{box-shadow:0 10px 24px rgba(109,66,184,.35),0 0 0 14px rgba(139,95,209,0)}}
+  .intro .hint{font-size:13px;color:var(--ink2)}
+
+  /* ---------- Convite aberto ---------- */
+  .page{position:relative;z-index:2;opacity:0;transition:opacity .8s ease .2s}
+  .page.show{opacity:1}
+  .stage{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:72px 22px 56px;position:relative}
+  .brandline{position:absolute;top:18px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:8px;font-family:'Baloo 2',cursive;font-weight:700;color:var(--plum);font-size:16px}
+  .brandline img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--lilac);background:#fff}
+  .medal{position:relative;width:176px;height:176px;margin-bottom:20px}
+  .medal .ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--sun),#FFE08A,var(--sun),#F7B500,var(--sun));animation:spin 9s linear infinite;
+    -webkit-mask:radial-gradient(circle,transparent 58%,#000 59%);mask:radial-gradient(circle,transparent 58%,#000 59%)}
+  .medal .ring::after{content:''}
+  .medal .face{position:absolute;inset:12px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:62px;box-shadow:0 12px 30px rgba(109,66,184,.22);overflow:hidden;border:4px solid #fff}
+  .medal .face img{width:100%;height:100%;object-fit:cover;display:block}
+  .medal .ribbon{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);background:var(--rose);color:#fff;font-family:'Baloo 2',cursive;font-weight:700;font-size:13.5px;padding:3px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 12px rgba(255,127,174,.4)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .page.show .medal{animation:pop .9s cubic-bezier(.3,1.6,.5,1) .1s both}
+  @keyframes pop{0%{transform:scale(.2) rotate(-25deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+
+  .headline{font-family:'Baloo 2',cursive;font-weight:800;color:var(--plum);font-size:clamp(40px,12vw,68px);line-height:.98;letter-spacing:-.5px;max-width:9.5em}
+  .headline .ch{display:inline-block;opacity:0;transform:translateY(.6em) scale(.6)}
+  .page.show .headline .ch{animation:hop .6s cubic-bezier(.3,1.7,.5,1) forwards;animation-delay:calc(.35s + var(--i) * .035s)}
+  @keyframes hop{to{opacity:1;transform:none}}
+  .headline .w{display:inline-block;white-space:nowrap}
+  .headline .sp{display:inline-block;width:.25em}
+  .sub{margin-top:16px;font-size:17px;color:var(--ink);max-width:28em;opacity:0}
+  .sub b{color:var(--plum)}
+  .page.show .sub{animation:fade .8s ease 1.2s forwards}
+  .personal{margin-top:8px;font-size:15px;color:var(--ink2);max-width:30em;opacity:0}
+  .page.show .personal{animation:fade .8s ease 1.45s forwards}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .again{margin-top:22px;display:inline-flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--lilac);color:var(--plum);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px;cursor:pointer;opacity:0}
+  .page.show .again{animation:fade .8s ease 1.7s forwards}
+  .scroll{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none}
+  .scroll span{font-size:20px;animation:bob 1.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+  /* ---------- Conteúdo ---------- */
+  .sheet{background:var(--paper);border-radius:34px 34px 0 0;box-shadow:0 -10px 40px rgba(109,66,184,.10);padding:34px 0 120px}
+  .wrap{max-width:640px;margin:0 auto;padding:0 22px}
+  h2{font-family:'Baloo 2',cursive;color:var(--plum);font-size:28px;line-height:1.1;margin:0 0 6px}
+  .lead{color:var(--ink2);font-size:14.5px;margin-bottom:18px}
+  .block{margin-top:44px}
+  .block:first-child{margin-top:0}
+
+  /* Cupom em forma de ingresso */
+  .ticket{position:relative;display:grid;grid-template-columns:1fr 104px;background:var(--plum);color:#fff;border-radius:22px;overflow:hidden;box-shadow:0 16px 34px rgba(109,66,184,.28)}
+  .ticket .main{padding:20px 18px 18px 22px}
+  .ticket .lbl{font-size:12.5px;opacity:.85}
+  .ticket .code{font-family:'Baloo 2',cursive;font-size:clamp(28px,9vw,38px);font-weight:800;line-height:1.05;letter-spacing:1px;margin:2px 0 6px;color:var(--sun)}
+  .ticket .rule{font-size:13px;opacity:.95}
+  .ticket .stub{position:relative;background:var(--violet);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Baloo 2',cursive;line-height:1}
+  .ticket .stub b{font-size:40px}
+  .ticket .stub small{font-size:13px;opacity:.9;margin-top:4px}
+  .ticket .stub::before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;border-left:3px dashed rgba(255,255,255,.55)}
+  .ticket::before,.ticket::after{content:'';position:absolute;right:92px;width:24px;height:24px;border-radius:50%;background:var(--paper)}
+  .ticket::before{top:-12px}.ticket::after{bottom:-12px}
+  .ticket-note{font-size:12.5px;color:var(--ink2);margin-top:10px}
+
+  .perks{list-style:none;display:grid;gap:4px}
+  .perks li{display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:center;padding:12px 0}
+  .perks li+li{border-top:1px solid #F0E8FB}
+  .blob{width:52px;height:52px;border-radius:42% 58% 55% 45%/50% 45% 55% 50%;display:flex;align-items:center;justify-content:center;font-size:25px}
+  .perks li:nth-child(1) .blob{background:#EFE6FF}
+  .perks li:nth-child(2) .blob{background:#FFE6EF}
+  .perks li:nth-child(3) .blob{background:#FFF3D1}
+  .perks li:nth-child(4) .blob{background:#E4F6EE}
+  .perks li:nth-child(5) .blob{background:#EFE6FF}
+  .perks li:nth-child(6) .blob{background:#FFE6EF}
+  .perks b{display:block;font-size:15.5px;color:var(--ink);line-height:1.3}
+  .perks span{font-size:13.5px;color:var(--ink2);line-height:1.45}
+
+  .month{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{background:var(--mist);border-radius:20px;padding:16px}
+  .tile .big{font-family:'Baloo 2',cursive;font-size:34px;color:var(--plum);font-weight:800;line-height:1}
+  .tile p{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.45}
+  .tile.wide{grid-column:1/-1;display:flex;gap:14px;align-items:center;background:#FFF6E0}
+  .tile.wide .big{font-size:30px}
+  .small{font-size:12.5px;color:var(--ink2);margin-top:12px}
+
+  .rules{display:grid;gap:12px}
+  .r{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14px;align-items:start}
+  .r i{font-style:normal;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .r.ok i{background:#E3F6EC;color:var(--mint)}
+  .r.no i{background:#FFE6EF;color:#D9466A}
+
+  .steps{list-style:none;counter-reset:s}
+  .steps>li{counter-increment:s;position:relative;padding:0 0 26px 56px}
+  .steps>li::before{content:counter(s);position:absolute;left:0;top:-2px;width:40px;height:40px;border-radius:50%;background:var(--plum);color:#fff;font-family:'Baloo 2',cursive;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center}
+  .steps>li::after{content:'';position:absolute;left:19px;top:42px;bottom:4px;border-left:2px dashed var(--lilac)}
+  .steps>li:last-child{padding-bottom:0}
+  .steps>li:last-child::after{display:none}
+  .steps b{display:block;font-size:16px;color:var(--ink);line-height:1.3}
+  .steps p{font-size:13.5px;color:var(--ink2);margin-top:3px}
+  .fields{margin-top:10px;background:var(--mist);border-radius:16px;padding:12px 14px 12px 32px;font-size:13px;color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:13px 20px;border-radius:999px;font-weight:600;font-size:14.5px;text-decoration:none;border:0;cursor:pointer}
+  .btn-plum{background:var(--plum);color:#fff;box-shadow:0 8px 18px rgba(109,66,184,.25)}
+  .btn-line{background:#fff;color:var(--plum);border:2px solid var(--lilac)}
+  .btn-wa{background:#25D366;color:#fff}
+
+  .faq details{border-bottom:1px solid #F0E8FB;padding:14px 0}
+  .faq summary{font-weight:600;font-size:14.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;color:var(--ink)}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:'+';color:var(--plum);font-weight:700;font-size:20px;line-height:1;transition:transform .2s}
+  .faq details[open] summary::after{transform:rotate(45deg)}
+  .faq p{font-size:13.5px;color:var(--ink2);margin-top:8px}
+
+  .closing{text-align:center;margin-top:52px}
+  .closing .paws{font-size:30px;letter-spacing:6px}
+  .closing h3{font-family:'Baloo 2',cursive;font-size:26px;color:var(--plum);line-height:1.15;margin:8px 0 6px}
+  .closing p{font-size:14px;color:var(--ink2)}
+  .sig{font-family:'Baloo 2',cursive;font-size:19px;color:var(--plum);margin-top:16px}
+
+  .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper) 70%,rgba(255,253,254,0));transform:translateY(120%);transition:transform .5s ease}
+  .dock.on{transform:none}
+  .dock a{display:flex;max-width:520px;margin:0 auto;justify-content:center;background:var(--plum);color:#fff;text-decoration:none;font-weight:600;border-radius:999px;padding:15px 18px;box-shadow:0 10px 24px rgba(109,66,184,.35)}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important}
+    .headline .ch,.sub,.personal,.again{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body class="locked">
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="balloons" id="balloons" aria-hidden="true"></div>
+
+<!-- Abertura: envelope -->
+<div class="intro" id="intro">
+  <div class="from"><img src="site-asset-0.jpg" alt=""> Bielyy Store</div>
+  <button class="env" id="env" type="button" aria-label="Abrir o convite">
+    <span class="back"></span>
+    <span class="letter" id="letter"><span id="letterTxt">Você foi selecionado! 🎉</span></span>
+    <span class="front"></span>
+    <span class="flap"></span>
+    <span class="seal">🐾</span>
+    <span class="to" id="envTo">Um convite para você</span>
+  </button>
+  <button class="tap" id="tap" type="button">💌 Abrir meu convite</button>
+  <p class="hint">Tem uma surpresa aqui dentro</p>
+</div>
+
+<div class="page" id="page" aria-live="polite">
+  <section class="stage" id="top">
+    <div class="brandline"><img src="site-asset-0.jpg" alt=""> Bielyy Store</div>
+    <div class="medal" aria-hidden="true">
+      <div class="ring"></div>
+      <div class="face" id="medalFace">🐶</div>
+      <div class="ribbon">1ª turma</div>
+    </div>
+    <h1 class="headline" id="headline">Você foi selecionado!</h1>
+    <p class="sub" id="sub">Você é <b>Embaixador Oficial da Bielyy Store</b> 💜</p>
+    <p class="personal" id="personal">Ficamos muito felizes em convidar vocês para a primeira turma de embaixadores da loja.</p>
+    <button class="again" id="again" type="button">🎉 Comemorar de novo</button>
+    <a class="scroll" href="#conteudo">Veja o seu convite<span>⌄</span></a>
+  </section>
+
+  <div class="sheet" id="conteudo">
+    <div class="wrap">
+
+      <div class="block">
+        <h2>O seu cupom</h2>
+        <p class="lead">Seus seguidores usam no site e você ganha comissão em cada compra.</p>
+        <div class="ticket">
+          <div class="main">
+            <div class="lbl">Cupom exclusivo</div>
+            <div class="code" id="ticketCode">SEU CUPOM</div>
+            <div class="rule">5% nos kits · compras a partir de R$ 100</div>
+          </div>
+          <div class="stub"><b>10%</b><small>nos avulsos</small></div>
+        </div>
+        <p class="ticket-note">O nome do cupom é você quem sugere. Ele fica pronto depois da assinatura.</p>
+      </div>
+
+      <div class="block">
+        <h2>O que você ganha</h2>
+        <ul class="perks">
+          <li><div class="blob">💜</div><div><b>8% de comissão em crédito</b><span>Em cada venda com o seu cupom, para usar em produtos do site. Liberada todo dia 07.</span></div></li>
+          <li><div class="blob">🛍️</div><div><b>15% de desconto em todo o site</b><span>Para você, inclusive usando o seu crédito.</span></div></li>
+          <li><div class="blob">🎁</div><div><b>Kit inicial de boas-vindas</b><span>Produtos escolhidos para o seu pet, para os primeiros conteúdos.</span></div></li>
+          <li><div class="blob">📦</div><div><b>Uma novidade por mês</b><span>1 produto para gravar, todo mês em que o conteúdo combinado for publicado.</span></div></li>
+          <li><div class="blob">🏆</div><div><b>Kit de presente a cada 2 meses</b><span>De no mínimo R$ 120, ao chegar a R$ 2.400 em vendas com o seu cupom.</span></div></li>
+          <li><div class="blob">📊</div><div><b>Um painel só seu</b><span>Vendas, comissão, crédito e kit do bimestre, tudo em tempo real.</span></div></li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <h2>O que combinamos por mês</h2>
+        <p class="lead">Com liberdade para você criar do seu jeito.</p>
+        <div class="month">
+          <div class="tile"><div class="big">2</div><p>Reels em Colaboração com @bielyy_store: um com produto e um sobre o site, a marca ou um kit</p></div>
+          <div class="tile"><div class="big">2×</div><p>sequências de stories por semana, com o link do seu cupom</p></div>
+          <div class="tile"><div class="big">1</div><p>conteúdo sobre um kit da loja (pode ser o Reel do site ou stories)</p></div>
+          <div class="tile"><div class="big">📁</div><p>arquivos do mês pelo Google Drive até o dia 05, para postarmos também na loja</p></div>
+        </div>
+        <p class="small">Tudo marcado como publicidade (#publi ou marcação de parceria), como pede o CONAR.</p>
+      </div>
+
+      <div class="block">
+        <h2>Outras parcerias</h2>
+        <div class="rules">
+          <div class="r ok"><i>✓</i><span>Você pode manter parcerias com marcas pet, serviços para pets e marcas de outros segmentos.</span></div>
+          <div class="r ok"><i>✓</i><span>Cupons de lojas com quem você já tem parceria podem ficar na bio e nos destaques.</span></div>
+          <div class="r no"><i>✕</i><span>Durante o contrato, sem divulgar lojas e boutiques pet parecidas com a Bielyy, sem parcerias novas com outras lojas pet e sem publis das lojas pet parceiras de antes.</span></div>
+          <div class="r no"><i>✕</i><span>Nos conteúdos da Bielyy, nada de outras lojas ou cupons.</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>Próximos passos</h2>
+        <p class="lead">Leva poucos minutos.</p>
+        <ol class="steps">
+          <li>
+            <b>Crie a sua conta no site</b>
+            <p>Use o mesmo e-mail que vai estar no contrato. É por ela que você entra no painel e usa o seu crédito.</p>
+            <a class="btn btn-line" href="https://bielyystore.com.br/" target="_blank" rel="noopener">Criar minha conta</a>
+          </li>
+          <li>
+            <b>Envie os dados do tutor por e-mail</b>
+            <p>Para bielyystore@gmail.com. O botão abaixo já abre o e-mail pronto para preencher:</p>
+            <ul class="fields">
+              <li>Nome completo e CPF</li>
+              <li>Endereço completo com CEP</li>
+              <li>E-mail da conta do site e WhatsApp</li>
+              <li>@ do perfil, nome, raça e porte (ou idade) do pet</li>
+              <li>Sugestão de nome para o cupom</li>
+              <li>Dias e horários livres para a chamada de vídeo</li>
+            </ul>
+            <a class="btn btn-plum" id="mailBtn" href="mailto:bielyystore@gmail.com">✉️ Enviar meus dados</a>
+          </li>
+          <li>
+            <b>Chamada de vídeo</b>
+            <p>Para nos conhecermos, explicar tudo com calma e tirar as suas dúvidas.</p>
+          </li>
+          <li>
+            <b>Assinatura do contrato</b>
+            <p>Contrato de 3 meses, assinado por link no celular. Depois disso, enviamos o seu kit de boas-vindas e liberamos o seu cupom!</p>
+          </li>
+        </ol>
+      </div>
+
+      <div class="block faq">
+        <h2>Dúvidas comuns</h2>
+        <details><summary>A comissão é paga em dinheiro?</summary><p>Não. Ela vira crédito na sua conta do site, para usar em qualquer produto da Bielyy junto com o seu desconto de 15%. O crédito não vence enquanto a parceria estiver ativa.</p></details>
+        <details><summary>Quanto tempo dura a parceria?</summary><p>3 meses. No fim, conversamos e podemos renovar por mais 3, olhando as vendas com o cupom e a regularidade dos conteúdos.</p></details>
+        <details><summary>Onde acompanho as minhas vendas?</summary><p>No painel do embaixador, em <a href="https://bielyystore.com.br/embaixador.html">bielyystore.com.br/embaixador.html</a>, com o login da sua conta, assim que o seu cadastro no programa for concluído.</p></details>
+        <details><summary>Qual link vai na bio?</summary><p>Depois de definido o cupom, o seu link fica assim: <b id="bioLink">bielyystore.com.br/?cupom=SEUCUPOM</b>. Quem entra por ele já recebe o desconto aplicado.</p></details>
+        <details><summary>E se eu precisar sair?</summary><p>Qualquer um dos lados pode encerrar avisando com 7 dias de antecedência, sem multa.</p></details>
+      </div>
+
+      <div class="closing">
+        <div class="paws" aria-hidden="true">🐾🐾🐾</div>
+        <h3 id="closingTitle">Que alegria ter vocês com a gente!</h3>
+        <p>Qualquer dúvida, é só chamar.</p>
+        <a class="btn btn-wa" href="https://wa.me/5511915971151?text=Oi!%20Recebi%20o%20convite%20para%20o%20Programa%20de%20Embaixadores%20da%20Bielyy%20Store%20%F0%9F%90%BE" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>
+        <div class="sig">Com carinho, Equipe Bielyy Store 🧡</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="dock" id="dock"><a id="dockBtn" href="mailto:bielyystore@gmail.com">✉️ Aceitar e enviar meus dados</a></div>
+
+<script>
+(function(){
+  /* ---------- Personalização pelo link (?pet=...) ---------- */
+  var PETS = {
+    snow:     {name:'Snow', a:'o', sel:'selecionado', face:'🐶', role:'Embaixador', coupon:'SNOW10',
+               text:'Amamos as viagens pet friendly e a qualidade dos conteúdos de vocês. Vai ser uma parceria muito especial!'},
+    pacoca:   {name:'Paçoca', a:'a', sel:'selecionada', face:'🐕', role:'Embaixadora', coupon:'PACOCA10', tutor:'Sonia',
+               text:'Amamos o bom humor e a simpatia da Paçoca (e os óculos anti enjoo!). Ter uma veterinária ao nosso lado é muito especial para nós.'},
+    banguela: {name:'Banguela', a:'o', sel:'selecionado', face:'🐈‍⬛', role:'Embaixador', coupon:'BANGUELA10',
+               text:'O nosso primeiro embaixador felino, o verdadeiro dono da casa e dos humanos 👑'}
+  };
+  var params = new URLSearchParams(location.search);
+  var key = (params.get('pet') || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  var p = PETS[key];
+  var $ = function(id){ return document.getElementById(id); };
+  var title = 'Você foi selecionado!';
+  var subject = 'Embaixador – Bielyy Store';
+  if(p){
+    title = p.name + ', você foi ' + p.sel + '!';
+    document.title = p.name + ', você tem um convite! — Bielyy Store';
+    $('envTo').textContent = 'Para: ' + p.name + ' 🐾';
+    $('letterTxt').textContent = p.name + '! 🎉';
+    var img = new Image(); img.alt = p.name; img.src = 'embaixador-' + key + '.jpg';
+    img.onload = function(){ var f = $('medalFace'); f.textContent = ''; f.appendChild(img);
+      var mini = img.cloneNode(); mini.style.cssText = 'width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #B79BEA'; $('letter').insertBefore(mini, $('letterTxt')); };
+    $('medalFace').textContent = p.face;
+    $('sub').innerHTML = (p.a === 'a' ? 'A ' : 'O ') + p.name + ' é ' + (p.a === 'a' ? 'a nova <b>Embaixadora Oficial</b>' : 'o novo <b>Embaixador Oficial</b>') + ' da Bielyy Store 💜';
+    $('personal').textContent = (p.tutor ? 'Oi, ' + p.tutor + '! ' : '') + p.text;
+    $('ticketCode').textContent = p.coupon;
+    $('bioLink').textContent = 'bielyystore.com.br/?cupom=' + p.coupon;
+    $('closingTitle').textContent = 'Que alegria ter ' + p.a + ' ' + p.name + ' com a gente!';
+    subject = p.role + ' – ' + p.name;
+  }
+  // Título letra por letra (para o pulinho de cada letra)
+  var h = $('headline'); h.setAttribute('aria-label', title); h.textContent = '';
+  var idx = 0;
+  title.split(' ').forEach(function(word, wi){
+    if(wi){ var sp = document.createElement('span'); sp.className = 'sp'; sp.setAttribute('aria-hidden','true'); h.appendChild(sp); h.appendChild(document.createTextNode(' ')); idx++; }
+    var w = document.createElement('span'); w.className = 'w'; w.setAttribute('aria-hidden','true');
+    Array.from(word).forEach(function(c){ var s = document.createElement('span'); s.className = 'ch'; s.textContent = c; s.style.setProperty('--i', idx++); w.appendChild(s); });
+    h.appendChild(w);
+  });
+  var body = 'Olá, Equipe Bielyy Store!\n\nSeguem os dados para o Programa de Embaixadores:\n\nNome completo do tutor:\nCPF:\nEndereço completo com CEP:\nE-mail usado na conta do site:\nWhatsApp:\n@ do perfil do pet:\nNome, raça e porte/idade do pet:' + (p ? ' ' + p.name : '') + '\nSugestão de nome para o cupom:' + (p ? ' ' + p.coupon : '') + '\nDias e horários livres para a chamada de vídeo:\n';
+  var mail = 'mailto:bielyystore@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  $('mailBtn').href = mail; $('dockBtn').href = mail;
+
+  /* ---------- Festa: confete, fogos e balões ---------- */
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cv = $('fx'), ctx = cv.getContext('2d'), W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  function size(){ W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  size(); addEventListener('resize', size);
+  var COLORS = ['#6D42B8','#8B5FD1','#B79BEA','#FF7FAE','#FFD9E6','#FFC93C','#3FAE83','#ffffff'];
+  var parts = [], rockets = [], running = false;
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function confetti(x, y, n, spread, power){
+    var side = x < 0 ? 1 : (x > W ? -1 : 0);
+    for(var i=0;i<n;i++){
+      var ang = side ? -Math.PI/2 + side*rnd(.35, .95) : rnd(-Math.PI/2 - spread, -Math.PI/2 + spread), sp = rnd(power*.45, power);
+      parts.push({kind: Math.random() < .12 ? 'heart' : (Math.random() < .5 ? 'rect' : 'dot'), x:x, y:y,
+        vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp, g:rnd(.16,.26), drag:rnd(.975,.99), r:rnd(4,8), rot:rnd(0,6.3), vr:rnd(-.25,.25),
+        tilt:rnd(0,6.3), c:COLORS[(Math.random()*COLORS.length)|0], life:rnd(160,240), age:0});
+    }
+    go();
+  }
+  function rocket(){
+    rockets.push({x:rnd(W*.15,W*.85), y:H+10, vy:-rnd(9.5,12.5), ty:rnd(H*.14,H*.38), c:COLORS[(Math.random()*6)|0]}); go();
+  }
+  function burst(x, y, c){
+    var n = 46;
+    for(var i=0;i<n;i++){
+      var ang = i/n*Math.PI*2, sp = rnd(2.2,4.6);
+      parts.push({kind:'spark', x:x, y:y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp, g:.05, drag:.975, r:rnd(1.6,2.6), c:Math.random()<.35?'#FFC93C':c, life:rnd(60,90), age:0});
+    }
+  }
+  function heart(x,y,s){ ctx.beginPath(); ctx.moveTo(x, y + s*.3); ctx.bezierCurveTo(x, y - s*.3, x - s, y - s*.3, x - s, y + s*.15); ctx.bezierCurveTo(x - s, y + s*.6, x, y + s*.9, x, y + s*1.1); ctx.bezierCurveTo(x, y + s*.9, x + s, y + s*.6, x + s, y + s*.15); ctx.bezierCurveTo(x + s, y - s*.3, x, y - s*.3, x, y + s*.3); ctx.fill(); }
+  function go(){ if(!running){ running = true; requestAnimationFrame(tick); } }
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=rockets.length-1;i>=0;i--){
+      var r = rockets[i]; r.y += r.vy; r.vy *= .985;
+      ctx.fillStyle = r.c; ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(r.x, r.y, 2.6, 0, 7); ctx.fill();
+      ctx.globalAlpha = .35; ctx.fillRect(r.x-1, r.y, 2, 16);
+      if(r.y <= r.ty || r.vy > -2){ burst(r.x, r.y, r.c); rockets.splice(i,1); }
+    }
+    for(var j=parts.length-1;j>=0;j--){
+      var q = parts[j]; q.age++;
+      q.vx *= q.drag; q.vy = q.vy*q.drag + q.g; q.x += q.vx + (q.kind==='rect'||q.kind==='dot' ? Math.sin(q.age*.08 + q.tilt)*.6 : 0); q.y += q.vy;
+      var a = 1 - Math.max(0, (q.age - q.life*.7) / (q.life*.3)); if(a <= 0 || q.y > H + 40){ parts.splice(j,1); continue; }
+      ctx.globalAlpha = a; ctx.fillStyle = q.c;
+      if(q.kind === 'rect'){ q.rot += q.vr; ctx.save(); ctx.translate(q.x,q.y); ctx.rotate(q.rot); ctx.scale(1, Math.cos(q.age*.12 + q.tilt)); ctx.fillRect(-q.r, -q.r*.45, q.r*2, q.r*.9); ctx.restore(); }
+      else if(q.kind === 'heart'){ heart(q.x, q.y, q.r*.9); }
+      else { ctx.beginPath(); ctx.arc(q.x, q.y, q.kind==='spark' ? q.r : q.r*.6, 0, 7); ctx.fill(); }
+    }
+    ctx.globalAlpha = 1;
+    if(parts.length || rockets.length) requestAnimationFrame(tick); else { running = false; ctx.clearRect(0,0,W,H); }
+  }
+  var BCOL = [['#8B5FD1','#B79BEA'],['#FF7FAE','#FFB3CF'],['#FFC93C','#FFE08A'],['#6D42B8','#9C78DE'],['#FFD9E6','#FFF0F5'],['#3FAE83','#8FDDB9']];
+  function balloons(n){
+    var box = $('balloons');
+    for(var i=0;i<n;i++){
+      var c = BCOL[i % BCOL.length], w = rnd(46, 78)|0, el = document.createElement('div');
+      el.className = 'balloon';
+      el.style.left = rnd(-4, 92) + '%';
+      el.style.setProperty('--w', w + 'px');
+      el.style.setProperty('--t', rnd(7.5, 11).toFixed(2) + 's');
+      el.style.setProperty('--d', rnd(0, 1.6).toFixed(2) + 's');
+      el.style.setProperty('--s', rnd(2.4, 3.8).toFixed(2) + 's');
+      el.innerHTML = '<svg viewBox="0 0 60 120"><defs><radialGradient id="g'+i+'" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="'+c[1]+'"/><stop offset="1" stop-color="'+c[0]+'"/></radialGradient></defs>'
+        + '<path d="M30 2C14 2 4 15 4 30c0 17 14 31 24 36h4c10-5 24-19 24-36C56 15 46 2 30 2z" fill="url(#g'+i+')"/>'
+        + '<ellipse cx="20" cy="20" rx="5" ry="8" fill="#fff" opacity=".45" transform="rotate(-20 20 20)"/>'
+        + '<path d="M26 66l4 6 4-6z" fill="'+c[0]+'"/>'
+        + '<path d="M30 72c-4 8 4 14 0 22s4 14 0 24" stroke="#B9A9D6" stroke-width="1.4" fill="none"/></svg>';
+      box.appendChild(el);
+      setTimeout((function(e){ return function(){ e.remove(); }; })(el), 14000);
+    }
+  }
+  function party(){
+    if(reduce) return;
+    confetti(W/2, H*.58, 150, .9, 15);
+    setTimeout(function(){ confetti(-10, H*.75, 60, .5, 14); confetti(W+10, H*.75, 60, .5, 14); }, 250);
+    [500, 1100, 1700, 2400].forEach(function(t){ setTimeout(rocket, t); });
+    balloons(W < 500 ? 9 : 14);
+  }
+  /* ---------- Abrir o convite ---------- */
+  var opened = false;
+  function open(){
+    if(opened) return; opened = true;
+    try{ navigator.vibrate && navigator.vibrate([20,40,30]); }catch(e){}
+    $('env').classList.add('open');
+    setTimeout(function(){
+      $('intro').classList.add('gone');
+      document.body.classList.remove('locked');
+      $('page').classList.add('show');
+      party();
+    }, reduce ? 0 : 1050);
+    setTimeout(function(){ $('intro').style.display = 'none'; }, 2000);
+  }
+  $('env').addEventListener('click', open);
+  $('tap').addEventListener('click', open);
+  $('again').addEventListener('click', party);
+  if(params.get('aberto') === '1'){ $('intro').style.display = 'none'; document.body.classList.remove('locked'); $('page').classList.add('show'); setTimeout(party, 300); opened = true; }
+
+  // Botão fixo aparece quando a pessoa desce até o conteúdo
+  var dock = $('dock');
+  addEventListener('scroll', function(){ dock.classList.toggle('on', scrollY > innerHeight * .7); }, {passive:true});
+})();
+</script>
+</body>
+</html>

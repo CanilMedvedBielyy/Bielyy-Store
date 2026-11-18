@@ -3,6 +3,7 @@ Allow: /
 Disallow: /admin.html
 Disallow: /pedido.html
 Disallow: /embaixador.html
+Disallow: /convite-embaixador.html
 Disallow: /.netlify/functions/
 Allow: /.netlify/functions/product-photo
 Allow: /.netlify/functions/catalog
