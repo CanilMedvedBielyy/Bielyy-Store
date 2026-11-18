@@ -1392,7 +1392,7 @@ function gaPurchase(nsu, value, items){
         </div>
       </div>
       <div class="search-row">
-        <input class="search-input" id="searchInput" placeholder="Buscar produto ou marca…" oninput="renderShop()">
+        <input class="search-input" id="searchInput" placeholder="Buscar: patê, Kong, bolinha, gato…" oninput="onShopSearch()" autocomplete="off">
       </div>
       <div class="filter-panel">
         <div class="filter-bar" id="categoryFilter"></div>
@@ -1424,7 +1424,7 @@ function gaPurchase(nsu, value, items){
         </div>
       </div>
       <div class="search-row">
-        <input class="search-input" id="searchInputPre" placeholder="Buscar produto ou marca…" oninput="renderPreorder()">
+        <input class="search-input" id="searchInputPre" placeholder="Buscar: patê, Kong, bolinha, gato…" oninput="onPreSearch()" autocomplete="off">
       </div>
       <div class="filter-panel">
         <div class="filter-bar" id="categoryFilterPre"></div>
@@ -2144,13 +2144,14 @@ let appliedCoupon = null;
 const COUPONS = {
   "BIELYY10": { fixed: 10, minSubtotal: 100, firstPurchaseOnly: true, requiresAccount: true, accountFirstOrder: true, label: "R$ 10 OFF na primeira compra (a partir de R$ 100 em produtos)" },
   // Programa cliente fiel: da 2ª compra em diante 5% (VOLTEI5), em todas as compras
-  "VOLTEI5": { percent: 5, requiresAccount: true, loyalty: "repeat", label: "5% OFF de cliente fiel" },
-  "BIELYYFRET3": { fixed: 0, freeShipping: true, label: "Frete grátis" },
+  "VOLTEI5": { percent: 5, minSubtotal: 100, requiresAccount: true, loyalty: "repeat", label: "5% OFF de cliente fiel (a partir de R$ 100 em produtos)" },
+  "BIELYYFRET3": { fixed: 0, freeShipping: true, minSubtotal: 100, label: "Frete grátis (a partir de R$ 100 em produtos)" },
   // Parceiro: Erivam (síndico de condomínios no RJ), divulga nos grupos dos condomínios
-  "ERIVAM10": { percent: 10, label: "10% OFF com o cupom ERIVAM10" },
-  "MATEUSADESTRA": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 5, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral) — cupom do adestrador Mateus" },
-  // Embaixadores: copie a linha abaixo, troque o CÓDIGO e tire as duas barras do começo (pedido mínimo R$ 150; para a conta de gato, use minSubtotal: 100)
-  // "CODIGO": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 7, minSubtotal: 150, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral) — embaixador Bielyy" },
+  "ERIVAM10": { percent: 10, minSubtotal: 100, label: "10% OFF com o cupom ERIVAM10 (a partir de R$ 100 em produtos)" },
+  "MATEUSADESTRA": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 5, minSubtotal: 100, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral), a partir de R$ 100 em produtos — cupom do adestrador Mateus" },
+  // Pedido mínimo de R$ 100 em produtos para todos os cupons, menos o CPM15 (decisão de 18/11/2026). Os cupons dos embaixadores vêm do painel (aba Embaixadores → Regras).
+  // Embaixadores (modelo antigo, hoje vêm do painel): copie a linha abaixo, troque o CÓDIGO e tire as duas barras do começo
+  // "CODIGO": { percent: 10, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, commissionPct: 8, minSubtotal: 100, label: "10% OFF (5% em kits e na Bielyy BOX mensal, R$ 10 OFF na BOX trimestral) — embaixador Bielyy" },
   // Moradores do prédio (CPM, Rua Sapucaia, 326): 15% nos avulsos, 5% em kits e na BOX, e entrega grátis no prédio.
   // Só vale com o CEP 03170-050 e o número 326 no endereço de entrega.
   "CPM15": { percent: 15, kitPercent: 5, boxPercent: 5, boxTriFixed: 10, building: { cep: '03170050', number: '326', name: 'Rua Sapucaia, 326' }, label: "15% OFF + entrega grátis no prédio — moradores do CPM" },
@@ -2372,7 +2373,7 @@ function loyaltyProblem(coupon, r){
 }
 function loyaltyCouponFor(paid){
   if(paid === 0) return { code: PROMO10, title: 'R$ 10 OFF na sua 1ª compra', sub: 'A partir de R$ 100 em produtos.' };
-  return { code: 'VOLTEI5', title: '5% OFF nesta compra', sub: 'Vale em todas as suas compras a partir da 2ª. Obrigada por ser cliente fiel 💜' };
+  return { code: 'VOLTEI5', title: '5% OFF nesta compra', sub: 'Vale da 2ª compra em diante, em compras a partir de R$ 100 em produtos. Obrigada por ser cliente fiel 💜' };
 }
 function useAccountCoupon(code){
   closeAuthModal(); openCart();
@@ -2805,6 +2806,134 @@ function isCatItem(f){ const st = storyOf(f); return f.category==='Para Gatos' |
 function inCategory(f, c){ return c==='all' || f.category===c || (c==='Para Gatos' && (isCatItem(f) || (storyOf(f)||{}).s==='a')); } // "cães e gatos" também aparece em Para Gatos
 function sizeOk(f, sz){ if(sz==='all') return true; if(isCatItem(f)) return false; return !f.sizes || f.sizes.length===0 || f.sizes.includes(sz); }
 function catQ(f, q){ return !!q && /gat/.test(q) && (isCatItem(f) || (storyOf(f)||{}).s==='a'); }
+
+/* ---------- Busca inteligente ----------
+   Ignora acentos e maiúsculas (patê = pate), procura no nome, na marca, na categoria, na descrição e nos itens dos kits,
+   entende sinônimos (petisco = snack, bolinha = bola, gato = felino...) e aceita pequenos erros de digitação (cong = kong).
+   Os resultados vêm ordenados pelo mais parecido com o que a pessoa digitou. */
+function normTxt(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/&/g,' e ').replace(/[^a-z0-9]+/g,' ').trim(); }
+const SEARCH_STOP = new Set(['de','da','do','das','dos','para','pra','pro','com','e','o','a','os','as','um','uma','no','na','em','meu','minha','p']);
+const SEARCH_SYN = [
+  ['pate','patezinho','pasta','recheio','umido','umida'],
+  ['petisco','petiscos','snack','snacks','biscoito','biscoitos','cookie','cookies','treat','agrado','mastigavel','guloseima'],
+  ['bola','bolas','bolinha','bolinhas','ball','tenis'],
+  ['osso','ossos','mordedor','mordedores','roer','bone','nylon','graveto'],
+  ['pelucia','pelucias','bichinho','plush','ursinho','urso','fofinho'],
+  ['gato','gatos','gatinho','gatinhos','felino','felinos','cat','kitty'],
+  ['cachorro','cachorros','cao','caes','dog','dogs','cachorrinho'],
+  ['filhote','filhotes','puppy','bebe'],
+  ['colete','coletes','salva','boia','piscina','praia','natacao'],
+  ['escova','escovas','pente','rasqueadeira','pelagem','tosa','brush','desembaracar','desembaracante'],
+  ['banho','shampoo','xampu','seco','perfume','cheiroso','higiene','limpeza','condicionador'],
+  ['lenco','lencos','umedecido','umedecidos','toalhinha'],
+  ['dente','dentes','dental','bucal','halito','boca','tartaro'],
+  ['racao','comida','alimento','alimentacao','lata','latinha','sache','refeicao'],
+  ['lambedor','lamber','tapete','lickimat','lick'],
+  ['comedouro','comedouros','tigela','tigelas','pote','bebedouro','vasilha'],
+  ['viagem','carro','passeio','travel','cinto','assento','banco','trilha'],
+  ['enriquecimento','interativo','puzzle','desafio','labirinto','dispenser','quebra'],
+  ['brinquedo','brinquedos','toy','toys','brincar'],
+  ['kong','cong','kongs'],
+  ['chuckit','chukit','chuckt','chucky','chuck'],
+  ['benebone','benebones','bene'],
+  ['lickimat','licki','likimat'],
+  ['pethead','pet head'],
+  ['arm e hammer','arm hammer','armhammer','arm'],
+  ['carnilove','carni love','carni'],
+  ['outward hound','outward','hound'],
+  ['nina ottosson','ottosson','nina'],
+  ['saquinho','saquinhos','fezes','coco','cata caca'],
+  ['kit','kits','combo','combos','presente','caixa'],
+  ['resistente','destruidor','destruidores','forte','extreme','indestrutivel'],
+  ['ansiedade','ansioso','calma','calmante','acalmar','estresse','fogos','sozinho'],
+  ['orelha','orelhas','ouvido','ouvidos'],
+  ['pequeno','pequena','pequenos','mini','xs','small'],['medio','media','medios','medium'],['grande','grandes','xg','gigante','jumbo','large']
+].map(g=>g.map(normTxt));
+function levLe(a, b, max){
+  if(Math.abs(a.length-b.length) > max) return false;
+  let prev = Array.from({length:b.length+1}, (_,j)=>j);
+  for(let i=1;i<=a.length;i++){
+    const cur=[i]; let best=i;
+    for(let j=1;j<=b.length;j++){ cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1)); if(cur[j]<best) best=cur[j]; }
+    if(best>max) return false; prev=cur;
+  }
+  return prev[b.length] <= max;
+}
+const _searchCache = new Map();
+function searchFields(f){
+  const key = f.id + '|' + f.name;
+  if(_searchCache.has(key)) return _searchCache.get(key);
+  const st = (typeof storyOf==='function' ? storyOf(f) : null) || {};
+  const cat = typeof isCatItem==='function' && isCatItem(f);
+  const tags = [f.category, (st.t||[]).join(' '), (f.sizes||[]).map(k=>SIZE_LABELS[k]||'').join(' ')];
+  if(cat || st.s==='a') tags.push('gato'); if(!cat) tags.push('cachorro'); if(f.kit) tags.push('kit');
+  const comps = [];
+  (f.variants||[]).forEach(v=>{ (v.comps||[]).forEach(c=>{ if(c && c.f && c.f.name) comps.push(c.f.name, c.f.brand||''); }); if(v.label && v.label!=='Único') comps.push(v.label); });
+  (f.colors||[]).forEach(c=>comps.push(c.label||''));
+  const F = { name: normTxt(f.name), brand: normTxt(f.brand), tags: normTxt(tags.join(' ')), comps: normTxt(comps.join(' ')),
+              more: normTxt([f.desc, st.h, st.w, (st.b||[]).join(' ')].join(' ')) };
+  F.nb = F.name + ' ' + F.brand;
+  F.all = [F.nb, F.tags, F.comps, F.more].join(' ');
+  F.words = [...new Set(F.all.split(' ').filter(Boolean))];
+  _searchCache.set(key, F); return F;
+}
+function hasWordPrefix(text, t){ return (' ' + text).indexOf(' ' + t) >= 0; }
+// Quanto a palavra t combina com o produto. strong = achou no nome, marca, categoria/etiquetas ou nos itens do kit.
+function tokenMatch(F, t){
+  if(hasWordPrefix(F.nb, t)) return {s:10, strong:true};
+  if(hasWordPrefix(F.tags, t)) return {s:6, strong:true};
+  if(hasWordPrefix(F.comps, t)) return {s:4, strong:true};
+  let syn = null;
+  for(const g of SEARCH_SYN){
+    if(!g.some(w=>w===t || (t.length>=3 && w.startsWith(t)) || (t.length>=5 && levLe(t, w, 1)))) continue;
+    for(const a of g){
+      if(hasWordPrefix(F.nb, a)) return {s:7, strong:true};
+      if(hasWordPrefix(F.tags, a)) syn = {s:5, strong:true};
+      else if(!syn && hasWordPrefix(F.comps, a)) syn = {s:3, strong:true};
+      else if(!syn && hasWordPrefix(F.more, a)) syn = {s:2, strong:false};
+    }
+  }
+  if(syn && syn.strong) return syn;
+  if(hasWordPrefix(F.more, t)) return {s:3, strong:false};
+  if(syn) return syn;
+  if(t.length >= 4){
+    const max = t.length >= 8 ? 2 : 1;
+    if(F.nb.split(' ').some(w=>levLe(t, w, max) || (w.length>t.length && levLe(t, w.slice(0, t.length), max)))) return {s:5, strong:false, typo:true};
+    if(F.all.indexOf(t) >= 0) return {s:2, strong:false};
+  }
+  return {s:0, strong:false};
+}
+// Filtra e ordena uma lista pela busca. Primeiro tenta achar no nome, marca, categoria e kits;
+// só olha a descrição (e aceita erro de digitação) quando a palavra não aparece em nenhum desses.
+function smartSearch(list, q){
+  const tokens = normTxt(q).split(' ').filter(t=>t && !SEARCH_STOP.has(t));
+  if(!tokens.length) return list;
+  const rows = list.map(f=>{ const F = searchFields(f); return {f, m: tokens.map(t=>tokenMatch(F, t))}; });
+  const strongTok = tokens.map((_,i)=>rows.some(r=>r.m[i].strong));
+  const qn = normTxt(q);
+  let scored = rows.filter(r=>r.m.every((m,i)=>strongTok[i] ? m.strong : m.s>0))
+                   .map(r=>({f:r.f, s:r.m.reduce((a,m)=>a+m.s,0) + (normTxt(r.f.name).indexOf(qn)>=0 ? 5 : 0)}));
+  if(!scored.length && tokens.length > 1)
+    scored = rows.map(r=>({f:r.f, s:r.m.reduce((a,m)=>a+(m.strong?m.s:m.s/2),0)})).filter(x=>x.s>=5);
+  if(!scored.length) return [];
+  const top = Math.max(...scored.map(x=>x.s));
+  return scored.filter(x=>x.s >= top*0.25).sort((a,b)=>b.s-a.s).map(x=>x.f);
+}
+function onShopSearch(){
+  const q = (document.getElementById('searchInput')?.value || '').trim();
+  if(q && (activeCategory!=='all' || activeSize!=='all' || activeDura!=='all' || activeLevel!=='all')){ activeCategory='all'; activeSize='all'; activeDura='all'; activeLevel='all'; renderFilters(); }
+  renderShop();
+}
+function onPreSearch(){
+  const q = (document.getElementById('searchInputPre')?.value || '').trim();
+  if(q && (activeCategoryPre!=='all' || activeSizePre!=='all' || activeDura!=='all' || activeLevel!=='all')){ activeCategoryPre='all'; activeSizePre='all'; activeDura='all'; activeLevel='all'; renderFiltersPre(); }
+  renderPreorder();
+}
+function goPreorderSearch(){
+  const q = document.getElementById('searchInput')?.value || '';
+  showView('preorder');
+  const i = document.getElementById('searchInputPre'); if(i){ i.value = q; onPreSearch(); }
+}
 function recommendationsFor(ids, exclude, max){
   const score = {};
   ids.forEach(id=>{ const st = PRODUCT_STORY[String(id)]; if(!st) return;
@@ -2958,16 +3087,18 @@ function setCategory(c){ activeCategory = c; activeSize='all'; activeDura='all';
 function setBrand(b){ activeBrand = b; renderFilters(); renderShop(); }
 function setSize(s){ activeSize = s; renderFilters(); renderShop(); }
 function renderShop(){
-  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const q = (document.getElementById('searchInput')?.value || '').trim();
   let list = PRODUCT_FAMILIES.filter(f=>{
     const matchCat = inCategory(f, activeCategory);
     const matchBrand = activeBrand==='all' || f.brand===activeBrand;
     const matchSize = sizeOk(f, activeSize);
-    const matchQ = !q || catQ(f, q) || f.name.toLowerCase().includes(q) || f.brand.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || (f.sizes||[]).some(s=>SIZE_LABELS[s].toLowerCase().includes(q));
-    return matchCat && matchBrand && matchSize && matchQ && matchExtra(f);
+    return matchCat && matchBrand && matchSize && matchExtra(f);
   });
+  if(q) list = smartSearch(list, q);
   const grid = document.getElementById('shopGrid');
-  grid.innerHTML = list.length ? list.map(productCard).join('') : `<p style="color:var(--ink-soft); grid-column:1/-1; text-align:center; padding:40px 0;">Nenhum produto encontrado com esse filtro. Tente outra busca 🐾</p>`;
+  const pre = q && typeof PREORDER_FAMILIES!=='undefined' ? smartSearch(PREORDER_FAMILIES, q).length : 0;
+  const preNote = pre ? `<p style="grid-column:1/-1; text-align:center; padding:6px 0 0;"><button class="btn btn-ghost" type="button" onclick="goPreorderSearch()">Ver também ${pre} ${pre===1?'produto':'produtos'} sob encomenda para “${q.replace(/[<>&"]/g,'')}” 🐾</button></p>` : '';
+  grid.innerHTML = list.length ? list.map(productCard).join('') + preNote : `<p style="color:var(--ink-soft); grid-column:1/-1; text-align:center; padding:40px 0;">${q ? 'Não achamos “' + q.replace(/[<>&"]/g,'') + '” no estoque. Tente outra palavra, como patê, Kong, bolinha ou gato 🐾' : 'Nenhum produto encontrado com esse filtro. Tente outra busca 🐾'}</p>` + preNote;
 }
 
 /* =====================================================
@@ -2984,14 +3115,14 @@ function setCategoryPre(c){ activeCategoryPre = c; activeSizePre='all'; activeDu
 function setBrandPre(b){ activeBrandPre = b; renderFiltersPre(); renderPreorder(); }
 function setSizePre(s){ activeSizePre = s; renderFiltersPre(); renderPreorder(); }
 function renderPreorder(){
-  const q = (document.getElementById('searchInputPre')?.value || '').toLowerCase();
+  const q = (document.getElementById('searchInputPre')?.value || '').trim();
   let list = PREORDER_FAMILIES.filter(f=>{
     const matchCat = inCategory(f, activeCategoryPre);
     const matchBrand = activeBrandPre==='all' || f.brand===activeBrandPre;
     const matchSize = sizeOk(f, activeSizePre);
-    const matchQ = !q || catQ(f, q) || f.name.toLowerCase().includes(q) || f.brand.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || (f.sizes||[]).some(s=>SIZE_LABELS[s].toLowerCase().includes(q));
-    return matchCat && matchBrand && matchSize && matchQ && matchExtra(f);
+    return matchCat && matchBrand && matchSize && matchExtra(f);
   });
+  if(q) list = smartSearch(list, q);
   const grid = document.getElementById('preorderGrid');
   grid.innerHTML = list.length ? list.map(productCard).join('') : `<p style="color:var(--ink-soft); grid-column:1/-1; text-align:center; padding:40px 0;">Nenhum produto encontrado com esse filtro. Tente outra busca 🐾</p>`;
 }
